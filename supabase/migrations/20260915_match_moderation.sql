@@ -7,11 +7,20 @@ ALTER TABLE public.matches
   ADD COLUMN IF NOT EXISTS payout_note TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.matches
   ADD COLUMN IF NOT EXISTS payout_reviewed_at TIMESTAMPTZ;
+ALTER TABLE public.matches
+  ADD COLUMN IF NOT EXISTS creator_claim UUID REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE public.matches
+  ADD COLUMN IF NOT EXISTS opponent_claim UUID REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE public.matches
+  ADD COLUMN IF NOT EXISTS creator_claimed_at TIMESTAMPTZ;
+ALTER TABLE public.matches
+  ADD COLUMN IF NOT EXISTS opponent_claimed_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_matches_payout_status
   ON public.matches(payout_status, updated_at DESC);
 
 DROP POLICY IF EXISTS "Match participants and admins can update" ON public.matches;
+DROP POLICY IF EXISTS "Match participants and admins can update safely" ON public.matches;
 CREATE POLICY "Match participants and admins can update safely" ON public.matches
   FOR UPDATE
   USING (public.is_admin() OR auth.uid() = creator_id OR auth.uid() = opponent_id)
@@ -23,6 +32,48 @@ CREATE POLICY "Match participants and admins can update safely" ON public.matche
       AND payout_status = 'PENDING'
     )
   );
+
+CREATE OR REPLACE FUNCTION public.submit_match_result_claim(
+  match_id_value UUID,
+  winner_id_value UUID
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  game public.matches%ROWTYPE;
+BEGIN
+  SELECT * INTO game
+  FROM public.matches
+  WHERE id = match_id_value
+  FOR UPDATE;
+
+  IF game.id IS NULL OR game.opponent_id IS NULL THEN
+    RAISE EXCEPTION 'match is not ready for result claims';
+  END IF;
+  IF auth.uid() <> game.creator_id AND auth.uid() <> game.opponent_id THEN
+    RAISE EXCEPTION 'only match participants can submit claims';
+  END IF;
+  IF game.status NOT IN ('PLAYING', 'COMPLETED', 'DISPUTE') OR game.payout_status = 'APPROVED' THEN
+    RAISE EXCEPTION 'match is not accepting result claims';
+  END IF;
+  IF winner_id_value <> game.creator_id AND winner_id_value <> game.opponent_id THEN
+    RAISE EXCEPTION 'winner must be a match participant';
+  END IF;
+
+  IF auth.uid() = game.creator_id THEN
+    UPDATE public.matches
+    SET creator_claim = winner_id_value, creator_claimed_at = NOW(), updated_at = NOW()
+    WHERE id = match_id_value;
+  ELSE
+    UPDATE public.matches
+    SET opponent_claim = winner_id_value, opponent_claimed_at = NOW(), updated_at = NOW()
+    WHERE id = match_id_value;
+  END IF;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.admin_set_match_result(
   match_id_value UUID,
@@ -142,3 +193,4 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_set_match_result(UUID, UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.review_match_payout(UUID, BOOLEAN, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.submit_match_result_claim(UUID, UUID) TO authenticated;
