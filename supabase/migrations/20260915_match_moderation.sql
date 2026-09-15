@@ -11,6 +11,19 @@ ALTER TABLE public.matches
 CREATE INDEX IF NOT EXISTS idx_matches_payout_status
   ON public.matches(payout_status, updated_at DESC);
 
+DROP POLICY IF EXISTS "Match participants and admins can update" ON public.matches;
+CREATE POLICY "Match participants and admins can update safely" ON public.matches
+  FOR UPDATE
+  USING (public.is_admin() OR auth.uid() = creator_id OR auth.uid() = opponent_id)
+  WITH CHECK (
+    public.is_admin()
+    OR (
+      (auth.uid() = creator_id OR auth.uid() = opponent_id)
+      AND winner_id IS NULL
+      AND payout_status = 'PENDING'
+    )
+  );
+
 CREATE OR REPLACE FUNCTION public.admin_set_match_result(
   match_id_value UUID,
   winner_id_value UUID,
@@ -36,6 +49,9 @@ BEGIN
 
   IF game.id IS NULL OR game.opponent_id IS NULL THEN
     RAISE EXCEPTION 'match is not ready for result review';
+  END IF;
+  IF game.status NOT IN ('PLAYING', 'DISPUTE', 'COMPLETED') THEN
+    RAISE EXCEPTION 'match status cannot be reviewed';
   END IF;
   IF game.payout_status = 'APPROVED' THEN
     RAISE EXCEPTION 'match payout is already approved';
@@ -86,6 +102,9 @@ BEGIN
 
   IF game.id IS NULL OR game.winner_id IS NULL THEN
     RAISE EXCEPTION 'winner must be recorded before payout review';
+  END IF;
+  IF game.status NOT IN ('COMPLETED', 'DISPUTE') THEN
+    RAISE EXCEPTION 'match result is not ready for payout review';
   END IF;
   IF game.payout_status = 'APPROVED' THEN
     RAISE EXCEPTION 'match payout is already approved';
