@@ -259,6 +259,11 @@ tr:last-child td { border-bottom: 0; }
 .request-details b { overflow: hidden; color: #d8e0ea; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .request-actions { display: flex; gap: 8px; margin-top: 14px; }
 .match-review-controls { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.match-review-wrapper { display: grid; gap: 8px; }
+.admin-claim-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; border: 1px solid rgba(99, 179, 255, .2); border-radius: 12px; background: rgba(99, 179, 255, .05); }
+.admin-claim-summary span { display: grid; gap: 4px; }
+.admin-claim-summary small { color: var(--muted); font-size: 9px; }
+.admin-claim-summary b { color: var(--blue); font-size: 10px; }
 .dispute-details { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .quote-box, .resolution-box, .ban-reason { padding: 12px; border-radius: 10px; color: #d6dfe9; background: #0b1016; font-size: 11px; line-height: 1.9; }
 .resolution-box { display: flex; gap: 8px; align-items: flex-start; color: var(--green); background: rgba(66, 228, 165, .07); }
