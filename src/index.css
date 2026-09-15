@@ -257,6 +257,7 @@ tr:last-child td { border-bottom: 0; }
 .request-details span { display: grid; gap: 4px; min-width: 0; }
 .request-details b { overflow: hidden; color: #d8e0ea; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .request-actions { display: flex; gap: 8px; margin-top: 14px; }
+.match-review-controls { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .dispute-details { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .quote-box, .resolution-box, .ban-reason { padding: 12px; border-radius: 10px; color: #d6dfe9; background: #0b1016; font-size: 11px; line-height: 1.9; }
 .resolution-box { display: flex; gap: 8px; align-items: flex-start; color: var(--green); background: rgba(66, 228, 165, .07); }
