@@ -112,6 +112,17 @@ arena-x/
 ### المتغيرات البيئية في Vercel:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (سري، لا يوضع في الواجهة)
+- `WHATSAPP_ACCESS_TOKEN` (Meta WhatsApp Cloud API)
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_ADMIN_PHONE` بصيغة دولية بدون `+`
+
+### تفعيل واتساب
+1. أنشئ تطبيقاً في Meta for Developers وأضف منتج WhatsApp.
+2. أضف المتغيرات الخمسة أعلاه في Vercel فقط، ولا تضع مفاتيح Meta أو `service_role` داخل `VITE_*`.
+3. طبّق migration `supabase/migrations/20260915_tournaments_whatsapp.sql` بعد migrations السابقة.
+4. بعد ذلك تُرسل إشعارات الإدارة تلقائياً عند طلب الشحن أو السحب، حفظ رمز غرفة المباراة، وتصريح اللاعب بنتيجة المباراة.
 
 ---
 
