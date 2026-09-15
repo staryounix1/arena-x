@@ -78,6 +78,7 @@ export default async function handler(request: any, response: any) {
     const creator = byId.get(match.creator_id) || { username: match.creator_name, email: '', efootball_id: match.creator_efootball_id };
     const opponent = match.opponent_id ? byId.get(match.opponent_id) || { username: match.opponent_name, email: '', efootball_id: match.opponent_efootball_id } : null;
     const playerLine = (label: string, player: any) => `${label}: ${safe(player?.username)} | ${safe(player?.email)} | ${safe(player?.efootball_id)}`;
+    const claimLabel = (claim: string | null, player: any) => claim ? claim === player?.id ? `فاز ${safe(player?.username)}` : claim === opponent?.id ? `فاز ${safe(opponent?.username)}` : safe(claim) : 'لم يرسل بعد';
     eventKey = `${body.type}:${body.id}:${body.type === 'match_claim' ? `${match.creator_claim || ''}:${match.opponent_claim || ''}` : match.room_code || ''}`;
     message = [
       body.type === 'match_room' ? '🎮 تحديث غرفة مباراة ARENA//X' : '🏁 تصريح نتيجة مباراة ARENA//X',
@@ -88,8 +89,8 @@ export default async function handler(request: any, response: any) {
       playerLine('اللاعب 1', creator),
       playerLine('اللاعب 2', opponent),
       `رمز الغرفة: ${safe(match.room_code)}`,
-      `تصريح اللاعب 1: ${safe(match.creator_claim, 'لم يرسل بعد')}`,
-      `تصريح اللاعب 2: ${safe(match.opponent_claim, 'لم يرسل بعد')}`,
+      `تصريح اللاعب 1: ${claimLabel(match.creator_claim, creator)}`,
+      `تصريح اللاعب 2: ${claimLabel(match.opponent_claim, opponent)}`,
       `الحالة: ${match.status}`,
     ].join('\n');
   }
