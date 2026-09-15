@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "preserve",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "resolveJsonModule": true,
+    "module": "ESNext",
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
+}
