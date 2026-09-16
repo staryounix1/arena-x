@@ -29,8 +29,10 @@ type Notification = { id: string; user_id: string; kind: string; title: string; 
 type SupportTicket = { id: string; user_id: string; subject: string; category: string; status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'; priority: string; created_at: string; updated_at: string };
 type Rating = { id: string; match_id: string; reviewer_id: string; reviewee_id: string; score: number; comment: string; created_at: string };
 type RegisterResult = 'SIGNED_IN' | 'CONFIRM_EMAIL' | null;
+type LeaderboardPlayer = { id: string; username: string; efootball_id: string; wins: number; losses: number; win_rate: number; favorite_team?: string; favorite_team_logo?: string };
 
 const mapUserRow = (row: Record<string, unknown>): User => ({ id: String(row.id), username: String(row.username || 'لاعب'), email: String(row.email || ''), role: row.role === 'ADMIN' ? 'ADMIN' : 'PLAYER', balance: Number(row.balance || 0), efootball_id: String(row.efootball_id || 'EF-000000'), whatsapp: String(row.whatsapp || ''), wins: Number(row.wins || 0), losses: Number(row.losses || 0), banned: Boolean(row.banned), ban_reason: row.ban_reason ? String(row.ban_reason) : '', created_at: row.created_at ? String(row.created_at) : undefined, last_login: row.last_login ? String(row.last_login) : undefined, rating_average: Number(row.rating_average || 0), rating_count: Number(row.rating_count || 0), trust_level: String(row.trust_level || 'NEW'), favorite_team: String(row.favorite_team || ''), favorite_team_logo: String(row.favorite_team_logo || ''), verification_status: (row.verification_status as VerificationStatus) || 'UNVERIFIED', whatsapp_verified_at: row.whatsapp_verified_at ? String(row.whatsapp_verified_at) : undefined });
+const mapLeaderboardRow = (row: Record<string, unknown>): LeaderboardPlayer => { const wins = Number(row.wins || 0); const losses = Number(row.losses || 0); return { id: String(row.id), username: String(row.username || 'لاعب'), efootball_id: String(row.efootball_id || 'EF-000000'), wins, losses, win_rate: wins + losses ? Number((wins / (wins + losses) * 100).toFixed(1)) : 0, favorite_team: String(row.favorite_team || ''), favorite_team_logo: String(row.favorite_team_logo || '') }; };
 const mapTournamentRow = (row: Record<string, unknown>, joined = false): Tournament => ({ id: String(row.id), title: String(row.title || 'بطولة جديدة'), prize_pool: Number(row.prize_pool || 0), entry_fee: Number(row.entry_fee || 0), max_players: Number(row.max_players || 0), participant_count: Number(row.participant_count || 0), start_date: String(row.start_date || ''), end_date: String(row.end_date || ''), rules: String(row.rules || ''), description: String(row.description || ''), image_url: String(row.image_url || ''), platform: String(row.platform || 'الهاتف'), status: (row.status as TournamentStatus) || 'UPCOMING', featured: Boolean(row.featured), joined });
 const emptyTournamentDraft = (): TournamentDraft => ({ title: '', prize_pool: 500, entry_fee: 20, max_players: 16, start_date: '', end_date: '', rules: 'إقصاء مباشر • eFootball Mobile • 10 دقائق', description: '', image_url: '', platform: 'الهاتف', status: 'UPCOMING', featured: false });
 const toTournamentDraft = (item?: Tournament): TournamentDraft => ({ id: item?.id, title: item?.title || '', prize_pool: item?.prize_pool || 500, entry_fee: item?.entry_fee || 20, max_players: item?.max_players || 16, start_date: item?.start_date || '', end_date: item?.end_date || '', rules: item?.rules || '', description: item?.description || '', image_url: item?.image_url || '', platform: item?.platform || 'الهاتف', status: item?.status || 'UPCOMING', featured: Boolean(item?.featured) });
@@ -46,7 +48,7 @@ const seedTournaments: Tournament[] = [
   { id: 't-1', title: 'بطولة رمضان المفتوحة', prize_pool: 2400, entry_fee: 50, max_players: 32, participant_count: 24, start_date: 'الجمعة، 21:00', end_date: '', rules: 'إقصاء مباشر • eFootball Mobile • 10 دقائق', description: 'مواجهة مفتوحة لأفضل لاعبي الساحة.', platform: 'الهاتف', status: 'UPCOMING', featured: true },
   { id: 't-2', title: 'كأس الدار البيضاء', prize_pool: 1500, entry_fee: 75, max_players: 16, participant_count: 11, start_date: 'السبت، 20:30', end_date: '', rules: 'إقصاء مباشر • PlayStation • 10 دقائق', description: 'كأس تنافسي بنظام خروج المغلوب.', platform: 'PlayStation', status: 'UPCOMING', featured: false },
 ];
-const seedPlayers = [
+const seedPlayers: LeaderboardPlayer[] = [
   { id: 'p1', username: 'Yassine_7', efootball_id: 'EF-728194', wins: 47, losses: 8, win_rate: 85.5 },
   { id: 'p2', username: 'Soufiane10', efootball_id: 'EF-441208', wins: 42, losses: 11, win_rate: 79.2 },
   { id: 'p3', username: 'HamzaPro', efootball_id: 'EF-991440', wins: 38, losses: 14, win_rate: 73.1 },
@@ -87,7 +89,7 @@ function useStored<T>(key: string, fallback: T): [T, (value: T | ((old: T) => T)
 }
 
 type ArenaContextValue = {
-  user: User | null; users: User[]; matches: Match[]; tournaments: Tournament[]; players: typeof seedPlayers; transactions: Tx[]; recharges: Recharge[]; withdrawals: Withdrawal[]; platformEarnings: PlatformEarning[]; paymentMethods: PaymentMethod[]; verifications: IdentityVerification[]; disputes: Dispute[]; activities: ActivityRecord[]; notifications: Notification[]; supportTickets: SupportTicket[]; settings: Record<string, string>; onlineCount: number;
+  user: User | null; users: User[]; matches: Match[]; tournaments: Tournament[]; players: LeaderboardPlayer[]; transactions: Tx[]; recharges: Recharge[]; withdrawals: Withdrawal[]; platformEarnings: PlatformEarning[]; paymentMethods: PaymentMethod[]; verifications: IdentityVerification[]; disputes: Dispute[]; activities: ActivityRecord[]; notifications: Notification[]; supportTickets: SupportTicket[]; settings: Record<string, string>; onlineCount: number;
   login: (identifier: string, password: string) => Promise<User['role'] | null>; register: (data: Partial<User>) => Promise<RegisterResult>; logout: () => void;
   createMatch: (title: string, stake: number, platform: string) => Promise<string | null>; joinMatch: (id: string) => boolean; cancelMatch: (id: string, reason: string) => Promise<boolean>; joinTournament: (id: string) => boolean; recharge: (amount: number, method: string, whatsapp: string, notes: string) => Promise<boolean>; requestWithdrawal: (amount: number, method: string, destination: string, notes: string) => Promise<boolean>;
   updateMatch: (id: string, patch: Partial<Match>) => void; setMatchRoom: (id: string, roomCode: string) => Promise<boolean>; confirmRoomCopied: (id: string) => Promise<boolean>; finishMatch: (id: string) => Promise<boolean>; submitMatchResultClaim: (id: string, winnerId: string) => Promise<boolean>; setMatchResult: (id: string, winnerId: string, note: string) => Promise<boolean>; reviewMatchPayout: (id: string, approved: boolean, note: string) => Promise<boolean>; addMessage: (id: string, message: string) => void; openDispute: (matchId: string, subject: string, details: string, files?: File[]) => void; resolveDispute: (id: string, status: Dispute['status'], resolution: string) => void;
@@ -112,7 +114,8 @@ function ArenaProvider({ children }: { children: ReactNode }) {
    const [notifications, setNotifications] = useStored<Notification[]>('arenax_notifications', []);
    const [supportTickets, setSupportTickets] = useStored<SupportTicket[]>('arenax_support_tickets', []);
     const [settings, setSettings] = useStored<Record<string, string>>('arenax_settings', { commission_rate: '0.10', whatsapp_mode: 'link', whatsapp_direct_link: DEFAULT_ADMIN_WHATSAPP_LINK, whatsapp_meta_phone_number_id: '', online_count_mode: 'auto', online_count_manual: '25', recharge_amounts: '5,10,20,50,100,200,500', cih_rib: 'YOUR-CIH-RIB', cih_name: 'إدارة ARENA//X', cashplus_name: 'إدارة ARENA//X', cashplus_cin: 'YOUR-CASHPLUS-CIN', featured_matches: JSON.stringify(DEFAULT_FEATURED_MATCHES) });
-   const [onlineCount, setOnlineCount] = useState(1);
+    const [onlineCount, setOnlineCount] = useState(1);
+    const [leaderboardPlayers, setLeaderboardPlayers] = useState<LeaderboardPlayer[]>([]);
 
      useEffect(() => { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; document.documentElement.classList.add('dark'); }, []);
      useEffect(() => {
@@ -144,8 +147,9 @@ function ArenaProvider({ children }: { children: ReactNode }) {
     const loadRemote = async () => {
       const session = (await supabase.auth.getSession()).data.session;
       if (session?.user) await loadProfile(session.user.id); else if (!cancelled) setUser(null);
-      const [usersResult, matchesResult, tournamentsResult, participantsResult, transactionsResult, rechargesResult, withdrawalsResult, disputesResult, evidenceResult, activitiesResult, settingsResult, notificationsResult, ticketsResult, platformEarningsResult, paymentMethodsResult, verificationsResult] = await Promise.all([
+      const [usersResult, leaderboardResult, matchesResult, tournamentsResult, participantsResult, transactionsResult, rechargesResult, withdrawalsResult, disputesResult, evidenceResult, activitiesResult, settingsResult, notificationsResult, ticketsResult, platformEarningsResult, paymentMethodsResult, verificationsResult] = await Promise.all([
         supabase.from('users').select('*').order('created_at', { ascending: false }),
+        supabase.rpc('get_public_leaderboard'),
         supabase.from('matches').select('*, match_messages(*)').order('created_at', { ascending: false }),
         supabase.from('tournaments').select('*').order('created_at', { ascending: false }),
         session?.user ? supabase.from('tournament_participants').select('tournament_id').eq('user_id', session.user.id) : Promise.resolve({ data: [] }),
@@ -163,7 +167,8 @@ function ArenaProvider({ children }: { children: ReactNode }) {
             session?.user ? supabase.from('identity_verifications').select('*, users!identity_verifications_user_id_fkey(username)').order('submitted_at', { ascending: false }) : Promise.resolve({ data: null }),
       ]);
       if (cancelled) return;
-       if (usersResult.data) setUsers(usersResult.data.map(mapUserRow));
+        if (usersResult.data) setUsers(usersResult.data.map(mapUserRow));
+        if (leaderboardResult.data) setLeaderboardPlayers((leaderboardResult.data as Record<string, unknown>[]).map(mapLeaderboardRow));
       if (matchesResult.data) setMatches(matchesResult.data.map((row: Record<string, unknown>) => ({ ...row, creator_id: row.creator_id, opponent_id: row.opponent_id || undefined, messages: ((row.match_messages as Record<string, unknown>[] | undefined) || []).map(message => ({ id: String(message.id), user_id: message.user_id ? String(message.user_id) : undefined, username: String(message.username), message: String(message.message) })) })) as Match[]);
        if (tournamentsResult.data) {
          const joinedIds = new Set((participantsResult.data || []).map((row: Record<string, unknown>) => String(row.tournament_id)));
@@ -381,7 +386,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
      const response = await fetch('/api/whatsapp-config', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: accessToken.trim(), phoneNumberId: phoneNumberId.trim() }) });
      return response.ok;
    };
-        const livePlayers = users.length ? users.map(item => ({ id: item.id, username: item.username, efootball_id: item.efootball_id, wins: item.wins, losses: item.losses, win_rate: item.wins + item.losses ? Number((item.wins / (item.wins + item.losses) * 100).toFixed(1)) : 0 })) : seedPlayers;
+        const livePlayers = leaderboardPlayers.length ? leaderboardPlayers : users.length ? users.map(item => ({ id: item.id, username: item.username, efootball_id: item.efootball_id, wins: item.wins, losses: item.losses, win_rate: item.wins + item.losses ? Number((item.wins / (item.wins + item.losses) * 100).toFixed(1)) : 0, favorite_team: item.favorite_team, favorite_team_logo: item.favorite_team_logo })) : seedPlayers;
           const value = { user, users, matches, tournaments, players: livePlayers, transactions, recharges, withdrawals, platformEarnings, paymentMethods, verifications, disputes, activities, notifications, supportTickets, settings, onlineCount, login, register, logout, createMatch, joinMatch, cancelMatch, joinTournament, saveTournament, deleteTournament, recharge, requestWithdrawal, updateMatch, setMatchRoom, confirmRoomCopied, finishMatch, submitMatchResultClaim, setMatchResult, reviewMatchPayout, addMessage, openDispute, resolveDispute, approveRecharge, approveWithdrawal, adjustUser, setUserBanned, saveSettings, saveProfile, savePaymentMethod, deletePaymentMethod, submitVerification, approveVerification, saveWhatsAppMeta, markNotificationRead, submitRating, createSupportTicket, acceptTerms };
   return <ArenaContext.Provider value={value}>{children}</ArenaContext.Provider>;
 }
