@@ -275,6 +275,8 @@ tr:last-child td { border-bottom: 0; }
 .settings-form { display: grid; gap: 22px; }
 .settings-section { display: grid; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .settings-section h3, .balance-control h4, .ban-control h4 { margin: 0; font-size: 13px; }
+.whatsapp-settings { padding: 16px; border: 1px solid rgba(66, 228, 165, .22); border-radius: 14px; background: rgba(16, 168, 117, .05); }
+.whatsapp-settings h3 { color: var(--green); }
 .user-list { display: grid; gap: 10px; }
 .user-admin-row { display: flex; align-items: center; gap: 11px; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .user-admin-main { display: grid; gap: 3px; min-width: 0; flex: 1; }
