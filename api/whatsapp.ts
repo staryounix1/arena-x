@@ -42,10 +42,10 @@ export default async function handler(request: any, response: any) {
     if (!isAdmin && result.data.user_id !== callerId) return json(response, 403, { error: 'Forbidden' });
     const profile = await admin.from('users').select('username,email,efootball_id').eq('id', result.data.user_id).single();
     if (profile.error || !profile.data) return json(response, 404, { error: 'User not found' });
-    const kind = body.type === 'recharge' ? 'شحن' : 'سحب';
+     const kind = body.type === 'recharge' ? 'طلب شحن' : 'طلب سحب';
     const method = body.type === 'recharge' ? result.data.payment_method : result.data.method;
     const destination = body.type === 'recharge' ? result.data.whatsapp : result.data.destination;
-    message = [`🔔 طلب ${kind} جديد في ARENA//X`, `رقم الطلب: ${result.data.id}`, `المستخدم: ${profile.data.username}`, `البريد: ${profile.data.email}`, `eFootball ID: ${profile.data.efootball_id}`, `المبلغ: ${money(result.data.amount)}`, `الطريقة: ${method}`, `بيانات التحويل: ${destination}`, `الحالة: ${result.data.status}`, `ملاحظات: ${safe(result.data.notes, 'لا توجد')}`].join('\n');
+     message = [`النوع: ${kind}`, `الحساب: ${profile.data.efootball_id}`, `اسم المستخدم: ${profile.data.username}`, `المبلغ: ${money(result.data.amount)}`, `الطريقة: ${method}`, `مرجع الطلب: ${result.data.id}`, `بيانات التحويل: ${destination}`, `الحالة: ${result.data.status}`, `ملاحظات: ${safe(result.data.notes, 'لا توجد')}`].join('\n');
   }
 
   if (body.type === 'match_room' || body.type === 'match_claim') {
@@ -62,7 +62,9 @@ export default async function handler(request: any, response: any) {
     const playerLine = (label: string, player: any) => `${label}: ${safe(player?.username)} | ${safe(player?.email)} | ${safe(player?.efootball_id)}`;
     const claimLabel = (claim: string | null, player: any) => claim ? claim === player?.id ? `فاز ${safe(player?.username)}` : claim === opponent?.id ? `فاز ${safe(opponent?.username)}` : safe(claim) : 'لم يرسل بعد';
     eventKey = `${body.type}:${body.id}:${body.type === 'match_claim' ? `${match.creator_claim || ''}:${match.opponent_claim || ''}` : match.room_code || ''}`;
-    message = [body.type === 'match_room' ? '🎮 تحديث غرفة مباراة ARENA//X' : '🏁 تصريح نتيجة مباراة ARENA//X', `رقم المباراة: ${match.id}`, `العنوان: ${match.title}`, `المنصة: ${match.platform}`, `الرهان: ${money(match.stake)} | الجائزة: ${money(match.prize)}`, playerLine('اللاعب 1', creator), playerLine('اللاعب 2', opponent), `رمز الغرفة: ${safe(match.room_code)}`, `تصريح اللاعب 1: ${claimLabel(match.creator_claim, creator)}`, `تصريح اللاعب 2: ${claimLabel(match.opponent_claim, opponent)}`, `الحالة: ${match.status}`].join('\n');
+     message = body.type === 'match_room'
+       ? [`النوع: مباراة جديدة`, `الحالة: جارية`, `أيدي الحساب 1: ${safe(creator?.efootball_id)}`, `أيدي الحساب 2: ${safe(opponent?.efootball_id)}`, `مبلغ المباراة: ${money(match.stake)}`, `أيدي المباراة: ${match.id}`].join('\n')
+       : [`النوع: تصريح نتيجة مباراة`, `أيدي المباراة: ${match.id}`, playerLine('اللاعب 1', creator), playerLine('اللاعب 2', opponent), `الرهان: ${money(match.stake)}`, `الجائزة: ${money(match.prize)}`, `تصريح اللاعب 1: ${claimLabel(match.creator_claim, creator)}`, `تصريح اللاعب 2: ${claimLabel(match.opponent_claim, opponent)}`, `الحالة: ${match.status}`].join('\n');
   }
 
   const existing = await admin.from('whatsapp_notifications').select('id').eq('event_key', eventKey).maybeSingle();

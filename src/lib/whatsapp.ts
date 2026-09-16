@@ -1,10 +1,10 @@
 import { supabase, supabaseEnabled } from './supabase';
 
 export type WhatsAppEvent =
-  | { type: 'recharge'; id: string }
-  | { type: 'withdrawal'; id: string }
-  | { type: 'match_room'; id: string }
-  | { type: 'match_claim'; id: string };
+  | { type: 'recharge'; id: string; message?: string }
+  | { type: 'withdrawal'; id: string; message?: string }
+  | { type: 'match_room'; id: string; message?: string }
+  | { type: 'match_claim'; id: string; message?: string };
 
 export const DEFAULT_ADMIN_WHATSAPP_LINK = 'https://wa.me/212604084574';
 
@@ -31,7 +31,7 @@ const openDirectLink = (event: WhatsAppEvent, link: string) => {
   if (typeof window === 'undefined') return;
   const base = normalizeLink(link);
   const separator = base.includes('?') ? '&' : '?';
-  const text = `مرحباً، ${eventLabel[event.type]} في ARENA//X. المرجع: ${event.id}`;
+  const text = event.message || `النوع: ${eventLabel[event.type]}\nمرجع العملية: ${event.id}`;
   const href = `${base}${separator}text=${encodeURIComponent(text)}`;
   const opened = window.open(href, '_blank', 'noopener,noreferrer');
   if (!opened) window.location.assign(href);
