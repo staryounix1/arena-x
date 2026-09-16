@@ -114,8 +114,13 @@ function ArenaProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useStored<Record<string, string>>('arenax_settings', { commission_rate: '0.10', whatsapp_mode: 'link', whatsapp_direct_link: DEFAULT_ADMIN_WHATSAPP_LINK, whatsapp_meta_phone_number_id: '', online_count_mode: 'auto', online_count_manual: '25', recharge_amounts: '5,10,20,50,100,200,500', cih_rib: 'YOUR-CIH-RIB', cih_name: 'إدارة ARENA//X', cashplus_name: 'إدارة ARENA//X', cashplus_cin: 'YOUR-CASHPLUS-CIN', featured_matches: JSON.stringify(DEFAULT_FEATURED_MATCHES) });
    const [onlineCount, setOnlineCount] = useState(1);
 
-   useEffect(() => { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; document.documentElement.classList.add('dark'); }, []);
-   useEffect(() => {
+    useEffect(() => { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; document.documentElement.classList.add('dark'); }, []);
+    useEffect(() => {
+      const profiles = [...users, ...(user ? [user] : [])].filter((profile, index, all) => all.findIndex(item => item.id === profile.id) === index);
+      const applyTeamAvatars = () => { document.querySelectorAll<HTMLElement>('.avatar').forEach(avatar => { const context = avatar.parentElement?.textContent || ''; const profile = profiles.find(item => context.includes(item.username)); const team = profile?.favorite_team ? teamById(profile.favorite_team) : undefined; if (!profile) return; if (!team?.logo) { if (avatar.dataset.teamLogo) { avatar.removeAttribute('data-team-logo'); avatar.classList.remove('team-avatar'); avatar.textContent = initials(profile.username); } return; } if (avatar.dataset.teamLogo === team.logo) return; const image = document.createElement('img'); image.src = team.logo; image.alt = team.name; image.addEventListener('error', () => { avatar.removeAttribute('data-team-logo'); avatar.classList.remove('team-avatar'); avatar.textContent = initials(profile.username); }); avatar.replaceChildren(image); avatar.dataset.teamLogo = team.logo; avatar.classList.add('team-avatar'); }); };
+      applyTeamAvatars(); const observer = new MutationObserver(applyTeamAvatars); observer.observe(document.body, { childList: true, subtree: true }); return () => observer.disconnect();
+    }, [users, user]);
+    useEffect(() => {
      if (!supabaseEnabled || !supabase) return;
      const channel = supabase.channel('arena-presence', { config: { presence: { key: crypto.randomUUID() } } });
      channel.on('presence', { event: 'sync' }, () => {
