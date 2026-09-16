@@ -135,12 +135,14 @@ function ArenaProvider({ children }: { children: ReactNode }) {
        if (transactionsResult.data) setTransactions(transactionsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), type: String(row.type), description: String(row.description), amount: Number(row.amount), balance_after: Number(row.balance_after), created_at: String(row.created_at) })));
       if (rechargesResult.data) setRecharges(rechargesResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), username: String(row.username), userId: String(row.user_id), amount: Number(row.amount), payment_method: String(row.payment_method), whatsapp: String(row.whatsapp || ''), notes: String(row.notes || ''), status: row.status as Recharge['status'], created_at: String(row.created_at) })));
       if (withdrawalsResult.data) setWithdrawals(withdrawalsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), username: String(row.username), userId: String(row.user_id), amount: Number(row.amount), method: String(row.method), destination: String(row.destination), notes: String(row.notes || ''), status: row.status as Withdrawal['status'], created_at: String(row.created_at) })));
-       const evidenceByDispute = new Map<string, string[]>();
-       (evidenceResult.data || []).forEach((row: Record<string, unknown>) => {
-         const disputeId = String(row.dispute_id || '');
-         const file = String(row.file_url || row.original_name || row.file_path || '');
-         if (disputeId && file) evidenceByDispute.set(disputeId, [...(evidenceByDispute.get(disputeId) || []), file]);
-       });
+        const evidenceByDispute = new Map<string, string[]>();
+        await Promise.all((evidenceResult.data || []).map(async (row: Record<string, unknown>) => {
+          const disputeId = String(row.dispute_id || '');
+          const path = String(row.file_path || '');
+          const signed = path ? await supabase.storage.from('dispute-evidence').createSignedUrl(path, 3600) : { data: null };
+          const file = signed.data?.signedUrl || String(row.original_name || '');
+          if (disputeId && file) evidenceByDispute.set(disputeId, [...(evidenceByDispute.get(disputeId) || []), file]);
+        }));
        if (disputesResult.data) setDisputes(disputesResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), matchId: String(row.match_id), username: String(row.username), userId: String(row.user_id), subject: String(row.subject), details: String(row.details), status: row.status as Dispute['status'], resolution: row.resolution ? String(row.resolution) : undefined, evidence: [...(Array.isArray(row.evidence) ? row.evidence as string[] : []), ...(evidenceByDispute.get(String(row.id)) || [])], created_at: String(row.created_at) })));
        if (activitiesResult.data) setActivities(activitiesResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), userId: row.user_id ? String(row.user_id) : undefined, username: String(row.username || 'النظام'), category: row.category as ActivityRecord['category'], action: String(row.action), description: String(row.description), amount: row.amount === null || row.amount === undefined ? undefined : Number(row.amount), created_at: String(row.created_at) })));
        if (settingsResult.data) setSettings(Object.fromEntries(settingsResult.data.map((row: Record<string, unknown>) => [String(row.key), String(row.value)])));
