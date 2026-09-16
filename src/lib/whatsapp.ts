@@ -1,3 +1,5 @@
+import { supabase, supabaseEnabled } from './supabase';
+
 export type WhatsAppEvent =
   | { type: 'recharge'; id: string }
   | { type: 'withdrawal'; id: string }
@@ -5,6 +7,11 @@ export type WhatsAppEvent =
   | { type: 'match_claim'; id: string };
 
 export const DEFAULT_ADMIN_WHATSAPP_LINK = 'https://wa.me/212604084574';
+
+export type WhatsAppDeliveryConfig = {
+  mode?: string;
+  link?: string;
+};
 
 const eventLabel: Record<WhatsAppEvent['type'], string> = {
   recharge: 'طلب شحن جديد',
@@ -20,7 +27,7 @@ const normalizeLink = (value: string) => {
   return input;
 };
 
-export function notifyWhatsApp(event: WhatsAppEvent, link = DEFAULT_ADMIN_WHATSAPP_LINK): void {
+const openDirectLink = (event: WhatsAppEvent, link: string) => {
   if (typeof window === 'undefined') return;
   const base = normalizeLink(link);
   const separator = base.includes('?') ? '&' : '?';
@@ -28,4 +35,28 @@ export function notifyWhatsApp(event: WhatsAppEvent, link = DEFAULT_ADMIN_WHATSA
   const href = `${base}${separator}text=${encodeURIComponent(text)}`;
   const opened = window.open(href, '_blank', 'noopener,noreferrer');
   if (!opened) window.location.assign(href);
+};
+
+export async function notifyWhatsApp(event: WhatsAppEvent, config: WhatsAppDeliveryConfig = {}): Promise<void> {
+  const mode = config.mode || 'link';
+  if (mode === 'link') {
+    openDirectLink(event, config.link || DEFAULT_ADMIN_WHATSAPP_LINK);
+    return;
+  }
+  if (mode !== 'meta' || !supabaseEnabled || !supabase) return;
+  const session = (await supabase.auth.getSession()).data.session;
+  if (!session?.access_token) return;
+
+  try {
+    await fetch('/api/whatsapp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(event),
+    });
+  } catch (error) {
+    console.error('WhatsApp notification failed', error);
+  }
 }
