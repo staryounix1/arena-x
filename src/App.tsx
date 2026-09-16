@@ -95,7 +95,6 @@ function ArenaProvider({ children }: { children: ReactNode }) {
      void channel.subscribe(async status => { if (status === 'SUBSCRIBED') await channel.track({ online_at: new Date().toISOString() }); });
      return () => { void supabase.removeChannel(channel); };
    }, []);
-   useEffect(() => { if (supabaseEnabled && supabase) void supabase.rpc('expire_open_matches').then(({ error }) => { if (error) console.error('match expiry failed', error); }); }, []);
    useEffect(() => {
      const report = (message: string, stack?: string) => { if (supabaseEnabled && supabase) void supabase.rpc('record_client_error', { message_value: message, stack_value: stack || null, route_value: window.location.pathname, metadata_value: { userAgent: navigator.userAgent.slice(0, 180) } }); };
      const onError = (event: ErrorEvent) => report(event.message || 'Unknown client error', event.error?.stack);
