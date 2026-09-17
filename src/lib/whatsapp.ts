@@ -3,6 +3,7 @@ import { supabase, supabaseEnabled } from './supabase';
 export type WhatsAppEvent =
   | { type: 'recharge'; id: string; message?: string }
   | { type: 'withdrawal'; id: string; message?: string }
+  | { type: 'store_order'; id: string; message?: string }
   | { type: 'match_room'; id: string; message?: string }
   | { type: 'match_claim'; id: string; message?: string };
 
@@ -16,6 +17,7 @@ export type WhatsAppDeliveryConfig = {
 const eventLabel: Record<WhatsAppEvent['type'], string> = {
   recharge: 'طلب شحن جديد',
   withdrawal: 'طلب سحب جديد',
+  store_order: 'طلب حساب من المتجر',
   match_room: 'تحديث غرفة مباراة',
   match_claim: 'تصريح نتيجة مباراة',
 };
