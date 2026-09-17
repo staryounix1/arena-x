@@ -23,7 +23,7 @@ type TournamentStatus = 'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
 type Tournament = { id: string; title: string; prize_pool: number; entry_fee: number; max_players: number; participant_count: number; start_date: string; end_date?: string; start_at?: string; end_at?: string; rules: string; description?: string; image_url?: string; platform?: string; status?: TournamentStatus; featured?: boolean; joined?: boolean };
 type TournamentDraft = { id?: string; title: string; prize_pool: number; entry_fee: number; max_players: number; start_date: string; end_date: string; start_at: string; end_at: string; rules: string; description: string; image_url: string; platform: string; status: TournamentStatus; featured: boolean };
 type Tx = { id: string; type: string; description: string; amount: number; balance_after: number; created_at: string };
-type Recharge = { id: string; username: string; userId: string; amount: number; payment_method: string; whatsapp: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; created_at: string; coins?: number; efootballId?: string };
+type Recharge = { id: string; username: string; userId: string; amount: number; payment_method: string; whatsapp: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; escrow_status?: EscrowStatus; created_at: string; coins?: number; efootballId?: string };
 type Withdrawal = { id: string; username: string; userId: string; amount: number; fee: number; payoutAmount: number; method: string; destination: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; created_at: string };
 type PaymentMethod = { id: string; kind: 'RECHARGE' | 'WITHDRAWAL'; name: string; details: string; enabled: boolean; sort_order: number };
 type IdentityVerification = { id: string; userId: string; username: string; whatsapp: string; whatsappCode: string; documentPath: string; documentName: string; documentMime: string; documentUrl?: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; adminNote: string; submittedAt: string; reviewedAt?: string };
@@ -37,7 +37,10 @@ type RegisterResult = 'SIGNED_IN' | 'CONFIRM_EMAIL' | null;
 type LeaderboardPlayer = { id: string; username: string; efootball_id: string; show_efootball_id?: boolean; wins: number; losses: number; win_rate: number; favorite_team?: string; favorite_team_logo?: string };
 type StoreAccount = { id: string; title: string; description: string; price: number; platform: string; tag: string; images: string[]; available: boolean };
 type StoreOrderStatus = 'NEW' | 'UNDER_REVIEW' | 'DELIVERED' | 'CANCELLED';
-type StoreOrder = { id: string; userId: string; username: string; accountId: string; accountTitle: string; platform: string; price: number; status: StoreOrderStatus; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; customerNote: string; adminNote: string; created_at: string; updated_at: string };
+type EscrowStatus = 'NONE' | 'HELD' | 'RELEASED' | 'REFUNDED';
+type WalletActionResult = { ok: boolean; reason?: 'INSUFFICIENT' | 'ERROR' | 'DUPLICATE' };
+const walletFailure = (error: unknown): WalletActionResult => { const message = String((error as { message?: string } | null)?.message || error || ''); return { ok: false, reason: /insufficient balance/i.test(message) ? 'INSUFFICIENT' : 'ERROR' }; };
+type StoreOrder = { id: string; userId: string; username: string; accountId: string; accountTitle: string; platform: string; price: number; status: StoreOrderStatus; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; customerNote: string; adminNote: string; escrow_status?: EscrowStatus; created_at: string; updated_at: string };
 type RechargePackage = { id: string; title: string; coins: number; price: number; amount: number; bonus: string; description: string; active: boolean };
 type LiveState = 'LIVE' | 'UPCOMING' | 'REPLAY';
 type LiveProvider = 'YOUTUBE' | 'DIRECT';
@@ -191,9 +194,9 @@ function useStored<T>(key: string, fallback: T): [T, (value: T | ((old: T) => T)
 type ArenaContextValue = {
   user: User | null; users: User[]; matches: Match[]; tournaments: Tournament[]; players: LeaderboardPlayer[]; transactions: Tx[]; recharges: Recharge[]; withdrawals: Withdrawal[]; platformEarnings: PlatformEarning[]; paymentMethods: PaymentMethod[]; verifications: IdentityVerification[]; disputes: Dispute[]; activities: ActivityRecord[]; notifications: Notification[]; supportTickets: SupportTicket[]; storeOrders: StoreOrder[]; settings: Record<string, string>; onlineCount: number;
   login: (identifier: string, password: string) => Promise<User['role'] | null>; register: (data: Partial<User>) => Promise<RegisterResult>; logout: () => void;
-  createMatch: (title: string, stake: number, platform: string) => Promise<string | null>; joinMatch: (id: string) => Promise<boolean>; cancelMatch: (id: string, reason: string) => Promise<boolean>; joinTournament: (id: string) => Promise<boolean>; recharge: (amount: number, method: string, whatsapp: string, notes: string) => Promise<boolean>; requestCoinRecharge: (pack: RechargePackage, efootballId: string, method: string, whatsapp: string, notes: string) => Promise<boolean>; requestWithdrawal: (amount: number, method: string, destination: string, notes: string) => Promise<boolean>;
+  createMatch: (title: string, stake: number, platform: string) => Promise<string | null>; joinMatch: (id: string) => Promise<boolean>; cancelMatch: (id: string, reason: string) => Promise<boolean>; joinTournament: (id: string) => Promise<boolean>; recharge: (amount: number, method: string, whatsapp: string, notes: string) => Promise<boolean>; requestCoinRecharge: (pack: RechargePackage, efootballId: string, method: string, whatsapp: string, notes: string) => Promise<WalletActionResult>; requestWithdrawal: (amount: number, method: string, destination: string, notes: string) => Promise<boolean>;
   updateMatch: (id: string, patch: Partial<Match>) => void; setMatchRoom: (id: string, roomCode: string) => Promise<boolean>; confirmRoomCopied: (id: string) => Promise<boolean>; finishMatch: (id: string) => Promise<boolean>; submitMatchResultClaim: (id: string, winnerId: string) => Promise<boolean>; setMatchResult: (id: string, winnerId: string, note: string) => Promise<boolean>; reviewMatchPayout: (id: string, approved: boolean, note: string) => Promise<boolean>; addMessage: (id: string, message: string) => void; openDispute: (matchId: string, subject: string, details: string, files?: File[]) => void; resolveDispute: (id: string, status: Dispute['status'], resolution: string) => void;
-  saveTournament: (draft: TournamentDraft, imageFile?: File) => Promise<boolean>; deleteTournament: (id: string) => Promise<boolean>; approveRecharge: (id: string, approved: boolean) => Promise<boolean>; approveWithdrawal: (id: string, approved: boolean) => Promise<boolean>; adjustUser: (id: string, amount: number) => Promise<boolean>; purchaseStoreAccount: (account: StoreAccount) => Promise<boolean>; requestStoreOrder: (account: StoreAccount, customerNote?: string) => Promise<boolean>; updateStoreOrder: (id: string, status: StoreOrderStatus, adminNote: string) => Promise<boolean>; setUserBanned: (id: string, banned: boolean, reason: string) => void; saveSettings: (patch: Record<string, string>) => void; saveProfile: (patch: { whatsapp: string; favorite_team: string; favorite_team_logo: string; show_efootball_id?: boolean }) => Promise<boolean>; savePaymentMethod: (method: Partial<PaymentMethod> & Pick<PaymentMethod, 'kind' | 'name' | 'details'>) => Promise<boolean>; deletePaymentMethod: (id: string) => Promise<boolean>; submitVerification: (whatsapp: string, code: string, file: File) => Promise<boolean>; approveVerification: (id: string, approved: boolean, note: string) => Promise<boolean>; saveWhatsAppMeta: (accessToken: string, phoneNumberId: string) => Promise<boolean>; markNotificationRead: (id: string) => void; submitRating: (matchId: string, revieweeId: string, score: number, comment: string) => Promise<boolean>; createSupportTicket: (subject: string, category: string, message: string) => Promise<boolean>; acceptTerms: (documentKey: string, version: string) => Promise<boolean>;
+  saveTournament: (draft: TournamentDraft, imageFile?: File) => Promise<boolean>; deleteTournament: (id: string) => Promise<boolean>; approveRecharge: (id: string, approved: boolean) => Promise<boolean>; cancelRecharge: (id: string) => Promise<boolean>; approveWithdrawal: (id: string, approved: boolean) => Promise<boolean>; adjustUser: (id: string, amount: number) => Promise<boolean>; purchaseStoreAccount: (account: StoreAccount) => Promise<boolean>; requestStoreOrder: (account: StoreAccount, customerNote?: string) => Promise<WalletActionResult>; cancelStoreOrder: (id: string) => Promise<boolean>; updateStoreOrder: (id: string, status: StoreOrderStatus, adminNote: string) => Promise<boolean>; setUserBanned: (id: string, banned: boolean, reason: string) => void; saveSettings: (patch: Record<string, string>) => void; saveProfile: (patch: { whatsapp: string; favorite_team: string; favorite_team_logo: string; show_efootball_id?: boolean }) => Promise<boolean>; savePaymentMethod: (method: Partial<PaymentMethod> & Pick<PaymentMethod, 'kind' | 'name' | 'details'>) => Promise<boolean>; deletePaymentMethod: (id: string) => Promise<boolean>; submitVerification: (whatsapp: string, code: string, file: File) => Promise<boolean>; approveVerification: (id: string, approved: boolean, note: string) => Promise<boolean>; saveWhatsAppMeta: (accessToken: string, phoneNumberId: string) => Promise<boolean>; markNotificationRead: (id: string) => void; submitRating: (matchId: string, revieweeId: string, score: number, comment: string) => Promise<boolean>; createSupportTicket: (subject: string, category: string, message: string) => Promise<boolean>; acceptTerms: (documentKey: string, version: string) => Promise<boolean>;
 };
 const ArenaContext = createContext<ArenaContextValue | null>(null);
 const useArena = () => useContext(ArenaContext) as ArenaContextValue;
@@ -478,19 +481,45 @@ function ArenaProvider({ children }: { children: ReactNode }) {
        }
           setRecharges(old => [item, ...old]); recordActivity('طلب شحن', `أرسل ${user.username} طلب شحن عبر ${method}`, 'RECHARGE', user, amount); void notifyWhatsApp({ type: 'recharge', id: item.id, message: [`النوع: طلب شحن`, `الحساب: ${user.efootball_id}`, `اسم المستخدم: ${user.username}`, `المبلغ: ${money(amount)}`, `الطريقة: ${method}`, `مرجع الطلب: ${item.id}`].join('\n') }, { mode: settings.whatsapp_mode, link: settings.whatsapp_direct_link || settings.admin_whatsapp_link }); return true;
      };
-     const requestCoinRecharge = async (pack: RechargePackage, efootballId: string, method: string, whatsapp: string, notes: string) => {
-       if (!user || !efootballId.trim() || pack.coins <= 0 || pack.price <= 0) return false;
+     const requestCoinRecharge = async (pack: RechargePackage, efootballId: string, method: string, whatsapp: string, notes: string): Promise<WalletActionResult> => {
+       if (!user || !efootballId.trim() || pack.coins <= 0 || pack.price <= 0) return { ok: false, reason: 'ERROR' };
+       if (user.balance < pack.price) return { ok: false, reason: 'INSUFFICIENT' };
        const id = supabaseEnabled ? crypto.randomUUID() : `C-${Date.now().toString().slice(-5)}`;
        const created_at = new Date().toISOString();
        const orderNotes = `${COIN_ORDER_PREFIX}${JSON.stringify({ coins: pack.coins, efootballId: efootballId.trim(), note: notes.trim() })}`;
-       const item: Recharge = { id, username: user.username, userId: user.id, amount: pack.price, payment_method: method, whatsapp, notes: orderNotes, status: 'PENDING', created_at, coins: pack.coins, efootballId: efootballId.trim() };
+       const item: Recharge = { id, username: user.username, userId: user.id, amount: pack.price, payment_method: method, whatsapp, notes: orderNotes, status: 'PENDING', escrow_status: 'HELD', created_at, coins: pack.coins, efootballId: efootballId.trim() };
        if (supabaseEnabled && supabase) {
-         const result = await supabase.rpc('create_recharge_request', { recharge_id_value: id, amount_value: pack.price, method_value: method, whatsapp_value: whatsapp, notes_value: orderNotes });
-         if (result.error) return false;
+         const result = await supabase.rpc('purchase_coin_recharge', { recharge_id_value: id, amount_value: pack.price, method_value: method, whatsapp_value: whatsapp, notes_value: orderNotes });
+         if (result.error) { console.error('coin recharge request failed', result.error); return walletFailure(result.error); }
        }
+       const nextBalance = Number((user.balance - pack.price).toFixed(2));
+       setUser(old => old?.id === user.id ? { ...old, balance: nextBalance } : old);
+       setUsers(old => old.map(entry => entry.id === user.id ? { ...entry, balance: nextBalance } : entry));
+       addTransaction('STORE_ESCROW', `حجز مبلغ شحن ${pack.coins.toLocaleString('en-US')} كوينز`, -pack.price, nextBalance);
        setRecharges(old => [item, ...old]);
-       recordActivity('طلب شحن كوينز', `أرسل ${user.username} طلب ${pack.coins.toLocaleString('en-US')} كوينز لمعرّف ${efootballId.trim()}`, 'RECHARGE', user, pack.price);
+       recordActivity('طلب شحن كوينز', `حجز ${user.username} مبلغ ${money(pack.price)} لطلب ${pack.coins.toLocaleString('en-US')} كوينز لمعرّف ${efootballId.trim()}`, 'RECHARGE', user, pack.price);
        void notifyWhatsApp({ type: 'recharge', id, message: [`النوع: شحن كوينز eFootball`, `الحساب: ${efootballId.trim()}`, `اسم المستخدم: ${user.username}`, `الكوينز: ${pack.coins.toLocaleString('en-US')}`, `المبلغ: ${money(pack.price)}`, `الطريقة: ${method}`, `مرجع الطلب: ${id}`].join('\n') }, { mode: settings.whatsapp_mode, link: settings.whatsapp_direct_link || settings.admin_whatsapp_link });
+       return { ok: true };
+     };
+     const cancelRecharge = async (id: string) => {
+       const item = recharges.find(entry => entry.id === id);
+       if (!user || !item) return false;
+       const isOwner = item.userId === user.id;
+       if (!isOwner && user.role !== 'ADMIN') return false;
+       if (item.status !== 'PENDING') return false;
+       if (supabaseEnabled && supabase) {
+         const result = await supabase.rpc('cancel_coin_recharge', { recharge_id_value: id, reason_value: 'إلغاء طلب شحن الكوينز' });
+         if (result.error) { console.error('coin recharge cancel failed', result.error); return false; }
+       }
+       const refund = item.amount;
+       if (isOwner) {
+         const nextBalance = Number((user.balance + refund).toFixed(2));
+         setUser(old => old?.id === user.id ? { ...old, balance: nextBalance } : old);
+         setUsers(old => old.map(entry => entry.id === user.id ? { ...entry, balance: nextBalance } : entry));
+         addTransaction('STORE_REFUND', 'إعادة مبلغ طلب شحن ملغى', refund, nextBalance);
+       }
+       setRecharges(old => old.map(entry => entry.id === id ? { ...entry, status: 'REJECTED', escrow_status: 'REFUNDED' } : entry));
+       recordActivity('إلغاء طلب شحن', `أُلغي طلب الشحن وأُعيد مبلغ ${money(refund)} إلى المحفظة`, 'RECHARGE', user, refund);
        return true;
      };
    const requestWithdrawal = async (amount: number, method: string, destination: string, notes: string) => {
@@ -513,20 +542,46 @@ function ArenaProvider({ children }: { children: ReactNode }) {
    const approveWithdrawal = async (id: string, approved: boolean) => { const request = withdrawals.find(item => item.id === id); if (!request || request.status !== 'PENDING') return false; if (supabaseEnabled && supabase) { const result = await supabase.rpc('review_withdrawal', { withdrawal_id: id, approve: approved }); if (result.error) return false; } else if (!approved) changeBalance(request.userId, request.amount); setWithdrawals(old => old.map(item => item.id === id ? { ...item, status: approved ? 'APPROVED' : 'REJECTED' } : item)); recordActivity(approved ? 'اعتماد سحب' : 'رفض سحب', `${approved ? 'اعتمدت' : 'رفضت'} الإدارة طلب السحب ${id}`, 'ADMIN', user, request.amount); return true; };
      const adjustUser = async (id: string, amount: number) => { if (!amount) return false; const okay = await changeBalance(id, amount); if (okay) recordActivity('تعديل رصيد', `عدّلت الإدارة رصيد اللاعب ${id}`, 'ADMIN', user, amount); return okay; };
      const purchaseStoreAccount = async (account: StoreAccount) => { if (!user || user.role === 'ADMIN' || !account.available || user.balance < account.price || (supabaseEnabled && supabase)) return false; const nextBalance = user.balance - account.price; setUser(old => old?.id === user.id ? { ...old, balance: nextBalance } : old); setUsers(old => old.map(item => item.id === user.id ? { ...item, balance: nextBalance } : item)); addTransaction('STORE_PURCHASE', `شراء حساب من المتجر: ${account.title}`, -account.price, nextBalance); recordActivity('شراء من المتجر', `اشترى ${user.username} العرض ${account.title}`, 'ACCOUNT', user, account.price); return true; };
-    const requestStoreOrder = async (account: StoreAccount, customerNote = '') => {
-      if (!user || user.role === 'ADMIN' || !account.available) return false;
+    const requestStoreOrder = async (account: StoreAccount, customerNote = ''): Promise<WalletActionResult> => {
+      if (!user || user.role === 'ADMIN' || !account.available) return { ok: false, reason: 'ERROR' };
       const pending = storeOrders.find(item => item.userId === user.id && item.accountId === account.id && ['NEW', 'UNDER_REVIEW'].includes(item.status));
-      if (pending) return true;
+      if (pending) return { ok: true, reason: 'DUPLICATE' };
+      if (user.balance < account.price) return { ok: false, reason: 'INSUFFICIENT' };
       const id = supabaseEnabled ? crypto.randomUUID() : `SO-${Date.now().toString().slice(-7)}`;
       const now = new Date().toISOString();
-      const item: StoreOrder = { id, userId: user.id, username: user.username, accountId: account.id, accountTitle: account.title, platform: account.platform, price: account.price, status: 'NEW', customerNote: customerNote.trim(), adminNote: '', created_at: now, updated_at: now };
+      const item: StoreOrder = { id, userId: user.id, username: user.username, accountId: account.id, accountTitle: account.title, platform: account.platform, price: account.price, status: 'NEW', customerNote: customerNote.trim(), adminNote: '', escrow_status: 'HELD', created_at: now, updated_at: now };
       if (supabaseEnabled && supabase) {
-        const result = await supabase.rpc('create_store_order', { order_id_value: id, account_id_value: account.id, account_title_value: account.title, platform_value: account.platform, price_value: account.price, customer_note_value: customerNote.trim() });
-        if (result.error) { console.error('store order creation failed', result.error); return false; }
+        const result = await supabase.rpc('purchase_store_account', { order_id_value: id, account_id_value: account.id, account_title_value: account.title, platform_value: account.platform, price_value: account.price, customer_note_value: customerNote.trim() });
+        if (result.error) { console.error('store order creation failed', result.error); return walletFailure(result.error); }
       }
+      const nextBalance = Number((user.balance - account.price).toFixed(2));
+      setUser(old => old?.id === user.id ? { ...old, balance: nextBalance } : old);
+      setUsers(old => old.map(entry => entry.id === user.id ? { ...entry, balance: nextBalance } : entry));
+      addTransaction('STORE_ESCROW', `حجز مبلغ شراء حساب: ${account.title}`, -account.price, nextBalance);
       setStoreOrders(old => [item, ...old]);
-      recordActivity('طلب حساب من المتجر', `أرسل ${user.username} طلباً للعرض ${account.title}`, 'ACCOUNT', user, account.price);
+      recordActivity('طلب حساب من المتجر', `حجز ${user.username} مبلغ ${money(account.price)} لطلب العرض ${account.title}`, 'ACCOUNT', user, account.price);
       void notifyWhatsApp({ type: 'store_order', id, message: [`النوع: طلب حساب من المتجر`, `الحساب: ${user.efootball_id}`, `اسم المستخدم: ${user.username}`, `العرض: ${account.title}`, `المنصة: ${account.platform}`, `السعر: ${money(account.price)}`, `مرجع الطلب: ${id}`].join('\n') }, { mode: settings.whatsapp_mode, link: settings.whatsapp_direct_link || settings.admin_whatsapp_link });
+      return { ok: true };
+    };
+    const cancelStoreOrder = async (id: string) => {
+      const item = storeOrders.find(order => order.id === id);
+      if (!user || !item) return false;
+      const isOwner = item.userId === user.id;
+      if (!isOwner && user.role !== 'ADMIN') return false;
+      if (!['NEW', 'UNDER_REVIEW'].includes(item.status)) return false;
+      if (supabaseEnabled && supabase) {
+        const result = await supabase.rpc('cancel_store_order', { order_id_value: id, reason_value: 'إلغاء طلب شراء حساب من المتجر' });
+        if (result.error) { console.error('store order cancel failed', result.error); return false; }
+      }
+      const refund = item.price;
+      if (isOwner) {
+        const nextBalance = Number((user.balance + refund).toFixed(2));
+        setUser(old => old?.id === user.id ? { ...old, balance: nextBalance } : old);
+        setUsers(old => old.map(entry => entry.id === user.id ? { ...entry, balance: nextBalance } : entry));
+        addTransaction('STORE_REFUND', `إعادة مبلغ طلب ملغى: ${item.accountTitle}`, refund, nextBalance);
+      }
+      setStoreOrders(old => old.map(order => order.id === id ? { ...order, status: 'CANCELLED', escrow_status: 'REFUNDED', updated_at: new Date().toISOString() } : order));
+      recordActivity('إلغاء طلب متجر', `أُلغي طلب العرض ${item.accountTitle} وأُعيد مبلغ ${money(refund)} إلى المحفظة`, 'ACCOUNT', user, refund);
       return true;
     };
     const updateStoreOrder = async (id: string, status: StoreOrderStatus, adminNote: string) => {
@@ -534,11 +589,15 @@ function ArenaProvider({ children }: { children: ReactNode }) {
       if (!user || user.role !== 'ADMIN' || !item) return false;
       const updated_at = new Date().toISOString();
       if (supabaseEnabled && supabase) {
-        const result = await supabase.rpc('admin_update_store_order', { store_order_id: id, status_value: status, admin_note_value: adminNote.trim() });
+        const result = await supabase.rpc('admin_resolve_store_order', { store_order_id: id, status_value: status, admin_note_value: adminNote.trim() });
         if (result.error) { console.error('store order update failed', result.error); return false; }
       }
-      setStoreOrders(old => old.map(order => order.id === id ? { ...order, status, adminNote: adminNote.trim(), updated_at } : order));
-      recordActivity('تحديث طلب متجر', `حدّثت الإدارة طلب المتجر ${id} إلى ${statusLabel[status] || status}`, 'ADMIN', user, item.price);
+      if (status === 'CANCELLED' && item.escrow_status === 'HELD') {
+        setUsers(old => old.map(entry => entry.id === item.userId ? { ...entry, balance: Number((entry.balance + item.price).toFixed(2)) } : entry));
+        setUser(old => old?.id === item.userId ? { ...old, balance: Number((old.balance + item.price).toFixed(2)) } : old);
+      }
+      setStoreOrders(old => old.map(order => order.id === id ? { ...order, status, adminNote: adminNote.trim(), updated_at, escrow_status: status === 'CANCELLED' ? 'REFUNDED' : status === 'DELIVERED' ? 'RELEASED' : order.escrow_status } : order));
+      recordActivity('تحديث طلب متجر', `حدّثت الإدارة طلب المتجر ${id} إلى ${statusLabel[status] || status}${status === 'CANCELLED' && item.escrow_status === 'HELD' ? ` وأُعيد ${money(item.price)} إلى محفظة اللاعب` : ''}`, 'ADMIN', user, item.price);
       return true;
     };
    const setUserBanned = (id: string, banned: boolean, reason: string) => { const target = users.find(item => item.id === id); if (!target) return; setUsers(old => old.map(item => item.id === id ? { ...item, banned, ban_reason: banned ? reason : '' } : item)); setUser(old => old?.id === id ? { ...old, banned, ban_reason: banned ? reason : '' } : old); if (supabaseEnabled && supabase) void supabase.rpc('set_user_banned', { target_user_id: id, is_banned: banned, reason }).then(({ error }) => { if (error) console.error('ban update failed', error); }); recordActivity(banned ? 'حظر حساب' : 'إلغاء حظر حساب', `${banned ? 'حظرت' : 'ألغت الإدارة حظر'} حساب ${target.username}${banned && reason ? ` بسبب: ${reason}` : ''}`, 'ADMIN', user); };
@@ -555,7 +614,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
      return response.ok;
    };
         const livePlayers = leaderboardPlayers.length ? leaderboardPlayers : users.length ? users.map(item => ({ id: item.id, username: item.username, efootball_id: item.efootball_id, show_efootball_id: item.show_efootball_id, wins: item.wins, losses: item.losses, win_rate: item.wins + item.losses ? Number((item.wins / (item.wins + item.losses) * 100).toFixed(1)) : 0, favorite_team: item.favorite_team, favorite_team_logo: item.favorite_team_logo })) : seedPlayers;
-          const value = { user, users, matches, tournaments, players: livePlayers, transactions, recharges, withdrawals, platformEarnings, paymentMethods, verifications, disputes, activities, notifications, supportTickets, storeOrders, settings, onlineCount, login, register, logout, createMatch, joinMatch, cancelMatch, joinTournament, saveTournament, deleteTournament, recharge, requestCoinRecharge, requestWithdrawal, updateMatch, setMatchRoom, confirmRoomCopied, finishMatch, submitMatchResultClaim, setMatchResult, reviewMatchPayout, addMessage, openDispute, resolveDispute, approveRecharge, approveWithdrawal, adjustUser, purchaseStoreAccount, requestStoreOrder, updateStoreOrder, setUserBanned, saveSettings, saveProfile, savePaymentMethod, deletePaymentMethod, submitVerification, approveVerification, saveWhatsAppMeta, markNotificationRead, submitRating, createSupportTicket, acceptTerms };
+          const value = { user, users, matches, tournaments, players: livePlayers, transactions, recharges, withdrawals, platformEarnings, paymentMethods, verifications, disputes, activities, notifications, supportTickets, storeOrders, settings, onlineCount, login, register, logout, createMatch, joinMatch, cancelMatch, joinTournament, saveTournament, deleteTournament, recharge, requestCoinRecharge, cancelRecharge, requestWithdrawal, updateMatch, setMatchRoom, confirmRoomCopied, finishMatch, submitMatchResultClaim, setMatchResult, reviewMatchPayout, addMessage, openDispute, resolveDispute, approveRecharge, approveWithdrawal, adjustUser, purchaseStoreAccount, requestStoreOrder, cancelStoreOrder, updateStoreOrder, setUserBanned, saveSettings, saveProfile, savePaymentMethod, deletePaymentMethod, submitVerification, approveVerification, saveWhatsAppMeta, markNotificationRead, submitRating, createSupportTicket, acceptTerms };
   return <ArenaContext.Provider value={value}>{children}</ArenaContext.Provider>;
 }
 
@@ -654,10 +713,13 @@ function StoreAccountDetailPage() {
   const images = account.images.length ? account.images : [''];
   const purchase = async () => {
     if (!user) return setLocation(`/login?returnTo=/store/accounts/${account.id}`);
+    if (user.balance < account.price) { setFeedback(`رصيدك غير كافٍ. تحتاج ${money(Number((account.price - user.balance).toFixed(2)))} إضافية لشراء هذا العرض.`); return; }
     setBusy(true);
-    const okay = await requestStoreOrder(account);
+    const result = await requestStoreOrder(account);
     setBusy(false);
-    setFeedback(okay ? 'تم إرسال الطلب. يمكنك متابعة حالته من صفحة «طلباتي»، ولا يتم خصم الرصيد قبل مراجعة الإدارة.' : 'تعذر إنشاء الطلب. حدّث الصفحة وحاول مرة أخرى.');
+    if (result.ok) setFeedback(result.reason === 'DUPLICATE' ? 'لديك طلب مفتوح على هذا العرض بالفعل. تابع حالته من صفحة «طلباتي».' : `تم حجز ${money(account.price)} من محفظتك وإرسال الطلب. يمكنك إلغاؤه واستعادة المبلغ من صفحة «طلباتي» قبل مراجعة الإدارة.`);
+    else if (result.reason === 'INSUFFICIENT') setFeedback(`رصيدك غير كافٍ. تحتاج ${money(Number((account.price - user.balance).toFixed(2)))} إضافية لشراء هذا العرض.`);
+    else setFeedback('تعذر إنشاء الطلب. حدّث الصفحة وحاول مرة أخرى.');
   };
   return <div className="shell page-wrap store-page">
     <Link href="/store" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link>
@@ -682,10 +744,12 @@ function PayStoreOrderButton({ item }: { item: StoreOrder }) {
   return <span className="payment-action"><button className="secondary-button small" disabled={busy || item.status === 'CANCELLED'} onClick={() => void pay()}>{busy ? 'جارٍ التحضير...' : 'الدفع الإلكتروني'}</button>{error && <small>{error}</small>}</span>;
 }
 function StoreOrdersPage() {
-  const { user, storeOrders } = useArena();
+  const { user, storeOrders, cancelStoreOrder } = useArena();
+  const [busyId, setBusyId] = useState<string | null>(null);
   if (!user) return <div className="shell page-wrap"><Empty icon={Package} text="سجّل الدخول لمتابعة طلبات المتجر." /><Link href="/login?returnTo=/orders" className="primary-button">تسجيل الدخول</Link></div>;
   const rows = storeOrders.filter(item => item.userId === user.id);
-  return <div className="shell page-wrap"><PageTitle icon={Package} title="طلباتي" subtitle="تابع مراجعة وتسليم حسابات المتجر من مكان واحد." /><div className="order-trust-note"><ShieldCheck className="h-4 w-4" /><span><strong>دفع آمن ومؤكد</strong><small>يتم إنشاء الدفع عبر صفحة مزود خارجي ولا تصل بيانات البطاقة إلى ARENA//X.</small></span></div>{rows.length ? <div className="request-list store-order-list">{rows.map(item => <article className="request-card store-order-card" key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>#{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span><StatusBadge status={item.status} /><PayStoreOrderButton item={item} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>آخر تحديث</small><b>{date(item.updated_at)}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'بانتظار مراجعة الإدارة'}</b></span></div></article>)}</div> : <Empty icon={Package} text="لا توجد طلبات حسابات بعد. اختر عرضاً من المتجر لبدء الطلب." />}</div>;
+  const cancel = async (id: string) => { setBusyId(id); const okay = await cancelStoreOrder(id); setBusyId(null); if (!okay) window.alert('تعذر إلغاء الطلب. حدّث الصفحة وحاول مرة أخرى.'); };
+  return <div className="shell page-wrap"><PageTitle icon={Package} title="طلباتي" subtitle="تابع مراجعة وتسليم حسابات المتجر من مكان واحد." /><div className="order-trust-note"><ShieldCheck className="h-4 w-4" /><span><strong>رصيد محفظتك هو مصدر الدفع</strong><small>يُحجز مبلغ العرض من محفظتك فور الطلب، ويُعاد تلقائياً إلى رصيدك إذا ألغيت الطلب أو رفضته الإدارة.</small></span></div>{rows.length ? <div className="request-list store-order-list">{rows.map(item => <article className="request-card store-order-card" key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>#{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span><StatusBadge status={item.status} />{['NEW', 'UNDER_REVIEW'].includes(item.status) && <button className="danger-button small" disabled={busyId === item.id} onClick={() => cancel(item.id)}><XCircle className="h-3.5 w-3.5" />{busyId === item.id ? 'جارٍ الإلغاء…' : 'إلغاء واستعادة المبلغ'}</button>}{item.escrow_status === 'REFUNDED' && <span className="refund-chip"><RefreshCw className="h-3.5 w-3.5" />أُعيد المبلغ</span>}<PayStoreOrderButton item={item} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>آخر تحديث</small><b>{date(item.updated_at)}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'بانتظار مراجعة الإدارة'}</b></span></div></article>)}</div> : <Empty icon={Package} text="لا توجد طلبات حسابات بعد. اختر عرضاً من المتجر لبدء الطلب." />}</div>;
 }
 function StoreOrdersAdminPage() {
   const { storeOrders, updateStoreOrder } = useArena();
@@ -697,7 +761,7 @@ function StoreOrdersAdminPage() {
   return <div className="admin-page"><AdminSectionHeader icon={Package} title="طلبات حسابات المتجر" subtitle="راجع الطلبات ثم حدّد حالة المراجعة والتسليم بوضوح." count={storeOrders.filter(item => ['NEW', 'UNDER_REVIEW'].includes(item.status)).length} /><AdminFilters filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} options={['PENDING', 'NEW', 'UNDER_REVIEW', 'DELIVERED', 'CANCELLED', 'ALL']} />{rows.length ? <div className="request-list store-order-list">{rows.map(item => <article className="request-card store-order-card" key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>{item.username} • #{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span><StatusBadge status={item.status} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>ملاحظة اللاعب</small><b>{item.customerNote || 'لا توجد'}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'لم تُضف بعد'}</b></span></div>{!['DELIVERED', 'CANCELLED'].includes(item.status) && <><label className="form-field"><span>ملاحظة التسليم</span><textarea rows={2} value={notes[item.id] || item.adminNote} onChange={event => setNotes(old => ({ ...old, [item.id]: event.target.value }))} placeholder="مثال: تم تأكيد البيانات عبر واتساب" /></label><div className="request-actions"><button className="secondary-button small" onClick={() => void update(item, 'UNDER_REVIEW')}><Clock3 className="h-4 w-4" />قيد المراجعة</button><button className="primary-button small" onClick={() => void update(item, 'DELIVERED')}><Check className="h-4 w-4" />تأكيد التسليم</button><button className="danger-button small" onClick={() => void update(item, 'CANCELLED')}><XCircle className="h-4 w-4" />إلغاء الطلب</button></div></>}</article>)}</div> : <Empty icon={Package} text="لا توجد طلبات بهذه الحالة." />}</div>;
 }
 function CoinRechargeModal({ pack, onClose }: { pack: RechargePackage; onClose: () => void }) {
-  const { user, requestCoinRecharge, settings, recharges, paymentMethods } = useArena();
+  const { user, requestCoinRecharge, cancelRecharge, settings, recharges, paymentMethods } = useArena();
   const methods = paymentMethods.filter(item => item.kind === 'RECHARGE' && item.enabled).sort((a, b) => a.sort_order - b.sort_order);
   const options = methods.length ? methods : fallbackPaymentMethods('RECHARGE', settings);
   const [methodId, setMethodId] = useState(options[0]?.id || '');
@@ -706,15 +770,20 @@ function CoinRechargeModal({ pack, onClose }: { pack: RechargePackage; onClose: 
   const [notes, setNotes] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
+  const cancel = async (id: string) => { setCancelBusyId(id); const okay = await cancelRecharge(id); setCancelBusyId(null); if (!okay) setError('تعذر إلغاء الطلب. حدّث الصفحة وحاول مرة أخرى.'); };
   const selected = options.find(item => item.id === methodId) || options[0];
   const coinOrders = recharges.filter(item => item.userId === user?.id && item.coins).slice(0, 3);
+  const shortfall = Math.max(0, Number(((user?.balance || 0) < pack.price ? pack.price - (user?.balance || 0) : 0).toFixed(2)));
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!efootballId.trim() || !selected) return setError('أدخل معرّف eFootball واختر طريقة الدفع.');
-    if (await requestCoinRecharge(pack, efootballId, selected.name, whatsapp, notes)) setSent(true);
-    else setError('تعذر حفظ طلب شحن الكوينز. حاول مرة أخرى.');
+    const result = await requestCoinRecharge(pack, efootballId, selected.name, whatsapp, notes);
+    if (result.ok) return setSent(true);
+    if (result.reason === 'INSUFFICIENT') return setError(`رصيدك غير كافٍ. تحتاج ${money(shortfall)} إضافية لشحن هذه الباقة.`);
+    setError('تعذر حفظ طلب شحن الكوينز. حاول مرة أخرى.');
   };
-  return <Modal onClose={onClose} wide><div className="modal-heading"><span className="panel-icon green"><Gamepad2 className="h-5 w-5" /></span><span><h2>شحن كوينز eFootball</h2><p>{pack.coins.toLocaleString('en-US')} كوينز مقابل {money(pack.price)}</p></span></div>{sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>تم إرسال طلب شحن الكوينز</h3><p>ستراجع الإدارة الدفع ثم تشحن {pack.coins.toLocaleString('en-US')} كوينز إلى المعرّف {efootballId}.</p><button className="primary-button" onClick={onClose}>حسناً</button></div> : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<div className="coin-order-summary"><span><small>الباقة</small><b>{pack.coins.toLocaleString('en-US')} كوينز</b></span><span><small>السعر</small><b>{money(pack.price)}</b></span></div><Field label="معرّف حساب eFootball" value={efootballId} onChange={setEfootballId} test="input-efootball-recharge-id" placeholder="مثال: 123456789" /><div className="form-grid"><label className="form-field"><span>طريقة الدفع</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><Field label="رقم واتساب للتأكيد" value={whatsapp} onChange={setWhatsapp} test="input-efootball-recharge-whatsapp" /></div><div className="payment-card"><p>بيانات الدفع</p><strong>{selected?.name}</strong><span>{selected?.details}</span></div><label className="form-field"><span>ملاحظات إضافية</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} placeholder="أي تفاصيل عن الحساب أو المنصة" /></label><button className="primary-button full">إرسال طلب شحن الكوينز <ArrowLeft className="h-4 w-4" /></button></form>}<div className="modal-history"><strong>آخر طلبات كوينز eFootball</strong>{coinOrders.length ? coinOrders.map(item => <div key={item.id}><span>{item.coins?.toLocaleString('en-US')} كوينز • {money(item.amount)}</span><StatusBadge status={item.status} /></div>) : <small>لا توجد طلبات سابقة.</small>}</div></Modal>;
+  return <Modal onClose={onClose} wide><div className="modal-heading"><span className="panel-icon green"><Gamepad2 className="h-5 w-5" /></span><span><h2>شحن كوينز eFootball</h2><p>{pack.coins.toLocaleString('en-US')} كوينز مقابل {money(pack.price)}</p></span></div>{sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>تم إرسال طلب شحن الكوينز</h3><p>ستراجع الإدارة الدفع ثم تشحن {pack.coins.toLocaleString('en-US')} كوينز إلى المعرّف {efootballId}.</p><button className="primary-button" onClick={onClose}>حسناً</button></div> : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<div className="coin-order-summary"><span><small>الباقة</small><b>{pack.coins.toLocaleString('en-US')} كوينز</b></span><span><small>السعر</small><b>{money(pack.price)}</b></span><span><small>رصيد محفظتك</small><b className={shortfall > 0 ? 'shortfall' : 'balance-ok'}>{money(user?.balance || 0)}</b></span></div>{shortfall > 0 && <div className="wallet-warning"><AlertTriangle className="h-4 w-4" /><span><strong>رصيدك غير كافٍ</strong><small>تحتاج {money(shortfall)} إضافية. اشحن محفظتك أولاً ثم أعد المحاولة.</small></span></div>}<Field label="معرّف حساب eFootball" value={efootballId} onChange={setEfootballId} test="input-efootball-recharge-id" placeholder="مثال: 123456789" /><div className="form-grid"><label className="form-field"><span>طريقة الدفع</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><Field label="رقم واتساب للتأكيد" value={whatsapp} onChange={setWhatsapp} test="input-efootball-recharge-whatsapp" /></div><div className="payment-card"><p>بيانات الدفع</p><strong>{selected?.name}</strong><span>{selected?.details}</span></div><label className="form-field"><span>ملاحظات إضافية</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} placeholder="أي تفاصيل عن الحساب أو المنصة" /></label><button className="primary-button full" disabled={shortfall > 0}>{shortfall > 0 ? <>رصيدك غير كافٍ <AlertTriangle className="h-4 w-4" /></> : <>إرسال طلب شحن الكوينز <ArrowLeft className="h-4 w-4" /></>}</button></form>}<div className="modal-history"><strong>آخر طلبات كوينز eFootball</strong>{coinOrders.length ? coinOrders.map(item => <div key={item.id}><span>{item.coins?.toLocaleString('en-US')} كوينز • {money(item.amount)}</span><StatusBadge status={item.status} />{item.status === 'PENDING' && <button className="danger-button small" disabled={cancelBusyId === item.id} onClick={() => cancel(item.id)}>{cancelBusyId === item.id ? 'جارٍ الإلغاء…' : 'إلغاء واستعادة المبلغ'}</button>}{item.escrow_status === 'REFUNDED' && <span className="refund-chip">أُعيد المبلغ</span>}</div>) : <small>لا توجد طلبات سابقة.</small>}</div></Modal>;
 }
 function youtubeEmbed(url: string, autoPlay = false) { const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|live\/|embed\/))([^?&/]+)/); return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=${autoPlay ? '1' : '0'}&mute=1&playsinline=1&rel=0&modestbranding=1` : url; }
 function StoreMedia({ slot, autoPlay = false }: { slot: LiveSlot; autoPlay?: boolean }) {
