@@ -98,3 +98,14 @@
 
 /* Put live priority cards before the broadcast heading and hero. */
 .live-page{display:flex;flex-direction:column}.live-page>.store-tabs{order:0}.live-page>.live-program{display:contents}.live-page .live-program .live-upcoming-strip{order:1}.live-page .live-program .live-library-banner{order:2}.live-page>.live-page-header{order:3}.live-page>.live-stage{order:4}.live-page .live-program .live-program-heading{order:5}.live-page .live-program .live-replay-grid{order:6}
+
+/* Wallet-funded checkout: balance, shortfall and refund states */
+.coin-order-summary span b.balance-ok { color: var(--green); }
+.coin-order-summary span b.shortfall { color: var(--red, #fb7185); }
+.wallet-warning { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0; padding: 12px 14px; border: 1px solid rgba(251, 113, 133, .32); border-radius: 12px; background: rgba(251, 113, 133, .08); color: #ffa9b8; }
+.wallet-warning > span { display: grid; gap: 3px; }
+.wallet-warning strong { color: #ffc2cc; font-size: 12px; }
+.wallet-warning small { color: var(--muted); font-size: 10.5px; line-height: 1.7; }
+.primary-button:disabled, .secondary-button:disabled, .danger-button:disabled { opacity: .55; cursor: not-allowed; }
+.refund-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(66, 228, 165, .1); border: 1px solid rgba(66, 228, 165, .3); color: var(--green); font-size: 10px; font-weight: 800; }
+.wallet-balance-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(66, 228, 165, .08); border: 1px solid rgba(66, 228, 165, .24); color: var(--green); font-family: var(--app-font-mono); font-size: 11px; }
