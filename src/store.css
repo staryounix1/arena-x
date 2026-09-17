@@ -106,6 +106,10 @@
 .wallet-warning > span { display: grid; gap: 3px; }
 .wallet-warning strong { color: #ffc2cc; font-size: 12px; }
 .wallet-warning small { color: var(--muted); font-size: 10.5px; line-height: 1.7; }
+.wallet-pay-note { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 2px; padding: 12px 14px; border: 1px solid rgba(66, 228, 165, .26); border-radius: 12px; background: rgba(66, 228, 165, .07); color: var(--green); }
+.wallet-pay-note > span { display: grid; gap: 3px; }
+.wallet-pay-note strong { color: #d6fff0; font-size: 12px; }
+.wallet-pay-note small { color: var(--muted); font-size: 10.5px; line-height: 1.7; }
 .primary-button:disabled, .secondary-button:disabled, .danger-button:disabled { opacity: .55; cursor: not-allowed; }
 .refund-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(66, 228, 165, .1); border: 1px solid rgba(66, 228, 165, .3); color: var(--green); font-size: 10px; font-weight: 800; }
 .wallet-balance-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(66, 228, 165, .08); border: 1px solid rgba(66, 228, 165, .24); color: var(--green); font-family: var(--app-font-mono); font-size: 11px; }
