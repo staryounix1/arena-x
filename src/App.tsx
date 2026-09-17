@@ -2,7 +2,7 @@ import { createContext, type FormEvent, type ReactNode, useContext, useEffect, u
 import {
   Activity, AlertCircle, AlertTriangle, ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpFromLine,
   BarChart3, Check, CheckCircle2, ChevronDown, Clock3, Copy, Gamepad2, ImagePlus, LayoutDashboard, LogIn,
-  LogOut, Menu, MessageCircle, Monitor, Plus, RefreshCw, Save, Search, Settings, ShieldAlert,
+  LogOut, Menu, MessageCircle, Monitor, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays,
   Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet,
   X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, PlayCircle, Package,
 } from 'lucide-react';
@@ -38,6 +38,7 @@ type StoreOrderStatus = 'NEW' | 'UNDER_REVIEW' | 'DELIVERED' | 'CANCELLED';
 type StoreOrder = { id: string; userId: string; username: string; accountId: string; accountTitle: string; platform: string; price: number; status: StoreOrderStatus; customerNote: string; adminNote: string; created_at: string; updated_at: string };
 type RechargePackage = { id: string; title: string; coins: number; price: number; amount: number; bonus: string; description: string; active: boolean };
 type LiveSlot = { id: string; title: string; subtitle: string; url: string; type: 'LIVE' | 'VIDEO'; thumbnail: string };
+type LiveScheduleItem = { id: string; title: string; league: string; platform: string; startsAt: string; prize: string; tone: 'green' | 'blue' | 'amber' };
 type StoreAccountDraft = { id: string; title: string; description: string; price: string; platform: string; tag: string; primaryImage: string; gallery: string; available: boolean };
 type RechargeDraft = { id: string; title: string; coins: string; price: string; amount: string; bonus: string; description: string; active: boolean };
 
@@ -110,6 +111,16 @@ const rechargePackagesFrom = (settings: Record<string, string>) => {
   return raw.map(item => ({ ...item, coins: Number(item.coins), price: Number(item.price), amount: Number(item.amount ?? item.coins ?? 0), active: item.active !== false })) as RechargePackage[];
 };
 const liveSlotsFrom = (settings: Record<string, string>) => readSettingJson<LiveSlot[]>(settings, 'store_live_slots', DEFAULT_LIVE_SLOTS);
+const buildLiveSchedule = (seed: number, tournaments: Tournament[]): LiveScheduleItem[] => {
+  const first = tournaments[0]?.title || 'بطولة ARENA//X المفتوحة';
+  const second = tournaments[1]?.title || 'كأس التحدي السريع';
+  const at = (minutes: number) => new Date(seed + minutes * 60 * 1000).toISOString();
+  return [
+    { id: 'schedule-main', title: first, league: 'ARENA//X OPEN', platform: tournaments[0]?.platform || 'eFootball Mobile', startsAt: at(28), prize: tournaments[0] ? money(tournaments[0].prize_pool) : '$2,400', tone: 'green' },
+    { id: 'schedule-cup', title: second, league: 'NIGHT CUP / WEEK 04', platform: tournaments[1]?.platform || 'PlayStation', startsAt: at(142), prize: tournaments[1] ? money(tournaments[1].prize_pool) : '$1,500', tone: 'blue' },
+    { id: 'schedule-showdown', title: 'SHOWDOWN: المغرب ضد العالم', league: 'COMMUNITY SERIES', platform: 'Xbox / PC', startsAt: at(286), prize: '$900', tone: 'amber' },
+  ];
+};
 const accountDraftFrom = (item?: StoreAccount): StoreAccountDraft => ({ id: item?.id || `account-${Date.now()}`, title: item?.title || '', description: item?.description || '', price: item ? String(item.price) : '', platform: item?.platform || 'eFootball Mobile', tag: item?.tag || '', primaryImage: item?.images[0] || '', gallery: item?.images.slice(1).join('\n') || '', available: item?.available ?? true });
 const rechargeDraftFrom = (item?: RechargePackage): RechargeDraft => ({ id: item?.id || `recharge-${Date.now()}`, title: item?.title || '', coins: item ? String(item.coins) : '', price: item ? String(item.price) : '', amount: item ? String(item.amount) : '', bonus: item?.bonus || '', description: item?.description || 'يتم شحن كوينز eFootball بعد تأكيد الدفع من الإدارة.', active: item?.active ?? true });
 const COIN_ORDER_PREFIX = 'EFOOTBALL_COINS_ORDER:';
@@ -667,7 +678,47 @@ function CoinRechargeModal({ pack, onClose }: { pack: RechargePackage; onClose: 
 }
 function youtubeEmbed(url: string) { const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|live\/))([^?&/]+)/); return match ? `https://www.youtube.com/embed/${match[1]}?rel=0` : url; }
 function StoreMedia({ slot }: { slot: LiveSlot }) { const [playing, setPlaying] = useState(false); const media = youtubeEmbed(slot.url); if (!slot.url) return <div className="store-media-empty"><Video className="h-8 w-8" /><span>أضف رابط العرض من لوحة التحكم</span></div>; if (!playing) return <button className="store-media-poster" onClick={() => setPlaying(true)}><StoreImage src={slot.thumbnail} alt={slot.title} /><span className="store-play"><PlayCircle className="h-8 w-8" /></span><b>اضغط للتشغيل</b></button>; if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(slot.url)) return <video className="store-media-player" src={slot.url} controls preload="metadata" />; return <iframe className="store-media-player" src={media} title={slot.title} allow="fullscreen; picture-in-picture" allowFullScreen />; }
-function StoreLivePage() { const { settings } = useArena(); const slots = liveSlotsFrom(settings); return <div className="shell page-wrap store-page"><div className="live-hero"><div><span className="eyebrow"><span className="live-dot" />ARENA//X BROADCAST</span><h1>الساحة<br /><em>على الهواء.</em></h1><p>تابع المباريات المباشرة، أو أعد مشاهدة البطولات التي صنعت لحظات ARENA//X.</p></div><div className="live-hero-mark"><Radio className="h-12 w-12" /><span>LIVE<br />FEED</span></div></div><StoreTabs current="live" /><div className="broadcast-grid">{slots.map((slot, index) => <article className={`broadcast-card ${slot.type === 'LIVE' ? 'is-live' : ''}`} key={slot.id}><div className="broadcast-media"><StoreMedia slot={slot} /><span className="broadcast-type">{slot.type === 'LIVE' ? '● مباشر' : 'فيديو بطولة'}</span></div><div className="broadcast-copy"><small>CHANNEL 0{index + 1}</small><h2>{slot.title}</h2><p>{slot.subtitle}</p></div></article>)}</div></div>; }
+function countdownValue(startsAt: string, now: number) {
+  const total = Math.max(0, new Date(startsAt).getTime() - now);
+  const seconds = Math.floor(total / 1000);
+  return { hours: Math.floor(seconds / 3600), minutes: Math.floor((seconds % 3600) / 60), seconds: seconds % 60, expired: total === 0 };
+}
+function countdownText(startsAt: string, now: number) { const value = countdownValue(startsAt, now); return `${String(value.hours).padStart(2, '0')}:${String(value.minutes).padStart(2, '0')}:${String(value.seconds).padStart(2, '0')}`; }
+function scheduleDay(startsAt: string, now: number) { const dateValue = new Date(startsAt); const today = new Date(now); const tomorrow = new Date(now); tomorrow.setDate(today.getDate() + 1); if (dateValue.toDateString() === today.toDateString()) return 'اليوم'; if (dateValue.toDateString() === tomorrow.toDateString()) return 'غداً'; return dateValue.toLocaleDateString('ar-MA', { weekday: 'long' }); }
+function scheduleTime(startsAt: string) { return new Date(startsAt).toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit' }); }
+function StoreLivePage() {
+  const { settings, tournaments, onlineCount } = useArena();
+  const slots = liveSlotsFrom(settings);
+  const [now, setNow] = useState(() => Date.now());
+  const [view, setView] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'REPLAY'>('ALL');
+  const [scheduleSeed] = useState(() => Date.now());
+  const schedule = useMemo(() => buildLiveSchedule(scheduleSeed, tournaments), [scheduleSeed, tournaments]);
+  const liveSlot = slots.find(item => item.type === 'LIVE') || slots[0];
+  const replaySlots = slots.filter(item => item.type === 'VIDEO');
+  const hasLive = Boolean(liveSlot?.url && liveSlot.type === 'LIVE');
+
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+
+  if (!liveSlot) return <div className="shell page-wrap store-page"><StoreTabs current="live" /><Empty icon={Video} text="لا توجد خانات بث بعد. أضف محتوى من لوحة الإدارة." /></div>;
+  return <div className="shell page-wrap store-page live-page">
+    <StoreTabs current="live" />
+    <header className="live-page-header">
+      <div className="live-page-copy"><span className="eyebrow"><span className="live-dot" />ARENA//X BROADCAST NETWORK</span><h1>المباراة<br /><em>تبدأ هنا.</em></h1><p>بث مباشر، مواعيد واضحة، وإعادات لأقوى لحظات الساحة. افتح المشاهدة، واختر موعد المواجهة التالية.</p><div className="live-header-meta"><span><strong>{hasLive ? 'ON AIR' : 'NEXT UP'}</strong><small>{hasLive ? 'البث الرئيسي متاح الآن' : 'المواجهة القادمة خلال دقائق'}</small></span><span><strong>{onlineCount || 1}</strong><small>مشاهد في الساحة</small></span></div></div>
+      <div className="live-signal-art"><span className="live-signal-ring ring-one" /><span className="live-signal-ring ring-two" /><div className="live-signal-core"><Radio className="h-10 w-10" /><span>{hasLive ? 'LIVE' : 'READY'}</span><b>ARENA<br />FEED</b></div><span className="live-signal-label">SIGNAL / 01</span></div>
+    </header>
+
+    <section className="live-stage" aria-label="البث الرئيسي وجدول البث">
+      <article className="live-player-card"><div className="live-card-topline"><span className={hasLive ? 'live-status' : 'upcoming-status'}><i />{hasLive ? 'مباشر الآن' : 'البث الرئيسي قريباً'}</span><span className="live-viewers"><Users className="h-3.5 w-3.5" />{onlineCount || 1} مشاهد</span></div><div className="live-player-frame"><StoreMedia slot={liveSlot} /></div><div className="live-player-info"><div><span className="eyebrow muted">MAIN STAGE / CHANNEL 01</span><h2>{liveSlot.title}</h2><p>{liveSlot.subtitle}</p></div><span className="live-quality"><Monitor className="h-3.5 w-3.5" />1080P</span></div></article>
+      <aside className="live-schedule-card"><div className="live-section-title"><div><span className="eyebrow muted">UP NEXT / 03 EVENTS</span><h2>جدول الساحة</h2></div><CalendarDays className="h-5 w-5" /></div><div className="live-schedule-list">{schedule.map(item => { const timer = countdownValue(item.startsAt, now); return <article className="live-schedule-item" key={item.id}><span className={`schedule-swatch ${item.tone}`} /><div className="schedule-time"><strong>{scheduleTime(item.startsAt)}</strong><small>{scheduleDay(item.startsAt, now)}</small></div><div className="schedule-copy"><span>{item.league}</span><h3>{item.title}</h3><small>{item.platform} · جائزة {item.prize}</small></div><div className="schedule-countdown"><small>{timer.expired ? 'يبدأ الآن' : 'يبدأ خلال'}</small><b>{timer.expired ? 'LIVE' : countdownText(item.startsAt, now)}</b></div></article>; })}</div></aside>
+    </section>
+
+    <section className="live-program"><div className="live-program-heading"><div><span className="eyebrow muted">BROADCAST LIBRARY / 02</span><h2>ماذا تريد أن تشاهد؟</h2><p>تنقّل بين البث الحالي، المواعيد القادمة، وأفضل الإعادات.</p></div><div className="live-filter-bar" role="tablist" aria-label="تصفية محتوى البث">{([['ALL', 'الكل'], ['LIVE', 'مباشر'], ['UPCOMING', 'قادم'], ['REPLAY', 'إعادات']] as const).map(([key, label]) => <button type="button" role="tab" aria-selected={view === key} className={view === key ? 'active' : ''} onClick={() => setView(key)} key={key}>{label}</button>)}</div></div>
+      {(view === 'ALL' || view === 'UPCOMING') && <div className="live-upcoming-strip"><div className="live-upcoming-intro"><span className="panel-icon amber"><Clock3 className="h-5 w-5" /></span><div><strong>لا تفوّت صافرة البداية</strong><small>اضبط تذكيرك للمواجهة القادمة وكن أول من يدخل البث.</small></div></div><div className="live-next-countdown"><small>الموعد الأقرب</small><strong>{countdownText(schedule[0].startsAt, now)}</strong><span>{schedule[0].title}</span></div></div>}
+      {(view === 'ALL' || view === 'LIVE') && <div className="live-library-banner"><span className="live-dot" /><div><strong>قناة ARENA//X الرئيسية</strong><small>{hasLive ? 'البث مفتوح الآن. اضغط على التشغيل لمشاهدة المواجهة.' : 'لا يوجد بث مباشر مفعّل حالياً. سيظهر هنا بمجرد نشر الرابط.'}</small></div><span className="live-library-code">CH / 01</span></div>}
+      {(view === 'ALL' || view === 'REPLAY') && <div className="broadcast-grid live-replay-grid">{replaySlots.map((slot, index) => <article className="broadcast-card" key={slot.id}><div className="broadcast-media"><StoreMedia slot={slot} /><span className="broadcast-type">إعادة</span><span className="replay-duration">FULL MATCH</span></div><div className="broadcast-copy"><small>REPLAY 0{index + 1} / ARENA//X</small><h2>{slot.title}</h2><p>{slot.subtitle}</p><span className="broadcast-card-link">مشاهدة الإعادة <ArrowLeft className="h-3.5 w-3.5" /></span></div></article>)}</div>}
+    </section>
+  </div>;
+}
 
 function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const { login, register } = useArena(); const [, setLocation] = useLocation(); const isLogin = mode === 'login'; const [form, setForm] = useState({ login: '', password: '', username: '', email: '', efootball_id: '', whatsapp: '' }); const [error, setError] = useState('');
