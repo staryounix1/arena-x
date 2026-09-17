@@ -12,16 +12,18 @@ import './home-redesign.css';
 import './store.css';
 import './store-admin.css';
 import { DEFAULT_ADMIN_WHATSAPP_LINK, notifyWhatsApp } from './lib/whatsapp';
+import { recordAnalyticsEvent } from './lib/analytics';
+import { startPaymentCheckout } from './lib/payments';
 import { AdminTournamentsPage as AdminTournamentsPageV2 } from './components/AdminTournaments';
 
 type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 type User = { id: string; username: string; email: string; password?: string; role: 'PLAYER' | 'ADMIN'; balance: number; efootball_id: string; whatsapp: string; wins: number; losses: number; banned?: boolean; ban_reason?: string; created_at?: string; last_login?: string; rating_average?: number; rating_count?: number; trust_level?: string; favorite_team?: string; favorite_team_logo?: string; verification_status?: VerificationStatus; whatsapp_verified_at?: string };
 type Match = { id: string; title: string; creator_id: string; creator_name: string; creator_efootball_id: string; opponent_id?: string; opponent_name?: string; opponent_efootball_id?: string; platform: string; stake: number; prize: number; status: string; room_code?: string; room_setup_deadline_at?: string; room_ready_at?: string; match_deadline_at?: string; room_creator_copied_at?: string; room_opponent_copied_at?: string; winner_id?: string; winner_name?: string; payout_status?: 'PENDING' | 'APPROVED' | 'REJECTED'; payout_note?: string; payout_reviewed_at?: string; creator_claim?: string; opponent_claim?: string; creator_claimed_at?: string; opponent_claimed_at?: string; created_at?: string; expires_at?: string; started_at?: string; completed_at?: string; cancelled_at?: string; cancel_reason?: string; escrow_status?: string; messages: { id: string; user_id?: string; username: string; message: string }[] };
 type TournamentStatus = 'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
-type Tournament = { id: string; title: string; prize_pool: number; entry_fee: number; max_players: number; participant_count: number; start_date: string; end_date?: string; rules: string; description?: string; image_url?: string; platform?: string; status?: TournamentStatus; featured?: boolean; joined?: boolean };
-type TournamentDraft = { id?: string; title: string; prize_pool: number; entry_fee: number; max_players: number; start_date: string; end_date: string; rules: string; description: string; image_url: string; platform: string; status: TournamentStatus; featured: boolean };
+type Tournament = { id: string; title: string; prize_pool: number; entry_fee: number; max_players: number; participant_count: number; start_date: string; end_date?: string; start_at?: string; end_at?: string; rules: string; description?: string; image_url?: string; platform?: string; status?: TournamentStatus; featured?: boolean; joined?: boolean };
+type TournamentDraft = { id?: string; title: string; prize_pool: number; entry_fee: number; max_players: number; start_date: string; end_date: string; start_at: string; end_at: string; rules: string; description: string; image_url: string; platform: string; status: TournamentStatus; featured: boolean };
 type Tx = { id: string; type: string; description: string; amount: number; balance_after: number; created_at: string };
-type Recharge = { id: string; username: string; userId: string; amount: number; payment_method: string; whatsapp: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; created_at: string; coins?: number; efootballId?: string };
+type Recharge = { id: string; username: string; userId: string; amount: number; payment_method: string; whatsapp: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; created_at: string; coins?: number; efootballId?: string };
 type Withdrawal = { id: string; username: string; userId: string; amount: number; fee: number; payoutAmount: number; method: string; destination: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; created_at: string };
 type PaymentMethod = { id: string; kind: 'RECHARGE' | 'WITHDRAWAL'; name: string; details: string; enabled: boolean; sort_order: number };
 type IdentityVerification = { id: string; userId: string; username: string; whatsapp: string; whatsappCode: string; documentPath: string; documentName: string; documentMime: string; documentUrl?: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; adminNote: string; submittedAt: string; reviewedAt?: string };
@@ -35,7 +37,7 @@ type RegisterResult = 'SIGNED_IN' | 'CONFIRM_EMAIL' | null;
 type LeaderboardPlayer = { id: string; username: string; efootball_id: string; wins: number; losses: number; win_rate: number; favorite_team?: string; favorite_team_logo?: string };
 type StoreAccount = { id: string; title: string; description: string; price: number; platform: string; tag: string; images: string[]; available: boolean };
 type StoreOrderStatus = 'NEW' | 'UNDER_REVIEW' | 'DELIVERED' | 'CANCELLED';
-type StoreOrder = { id: string; userId: string; username: string; accountId: string; accountTitle: string; platform: string; price: number; status: StoreOrderStatus; customerNote: string; adminNote: string; created_at: string; updated_at: string };
+type StoreOrder = { id: string; userId: string; username: string; accountId: string; accountTitle: string; platform: string; price: number; status: StoreOrderStatus; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; customerNote: string; adminNote: string; created_at: string; updated_at: string };
 type RechargePackage = { id: string; title: string; coins: number; price: number; amount: number; bonus: string; description: string; active: boolean };
 type LiveSlot = { id: string; title: string; subtitle: string; url: string; type: 'LIVE' | 'VIDEO'; thumbnail: string };
 type LiveScheduleItem = { id: string; title: string; league: string; platform: string; startsAt: string; prize: string; tone: 'green' | 'blue' | 'amber' };
@@ -44,9 +46,9 @@ type RechargeDraft = { id: string; title: string; coins: string; price: string; 
 
 const mapUserRow = (row: Record<string, unknown>): User => ({ id: String(row.id), username: String(row.username || 'لاعب'), email: String(row.email || ''), role: row.role === 'ADMIN' ? 'ADMIN' : 'PLAYER', balance: Number(row.balance || 0), efootball_id: String(row.efootball_id || 'EF-000000'), whatsapp: String(row.whatsapp || ''), wins: Number(row.wins || 0), losses: Number(row.losses || 0), banned: Boolean(row.banned), ban_reason: row.ban_reason ? String(row.ban_reason) : '', created_at: row.created_at ? String(row.created_at) : undefined, last_login: row.last_login ? String(row.last_login) : undefined, rating_average: Number(row.rating_average || 0), rating_count: Number(row.rating_count || 0), trust_level: String(row.trust_level || 'NEW'), favorite_team: String(row.favorite_team || ''), favorite_team_logo: String(row.favorite_team_logo || ''), verification_status: (row.verification_status as VerificationStatus) || 'UNVERIFIED', whatsapp_verified_at: row.whatsapp_verified_at ? String(row.whatsapp_verified_at) : undefined });
 const mapLeaderboardRow = (row: Record<string, unknown>): LeaderboardPlayer => { const wins = Number(row.wins || 0); const losses = Number(row.losses || 0); return { id: String(row.id), username: String(row.username || 'لاعب'), efootball_id: String(row.efootball_id || 'EF-000000'), wins, losses, win_rate: wins + losses ? Number((wins / (wins + losses) * 100).toFixed(1)) : 0, favorite_team: String(row.favorite_team || ''), favorite_team_logo: String(row.favorite_team_logo || '') }; };
-const mapTournamentRow = (row: Record<string, unknown>, joined = false): Tournament => ({ id: String(row.id), title: String(row.title || 'بطولة جديدة'), prize_pool: Number(row.prize_pool || 0), entry_fee: Number(row.entry_fee || 0), max_players: Number(row.max_players || 0), participant_count: Number(row.participant_count || 0), start_date: String(row.start_date || ''), end_date: String(row.end_date || ''), rules: String(row.rules || ''), description: String(row.description || ''), image_url: String(row.image_url || ''), platform: String(row.platform || 'الهاتف'), status: (row.status as TournamentStatus) || 'UPCOMING', featured: Boolean(row.featured), joined });
-const emptyTournamentDraft = (): TournamentDraft => ({ title: '', prize_pool: 500, entry_fee: 20, max_players: 16, start_date: '', end_date: '', rules: 'إقصاء مباشر • eFootball Mobile • 10 دقائق', description: '', image_url: '', platform: 'الهاتف', status: 'UPCOMING', featured: false });
-const toTournamentDraft = (item?: Tournament): TournamentDraft => ({ id: item?.id, title: item?.title || '', prize_pool: item?.prize_pool || 500, entry_fee: item?.entry_fee || 20, max_players: item?.max_players || 16, start_date: item?.start_date || '', end_date: item?.end_date || '', rules: item?.rules || '', description: item?.description || '', image_url: item?.image_url || '', platform: item?.platform || 'الهاتف', status: item?.status || 'UPCOMING', featured: Boolean(item?.featured) });
+const mapTournamentRow = (row: Record<string, unknown>, joined = false): Tournament => ({ id: String(row.id), title: String(row.title || 'بطولة جديدة'), prize_pool: Number(row.prize_pool || 0), entry_fee: Number(row.entry_fee || 0), max_players: Number(row.max_players || 0), participant_count: Number(row.participant_count || 0), start_date: String(row.start_date || ''), end_date: String(row.end_date || ''), start_at: row.start_at ? String(row.start_at) : '', end_at: row.end_at ? String(row.end_at) : '', rules: String(row.rules || ''), description: String(row.description || ''), image_url: String(row.image_url || ''), platform: String(row.platform || 'الهاتف'), status: (row.status as TournamentStatus) || 'UPCOMING', featured: Boolean(row.featured), joined });
+const emptyTournamentDraft = (): TournamentDraft => ({ title: '', prize_pool: 500, entry_fee: 20, max_players: 16, start_date: '', end_date: '', start_at: '', end_at: '', rules: 'إقصاء مباشر • eFootball Mobile • 10 دقائق', description: '', image_url: '', platform: 'الهاتف', status: 'UPCOMING', featured: false });
+const toTournamentDraft = (item?: Tournament): TournamentDraft => ({ id: item?.id, title: item?.title || '', prize_pool: item?.prize_pool || 500, entry_fee: item?.entry_fee || 20, max_players: item?.max_players || 16, start_date: item?.start_date || '', end_date: item?.end_date || '', start_at: item?.start_at || '', end_at: item?.end_at || '', rules: item?.rules || '', description: item?.description || '', image_url: item?.image_url || '', platform: item?.platform || 'الهاتف', status: item?.status || 'UPCOMING', featured: Boolean(item?.featured) });
 const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = reject; reader.readAsDataURL(file); });
 
 const seedMatches: Match[] = [
@@ -114,10 +116,13 @@ const liveSlotsFrom = (settings: Record<string, string>) => readSettingJson<Live
 const buildLiveSchedule = (seed: number, tournaments: Tournament[]): LiveScheduleItem[] => {
   const first = tournaments[0]?.title || 'بطولة ARENA//X المفتوحة';
   const second = tournaments[1]?.title || 'كأس التحدي السريع';
-  const at = (minutes: number) => new Date(seed + minutes * 60 * 1000).toISOString();
+  const at = (minutes: number, tournament?: Tournament) => {
+    const stored = tournament?.start_at ? Date.parse(tournament.start_at) : NaN;
+    return new Date(Number.isFinite(stored) ? stored : seed + minutes * 60 * 1000).toISOString();
+  };
   return [
-    { id: 'schedule-main', title: first, league: 'ARENA//X OPEN', platform: tournaments[0]?.platform || 'eFootball Mobile', startsAt: at(28), prize: tournaments[0] ? money(tournaments[0].prize_pool) : '$2,400', tone: 'green' },
-    { id: 'schedule-cup', title: second, league: 'NIGHT CUP / WEEK 04', platform: tournaments[1]?.platform || 'PlayStation', startsAt: at(142), prize: tournaments[1] ? money(tournaments[1].prize_pool) : '$1,500', tone: 'blue' },
+    { id: 'schedule-main', title: first, league: 'ARENA//X OPEN', platform: tournaments[0]?.platform || 'eFootball Mobile', startsAt: at(28, tournaments[0]), prize: tournaments[0] ? money(tournaments[0].prize_pool) : '$2,400', tone: 'green' },
+    { id: 'schedule-cup', title: second, league: 'NIGHT CUP / WEEK 04', platform: tournaments[1]?.platform || 'PlayStation', startsAt: at(142, tournaments[1]), prize: tournaments[1] ? money(tournaments[1].prize_pool) : '$1,500', tone: 'blue' },
     { id: 'schedule-showdown', title: 'SHOWDOWN: المغرب ضد العالم', league: 'COMMUNITY SERIES', platform: 'Xbox / PC', startsAt: at(286), prize: '$900', tone: 'amber' },
   ];
 };
@@ -131,7 +136,7 @@ const coinOrderMeta = (notes: string) => {
 const mapRechargeRow = (row: Record<string, unknown>): Recharge => {
   const notes = String(row.notes || '');
   const coinOrder = coinOrderMeta(notes);
-  return { id: String(row.id), username: String(row.username), userId: String(row.user_id), amount: Number(row.amount), payment_method: String(row.payment_method), whatsapp: String(row.whatsapp || ''), notes, status: row.status as Recharge['status'], created_at: String(row.created_at), coins: coinOrder?.coins, efootballId: coinOrder?.efootballId };
+  return { id: String(row.id), username: String(row.username), userId: String(row.user_id), amount: Number(row.amount), payment_method: String(row.payment_method), whatsapp: String(row.whatsapp || ''), notes, status: row.status as Recharge['status'], payment_status: row.payment_status as Recharge['payment_status'], created_at: String(row.created_at), coins: coinOrder?.coins, efootballId: coinOrder?.efootballId };
 };
 const TEAM_OPTIONS = [
   { id: 'real-madrid', name: 'ريال مدريد', short: 'RM', logo: 'https://media.api-sports.io/football/teams/541.png', color: '#f5f5f5', accent: '#d8b44a' },
@@ -238,7 +243,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
         session?.user ? supabase.from('disputes').select('*').order('created_at', { ascending: false }) : Promise.resolve({ data: null }),
         session?.user ? supabase.from('dispute_evidence').select('dispute_id,file_url,original_name,file_path').order('created_at', { ascending: true }) : Promise.resolve({ data: null }),
          session?.user ? supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(300) : Promise.resolve({ data: null }),
-         supabase.from('settings').select('*'),
+         supabase.rpc('get_settings_for_session'),
          session?.user ? supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(100) : Promise.resolve({ data: null }),
           session?.user ? supabase.from('support_tickets').select('*').order('updated_at', { ascending: false }) : Promise.resolve({ data: null }),
            session?.user ? supabase.from('platform_earnings').select('*').order('created_at', { ascending: false }).limit(500) : Promise.resolve({ data: null }),
@@ -276,7 +281,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
        if (settingsResult.data) setSettings(Object.fromEntries(settingsResult.data.map((row: Record<string, unknown>) => [String(row.key), String(row.value)])));
        if (notificationsResult.data) setNotifications(notificationsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), user_id: String(row.user_id), kind: String(row.kind), title: String(row.title), body: String(row.body), link: row.link ? String(row.link) : undefined, read_at: row.read_at ? String(row.read_at) : undefined, created_at: String(row.created_at) })));
         if (ticketsResult.data) setSupportTickets(ticketsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), user_id: String(row.user_id), subject: String(row.subject), category: String(row.category), status: row.status as SupportTicket['status'], priority: String(row.priority), created_at: String(row.created_at), updated_at: String(row.updated_at) })));
-         if (storeOrdersResult.data) setStoreOrders(storeOrdersResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), userId: String(row.user_id), username: String(row.username || usersResult.data?.find((userRow: Record<string, unknown>) => String(userRow.id) === String(row.user_id))?.username || 'لاعب'), accountId: String(row.account_id), accountTitle: String(row.account_title), platform: String(row.platform || ''), price: Number(row.price || 0), status: row.status as StoreOrderStatus, customerNote: String(row.customer_note || ''), adminNote: String(row.admin_note || ''), created_at: String(row.created_at), updated_at: String(row.updated_at || row.created_at) })));
+         if (storeOrdersResult.data) setStoreOrders(storeOrdersResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), userId: String(row.user_id), username: String(row.username || usersResult.data?.find((userRow: Record<string, unknown>) => String(userRow.id) === String(row.user_id))?.username || 'لاعب'), accountId: String(row.account_id), accountTitle: String(row.account_title), platform: String(row.platform || ''), price: Number(row.price || 0), status: row.status as StoreOrderStatus, payment_status: row.payment_status as StoreOrder['payment_status'], customerNote: String(row.customer_note || ''), adminNote: String(row.admin_note || ''), created_at: String(row.created_at), updated_at: String(row.updated_at || row.created_at) })));
     };
       let refreshTimer: number | undefined;
      const refresh = () => {
@@ -397,7 +402,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
       }
       const next: Tournament = { ...mapTournamentRow({ ...draft, id, participant_count: current?.participant_count || 0, image_url: imageUrl }), joined: current?.joined };
       if (supabaseEnabled && supabase) {
-        const payload = { title: next.title, prize_pool: next.prize_pool, entry_fee: next.entry_fee, max_players: next.max_players, start_date: next.start_date, end_date: next.end_date, rules: next.rules, description: next.description, image_url: next.image_url, platform: next.platform, status: next.status, featured: next.featured, updated_at: new Date().toISOString() };
+        const payload = { title: next.title, prize_pool: next.prize_pool, entry_fee: next.entry_fee, max_players: next.max_players, start_date: next.start_date, end_date: next.end_date, start_at: next.start_at || null, end_at: next.end_at || null, rules: next.rules, description: next.description, image_url: next.image_url, platform: next.platform, status: next.status, featured: next.featured, updated_at: new Date().toISOString() };
         const result = draft.id ? await supabase.from('tournaments').update(payload).eq('id', id) : await supabase.from('tournaments').insert({ ...payload, id, participant_count: 0 }).select('*').single();
         if (result.error) return false;
       }
@@ -641,11 +646,23 @@ function StoreAccountDetailPage() {
   </div>;
 }
 function StoreRechargePage() { const { settings, user } = useArena(); const [, setLocation] = useLocation(); const packages = rechargePackagesFrom(settings).filter(item => item.active); const [selectedPackage, setSelectedPackage] = useState<RechargePackage | null>(null); const openRecharge = (pack: RechargePackage) => user ? setSelectedPackage(pack) : setLocation('/login?returnTo=/store/recharge'); return <div className="shell page-wrap store-page"><PageTitle icon={Gamepad2} title="شحن كوينز eFootball" subtitle="اختر عدد الكوينز، ادفع بالدولار، وأرسل الطلب إلى حسابك في eFootball." /><StoreTabs current="recharge" /><div className="store-section-heading"><div><span className="eyebrow muted">COINS / 12 PACKS</span><h2>باقات كوينز eFootball</h2><p>السعر بالدولار وعدد الكوينز قابلان للتعديل من لوحة تحكم المتجر.</p></div></div><div className="recharge-grid">{packages.map(item => <article className="recharge-card" key={item.id}><span className="recharge-icon"><Gamepad2 className="h-5 w-5" /></span><small>{item.title}</small><strong>{money(item.price)}</strong><span className="recharge-coins">{item.coins.toLocaleString('en-US')} كوينز eFootball</span>{item.bonus && <span className="recharge-bonus">{item.bonus}</span>}<p>{item.description}</p><button className="primary-button full" onClick={() => openRecharge(item)}>طلب شحن الكوينز <ArrowLeft className="h-4 w-4" /></button></article>)}</div>{selectedPackage && user && <CoinRechargeModal pack={selectedPackage} onClose={() => setSelectedPackage(null)} />}</div>; }
+function PayStoreOrderButton({ item }: { item: StoreOrder }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (item.payment_status === 'PAID') return <span className="status-badge status-success">مدفوع</span>;
+  const pay = async () => {
+    setBusy(true); setError('');
+    const result = await startPaymentCheckout({ referenceType: 'STORE_ORDER', referenceId: item.id, amount: item.price, description: `ARENA//X · ${item.accountTitle}` });
+    if (result.checkoutUrl) window.location.assign(result.checkoutUrl); else setError(result.error);
+    setBusy(false);
+  };
+  return <span className="payment-action"><button className="secondary-button small" disabled={busy || item.status === 'CANCELLED'} onClick={() => void pay()}>{busy ? 'جارٍ التحضير...' : 'الدفع الإلكتروني'}</button>{error && <small>{error}</small>}</span>;
+}
 function StoreOrdersPage() {
   const { user, storeOrders } = useArena();
   if (!user) return <div className="shell page-wrap"><Empty icon={Package} text="سجّل الدخول لمتابعة طلبات المتجر." /><Link href="/login?returnTo=/orders" className="primary-button">تسجيل الدخول</Link></div>;
   const rows = storeOrders.filter(item => item.userId === user.id);
-  return <div className="shell page-wrap"><PageTitle icon={Package} title="طلباتي" subtitle="تابع مراجعة وتسليم حسابات المتجر من مكان واحد." /><div className="order-trust-note"><ShieldCheck className="h-4 w-4" /><span><strong>لا يوجد خصم تلقائي</strong><small>يبدأ الدفع فقط بعد مراجعة الإدارة وتأكيد تفاصيل التسليم.</small></span></div>{rows.length ? <div className="request-list store-order-list">{rows.map(item => <article className="request-card store-order-card" key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>#{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span><StatusBadge status={item.status} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>آخر تحديث</small><b>{date(item.updated_at)}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'بانتظار مراجعة الإدارة'}</b></span></div></article>)}</div> : <Empty icon={Package} text="لا توجد طلبات حسابات بعد. اختر عرضاً من المتجر لبدء الطلب." />}</div>;
+  return <div className="shell page-wrap"><PageTitle icon={Package} title="طلباتي" subtitle="تابع مراجعة وتسليم حسابات المتجر من مكان واحد." /><div className="order-trust-note"><ShieldCheck className="h-4 w-4" /><span><strong>دفع آمن ومؤكد</strong><small>يتم إنشاء الدفع عبر صفحة مزود خارجي ولا تصل بيانات البطاقة إلى ARENA//X.</small></span></div>{rows.length ? <div className="request-list store-order-list">{rows.map(item => <article className="request-card store-order-card" key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>#{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span><StatusBadge status={item.status} /><PayStoreOrderButton item={item} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>آخر تحديث</small><b>{date(item.updated_at)}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'بانتظار مراجعة الإدارة'}</b></span></div></article>)}</div> : <Empty icon={Package} text="لا توجد طلبات حسابات بعد. اختر عرضاً من المتجر لبدء الطلب." />}</div>;
 }
 function StoreOrdersAdminPage() {
   const { storeOrders, updateStoreOrder } = useArena();
@@ -697,6 +714,7 @@ function StoreLivePage() {
   const replaySlots = slots.filter(item => item.type === 'VIDEO');
   const hasLive = Boolean(liveSlot?.url && liveSlot.type === 'LIVE');
 
+  useEffect(() => { recordAnalyticsEvent('live_page_view', { hasLive, scheduleCount: schedule.length }); }, [hasLive, schedule.length]);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
   if (!liveSlot) return <div className="shell page-wrap store-page"><StoreTabs current="live" /><Empty icon={Video} text="لا توجد خانات بث بعد. أضف محتوى من لوحة الإدارة." /></div>;
