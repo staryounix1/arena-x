@@ -194,6 +194,21 @@ tr:last-child td { border-bottom: 0; }
 .rank { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--muted); background: var(--surface-3); font-family: var(--app-font-mono); font-size: 11px; }
 .rank-1 { color: #1d1605; background: var(--amber); }.rank-2 { color: #121820; background: #cbd5e1; }.rank-3 { color: white; background: #a86937; }
 .table-player { display: inline-flex; align-items: center; gap: 9px; font-weight: 800; }
+.leaderboard-privacy, .support-contact { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+.leaderboard-privacy > div, .support-contact > div { display: grid; gap: 4px; }
+.leaderboard-privacy strong, .support-contact h2 { margin: 0; font-size: 15px; }
+.leaderboard-privacy small, .support-contact p { margin: 0; color: var(--muted); font-size: 10px; }
+.support-contact { padding: 22px; border-color: rgba(66, 228, 165, .25); background: radial-gradient(circle at 100% 0, rgba(66, 228, 165, .12), transparent 45%), var(--surface); }
+.support-contact h2 { margin-top: 7px; font-size: 22px; }
+.support-contact p { max-width: 600px; line-height: 1.8; }
+.support-faq { display: grid; gap: 0; margin-bottom: 16px; }
+.support-faq details { padding: 14px 2px; border-bottom: 1px solid var(--line); }
+.support-faq details:last-child { border-bottom: 0; }
+.support-faq summary { cursor: pointer; color: var(--text); font-size: 12px; font-weight: 800; }
+.support-faq details p { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.9; }
+.support-login-note { display: grid; gap: 10px; justify-items: start; }
+.support-login-note strong { font-size: 14px; }
+.support-login-note p { margin: 0; color: var(--muted); font-size: 11px; }
 
 .form-stack { display: grid; gap: 14px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
