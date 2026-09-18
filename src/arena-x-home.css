@@ -1064,6 +1064,47 @@
 .ex-room-live small { color: var(--ex-dim); font-size: 11px; line-height: 1.7; }
 .ex-room-live-clock { flex: 0 0 auto; color: var(--ex-ink); font-family: var(--app-font-mono); font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
 
+/* ── LIVE MODE: whole room shifts to the magenta "match in progress" theme ──
+   Scoped to .ex.is-live, which wraps ONLY the room content. The site header
+   and bottom nav live outside .ex and are never re-themed. */
+.ex.is-live { --ex-neon: #ff2d95; --ex-line-hot: rgba(255, 45, 149, .4); }
+.ex.is-live::before {
+  background:
+    radial-gradient(120% 90% at 50% 0, rgba(255, 45, 149, .18), transparent 60%),
+    radial-gradient(100% 80% at 50% 100%, rgba(139, 92, 255, .14), transparent 58%);
+}
+.ex.is-live .ex-room-top {
+  border-bottom-color: rgba(255, 45, 149, .3);
+  background:
+    radial-gradient(120% 130% at 50% 0, rgba(255, 45, 149, .16), transparent 62%),
+    linear-gradient(180deg, rgba(14, 8, 18, .98), rgba(5, 5, 10, .98));
+}
+.ex.is-live .ex-room-hero { border-color: rgba(255, 45, 149, .44); background: linear-gradient(160deg, rgba(255, 45, 149, .12), rgba(8, 6, 14, .95)); box-shadow: 0 34px 70px -46px rgba(255, 45, 149, .95); }
+.ex.is-live .ex-room-hero.is-live { border-color: rgba(255, 45, 149, .55); }
+.ex.is-live .ex-room-phase { color: #ff9ecb; }
+.ex.is-live .ex-room-phase i { background: var(--ex-magenta); box-shadow: 0 0 0 3px rgba(255, 45, 149, .18), 0 0 12px var(--ex-magenta); }
+.ex.is-live .ex-room-clock { color: #ffd0e6; text-shadow: 0 0 26px rgba(255, 45, 149, .55); }
+.ex.is-live .ex-room-state { border-color: rgba(255, 45, 149, .42); background: rgba(255, 45, 149, .12); color: #ff9ecb; }
+.ex.is-live .ex-room-card,
+.ex.is-live .ex-steps-bar,
+.ex.is-live .ex-hud { border-color: rgba(255, 45, 149, .24); }
+.ex.is-live .ex-room-card { background: linear-gradient(165deg, rgba(38, 12, 26, .9), rgba(8, 6, 12, .92)); }
+.ex.is-live .ex-room-card-title { color: #ff9ecb; }
+.ex.is-live .ex-step-pip.is-now i { border-color: var(--ex-magenta); color: var(--ex-magenta); box-shadow: 0 0 0 4px rgba(255, 45, 149, .14); }
+.ex.is-live .ex-step-pip.is-done i { border-color: rgba(255, 45, 149, .5); background: rgba(255, 45, 149, .16); color: #ff9ecb; }
+.ex.is-live .ex-btn.primary { background: linear-gradient(115deg, #ff2d95, #8b5cff); color: #fff; box-shadow: 0 0 0 1px rgba(255, 45, 149, .5), 0 16px 44px -16px rgba(255, 45, 149, .95); }
+.ex.is-live .ex-btn.primary:hover { box-shadow: 0 0 0 1px rgba(255, 45, 149, .8), 0 26px 60px -18px rgba(255, 45, 149, 1); }
+.ex.is-live .ex-btn.ghost { border-color: rgba(255, 45, 149, .42); color: #ff9ecb; }
+.ex.is-live .ex-hud::before { border-color: rgba(255, 45, 149, .6); }
+.ex.is-live .ex-hud::after { border-color: rgba(255, 45, 149, .6); }
+.ex.is-live .ex-room-hero-side .avatar { box-shadow: 0 0 0 1px rgba(255, 45, 149, .34), 0 0 34px -10px rgba(255, 45, 149, .75); }
+.ex.is-live .ex-room-you { border-color: rgba(255, 45, 149, .42); background: rgba(255, 45, 149, .12); color: #ff9ecb; }
+.ex.is-live .ex-room-live { border-color: rgba(255, 45, 149, .5); background: linear-gradient(120deg, rgba(255, 45, 149, .18), rgba(10, 5, 14, .92)); box-shadow: 0 26px 60px -44px rgba(255, 45, 149, 1); }
+.ex.is-live .ex-room-code-value code { color: #ff9ecb; }
+.ex.is-live .ex-room-cta { border-color: rgba(255, 45, 149, .4); background: linear-gradient(120deg, rgba(255, 45, 149, .1), rgba(5, 8, 12, .92)); }
+.ex.is-live .ex-room-card-title svg,
+.ex.is-live .ex-room-cta .ex-room-card-title { color: #ff9ecb; }
+
 /* Room code */
 .ex-room-code { display: grid; gap: 13px; padding: 22px; border: 1px solid var(--ex-line-hot); border-radius: 12px; background: linear-gradient(165deg, rgba(0, 255, 179, .06), rgba(6, 9, 14, .92)); }
 .ex-room-code-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

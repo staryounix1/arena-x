@@ -2311,7 +2311,8 @@ function MatchDetailPageV2() {
   };
   const pc = phaseCopy[phase] || phaseCopy.ROOM_SETUP;
 
-  return <div className="ex">
+  const liveMode = phase === 'PLAYING' && !decided;
+  return <div className={`ex ${liveMode ? 'is-live' : ''}`}>
     {/* ── BROADCAST HEADER ─────────────────────────────────────────── */}
     <div className="ex-room-top">
       <div className="ex-shell">
