@@ -4,7 +4,7 @@ import {
   BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft, CreditCard, Eye, EyeOff, Clock3, Copy, Gamepad2, ImagePlus, LayoutDashboard, LayoutGrid, LogIn,
   LogOut, Menu, MessageCircle, Monitor, MoreVertical, Percent, Phone, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays,
   Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet, Wifi,
-  X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package,
+  X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package, Flame,
 } from 'lucide-react';
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
 import { supabase, supabaseEnabled } from './lib/supabase';
@@ -1211,19 +1211,150 @@ function HomePage() {
 }
 
 function MatchesPage() {
-  const { matches, user, joinMatch } = useArena(); const [, setLocation] = useLocation(); const [status, setStatus] = useState('OPEN'); const [platform, setPlatform] = useState('الكل'); const [search, setSearch] = useState(''); const [createOpen, setCreateOpen] = useState(false); const [rechargeOpen, setRechargeOpen] = useState(false);
-  const filtered = matches.filter(item => (status === 'ALL' || item.status === status) && (platform === 'الكل' || item.platform === platform) && (!search || `${item.title} ${item.creator_name}`.toLowerCase().includes(search.toLowerCase())));
-  const join = async (match: Match) => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation(`/verify?returnTo=/matches/${match.id}`); if (user.balance < match.stake) return setRechargeOpen(true); if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`); };
-  return <div className="shell page-wrap"><div className="page-header"><PageTitle icon={Swords} title="المباريات المفتوحة" subtitle="اختر تحدياً مناسباً أو أنشئ مباراة جديدة." /><button className="primary-button" onClick={() => user ? setCreateOpen(true) : setLocation('/login')}><Plus className="h-4 w-4" />إنشاء مباراة</button></div><div className="toolbar"><div className="filter-list">{[['OPEN', 'متاحة'], ['PLAYING', 'جارية'], ['DISPUTE', 'نزاعات'], ['ALL', 'الكل']].map(([id, label]) => <button key={id} onClick={() => setStatus(id)} className={status === id ? 'filter-active' : ''}>{label}</button>)}</div><div className="toolbar-fields"><div className="search-box"><Search className="h-4 w-4" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="ابحث باسم اللاعب أو المباراة" /></div><select value={platform} onChange={event => setPlatform(event.target.value)}><option>الكل</option><option>الهاتف</option><option>PlayStation</option><option>Xbox / PC</option></select></div></div>{filtered.length === 0 ? <div className="match-empty-panel"><Empty icon={Swords} text={status === 'OPEN' ? 'لا توجد مباريات متاحة للانضمام الآن.' : 'لا توجد مباريات مطابقة للبحث حالياً.'} /><div className="match-empty-actions"><p>جرّب تغيير الفلتر، أو أنشئ تحدياً جديداً وحدّد الرهان الذي يناسبك.</p><div className="match-empty-buttons">{status !== 'ALL' && <button className="secondary-button" onClick={() => setStatus('ALL')}>عرض كل المباريات ({matches.length})</button>}<button className="primary-button" onClick={() => user ? setCreateOpen(true) : setLocation('/login')}><Plus className="h-4 w-4" />إنشاء مباراة</button><Link href="/tournaments" className="secondary-button">تصفّح البطولات</Link></div></div></div> : <div className="match-grid">{filtered.map(match => <MatchCard key={match.id} match={match} user={user} onJoin={() => join(match)} onOpen={() => setLocation(`/matches/${match.id}`)} />)}</div>}{createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}{rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}</div>;
-}
-function MatchCard({ match, user, onJoin, onOpen }: { match: Match; user: User | null; onJoin: () => void; onOpen: () => void }) { const owner = user?.id === match.creator_id; const canRate = Boolean(user && match.status === 'COMPLETED' && match.opponent_id && (user.id === match.creator_id || user.id === match.opponent_id)); return <article className="match-card"><div className="match-card-head"><span><Gamepad2 className="h-4 w-4" />{match.platform}</span><StatusBadge status={match.status === 'OPEN' ? 'OPEN_MATCH' : match.status} /></div><h3>{match.title}</h3><div className="players-line"><div><UserAvatar username={match.creator_name} /><span>{match.creator_name}<small>{match.creator_efootball_id}</small></span></div><strong>VS</strong><div className="opponent"><UserAvatar username={match.opponent_name || 'بانتظار منافس'} /><span>{match.opponent_name || 'بانتظار منافس'}<small>{match.opponent_efootball_id || 'سيظهر بعد الانضمام'}</small></span></div></div><div className="card-metrics"><span>قيمة الرهان<strong>{money(match.stake)}</strong></span><span>الجائزة<strong className="amber-text">{money(match.prize)}</strong></span></div><button className={owner || match.status !== 'OPEN' ? 'secondary-button full' : 'primary-button full'} onClick={owner || match.status !== 'OPEN' ? onOpen : onJoin}>{owner ? 'إدارة المباراة' : match.status === 'OPEN' ? 'قبول التحدي' : 'عرض التفاصيل'}<ArrowLeft className="h-4 w-4" /></button>{owner && match.status === 'OPEN' && <CancelMatchControl match={match} />}{canRate && <Link href={`/rate/${match.id}`} className="text-link">تقييم المنافس</Link>}</article>; }
+  const { matches, user, joinMatch, players, onlineCount, settings } = useArena();
+  const [, setLocation] = useLocation();
+  const [status, setStatus] = useState('OPEN');
+  const [platform, setPlatform] = useState('الكل');
+  const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [rechargeOpen, setRechargeOpen] = useState(false);
 
-function MatchDetailPage() {
-  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-  const { id } = useParams<{ id: string }>(); const { matches, user, setMatchRoom, addMessage, openDispute, joinMatch } = useArena(); const [, setLocation] = useLocation(); const match = matches.find(item => item.id === id); const [chat, setChat] = useState(''); const [code, setCode] = useState(match?.room_code || ''); const [disputeOpen, setDisputeOpen] = useState(false); const [subject, setSubject] = useState(''); const [details, setDetails] = useState(''); const [message, setMessage] = useState('');
-  if (!match) return <div className="shell page-wrap"><Empty text="المباراة غير موجودة." /><Link href="/matches" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المباريات</Link></div>;
-  const participant = !!user && (user.id === match.creator_id || user.id === match.opponent_id); const submitChat = (event: FormEvent) => { event.preventDefault(); addMessage(match.id, chat); setChat(''); }; const submitDispute = (event: FormEvent) => { event.preventDefault(); openDispute(match.id, subject, details, evidenceFiles); setEvidenceFiles([]); setDisputeOpen(false); setMessage('تم فتح النزاع وسيظهر في لوحة الإدارة.'); };
-  return <div className="shell page-wrap"><Link href="/matches" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المباريات</Link>{message && <Notice>{message}</Notice>}<div className="detail-card"><div className="detail-head"><span className="mono">#{match.id} • {match.platform}</span><StatusBadge status={match.status} /></div><div className="detail-versus"><div className="detail-player"><b>{initials(match.creator_name)}</b><strong>{match.creator_name}</strong><small>{match.creator_efootball_id}</small></div><div className="detail-prize"><span>الجائزة</span><strong>{money(match.prize)}</strong><small>الرهان: {money(match.stake)} لكل لاعب</small></div><div className="detail-player"><b>{initials(match.opponent_name || '؟')}</b><strong>{match.opponent_name || 'بانتظار منافس'}</strong><small>{match.opponent_efootball_id || 'لم ينضم بعد'}</small></div></div>{match.status === 'OPEN' && user && user.id !== match.creator_id && <button className="primary-button" onClick={() => void joinMatch(match.id).then(ok => setMessage(ok ? 'تم الانضمام إلى المباراة بنجاح.' : 'تعذر الانضمام إلى المباراة.'))}>قبول التحدي</button>}{participant && <div className="room-code"><span>رمز الغرفة</span><strong>{code || 'لم يحدده المضيف بعد'}</strong><button onClick={() => navigator.clipboard?.writeText(code)} aria-label="نسخ"><Copy className="h-4 w-4" /></button>{user.id === match.creator_id && <div className="inline-edit"><input value={code} onChange={event => setCode(event.target.value)} placeholder="أدخل رمز الغرفة" /><button onClick={() => void setMatchRoom(match.id, code).then(ok => setMessage(ok ? 'تم حفظ رمز الغرفة.' : 'تعذر حفظ رمز الغرفة.'))}><Save className="h-4 w-4" />حفظ</button></div>}</div>}<div className="detail-columns"><div className="chat-panel"><div className="panel-heading"><span><MessageCircle className="h-4 w-4" />محادثة المباراة</span><small>{match.messages.length} رسائل</small></div><div className="chat-messages">{match.messages.length ? match.messages.map(item => <div className={item.user_id === user?.id ? 'chat-message own' : 'chat-message'} key={item.id}><b>{item.username}</b><p>{item.message}</p></div>) : <Empty icon={MessageCircle} text="لا توجد رسائل بعد." />}</div>{participant && <form className="chat-form" onSubmit={submitChat}><input value={chat} onChange={event => setChat(event.target.value)} placeholder="اكتب رسالة للمنافس" /><button aria-label="إرسال"><ArrowLeft className="h-4 w-4" /></button></form>}</div><div className="detail-actions"><h3>إجراءات المباراة</h3><p>احتفظ بإثبات النتيجة والتواصل داخل المنصة لحماية حقوقك.</p>{participant && <button className="danger-button full" onClick={() => setDisputeOpen(true)}><AlertTriangle className="h-4 w-4" />فتح نزاع</button>}</div></div></div>{disputeOpen && <Modal onClose={() => setDisputeOpen(false)}><div className="modal-heading"><span className="panel-icon red"><AlertTriangle className="h-5 w-5" /></span><span><h2>فتح نزاع</h2><p>صف المشكلة بدقة وأرفق التفاصيل اللازمة للإدارة.</p></span></div><form className="modal-body form-stack" onSubmit={submitDispute}><Field label="عنوان النزاع" value={subject} onChange={setSubject} placeholder="مثال: لم يرسل المنافس النتيجة" /><label className="form-field"><span>التفاصيل</span><textarea rows={5} value={details} onChange={event => setDetails(event.target.value)} required /></label><label className="form-field"><span>الأدلة (صور أو فيديو)</span><input type="file" accept="image/*,video/*" multiple onChange={event => setEvidenceFiles(Array.from(event.target.files || []))} /><small>{evidenceFiles.length ? `تم اختيار ${evidenceFiles.length} ملف` : 'يمكنك اختيار أكثر من ملف'}</small></label><button className="danger-button full">إرسال النزاع</button></form></Modal>}</div>;
+  const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
+  const openCount = matches.filter(item => item.status === 'OPEN').length;
+  const playingCount = matches.filter(item => item.status === 'PLAYING').length;
+  const totalOpenPrize = matches.filter(item => item.status === 'OPEN').reduce((sum, item) => sum + Number(item.prize || 0), 0);
+  const biggestStake = matches.filter(item => item.status === 'OPEN').reduce((max, item) => Math.max(max, Number(item.stake || 0)), 0);
+
+  const filtered = matches.filter(item => (status === 'ALL' || item.status === status) && (platform === 'الكل' || item.platform === platform) && (!search || `${item.title} ${item.creator_name}`.toLowerCase().includes(search.toLowerCase())));
+
+  const join = async (match: Match) => {
+    if (!user) return setLocation('/login');
+    if (!canPlay(user)) return setLocation(`/verify?returnTo=/matches/${match.id}`);
+    if (user.balance < match.stake) return setRechargeOpen(true);
+    if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`);
+  };
+  const enterCreate = () => user ? setCreateOpen(true) : setLocation('/login');
+
+  const filters: [string, string, number][] = [
+    ['OPEN', 'متاحة', openCount],
+    ['PLAYING', 'جارية', playingCount],
+    ['DISPUTE', 'نزاعات', matches.filter(i => i.status === 'DISPUTE').length],
+    ['ALL', 'الكل', matches.length],
+  ];
+
+  return <div className="ax">
+    <section className="ex-section ex-shell" style={{ paddingBottom: 0 }}>
+      <div className="ex-arena-head">
+        <div>
+          <span className="ex-chip"><span className="ex-dot" />ساحة المباريات</span>
+          <h1 className="ex-title" style={{ fontSize: 'clamp(30px, 5vw, 56px)' }}>اختر تحديك.<em>وادخل الساحة.</em></h1>
+          <p className="ex-sub">مباريات مفتوحة بجوائز مضمونة، نظام حجز آمن، ونتائج موثّقة. أنشئ تحديك أو اقبل تحدٍّ قائم في ثوانٍ.</p>
+        </div>
+        <button className="ex-btn primary ex-arena-cta" onClick={enterCreate}><Plus className="h-5 w-5" />إنشاء مباراة</button>
+      </div>
+
+      <div className="ex-arena-stats">
+        <span><Swords className="h-5 w-5" /><b>{openCount}</b><small>تحدٍّ مفتوح</small></span>
+        <span><Radio className="h-5 w-5" /><b className="is-live">{playingCount}</b><small>مباراة جارية</small></span>
+        <span><Trophy className="h-5 w-5" /><b>{money(totalOpenPrize)}</b><small>جوائز مفتوحة</small></span>
+        <span><Flame className="h-5 w-5" /><b>{biggestStake ? money(biggestStake) : '—'}</b><small>أعلى رهان</small></span>
+        <span><Users className="h-5 w-5" /><b className="is-live">{shownOnline}</b><small>متصل الآن</small></span>
+      </div>
+    </section>
+
+    <section className="ex-section ex-shell" style={{ paddingTop: 36 }}>
+      <div className="ex-toolbar">
+        <div className="ex-seg" role="tablist" aria-label="حالة المباراة">
+          {filters.map(([id, label, count]) => <button type="button" role="tab" aria-selected={status === id} key={id} className={status === id ? 'is-on' : ''} onClick={() => setStatus(id)}>{label}<i>{count}</i></button>)}
+        </div>
+        <div className="ex-toolbar-fields">
+          <label className="ex-search"><Search className="h-4 w-4" /><input aria-label="البحث في المباريات" value={search} onChange={event => setSearch(event.target.value)} placeholder="ابحث باسم اللاعب أو المباراة" /></label>
+          <label className="ex-select"><select aria-label="تصفية المنصة" value={platform} onChange={event => setPlatform(event.target.value)}><option>الكل</option><option>الهاتف</option><option>PlayStation</option><option>Xbox / PC</option></select></label>
+        </div>
+      </div>
+
+      {filtered.length === 0
+        ? <div className="ex-lobby">
+            <div className="ex-lobby-hero ex-hud">
+              <span className="ex-lobby-icon"><Swords className="h-9 w-9" /></span>
+              <h3>{status === 'OPEN' ? 'الساحة بانتظار أول تحدٍّ' : 'لا توجد نتائج مطابقة'}</h3>
+              <p>{search || platform !== 'الكل' || status !== 'OPEN'
+                ? 'جرّب تغيير الفلتر أو مسح البحث لإظهار كل المباريات.'
+                : 'لا توجد مباريات مفتوحة في هذه اللحظة. كن السبّاق: أنشئ تحديك، وستظهر أول مواجهة مباشرة هنا في ثوانٍ.'}</p>
+              <div className="ex-lobby-actions">
+                <button className="ex-btn primary" onClick={enterCreate}><Plus className="h-5 w-5" />إنشاء أول تحدٍّ</button>
+                {(search || platform !== 'الكل' || status !== 'OPEN') && <button className="ex-btn ghost" onClick={() => { setStatus('ALL'); setPlatform('الكل'); setSearch(''); }}>إظهار كل المباريات</button>}
+              </div>
+            </div>
+
+            <div className="ex-lobby-side">
+              <article className="ex-lobby-card ex-hud">
+                <span className="ex-lobby-card-title"><Flame className="h-4 w-4" />اقتراحات سريعة</span>
+                <p>ابدأ برهان يناسب ميزانيتك — يمكنك تعديله في أي وقت.</p>
+                <div className="ex-stake-grid">
+                  {[5, 10, 20, 50].map(amount => <button type="button" key={amount} className="ex-stake" onClick={enterCreate}><small>رهان</small><b>{money(amount)}</b></button>)}
+                </div>
+              </article>
+              <article className="ex-lobby-card ex-hud">
+                <span className="ex-lobby-card-title"><ShieldCheck className="h-4 w-4" />كيف تعمل الساحة؟</span>
+                <ul className="ex-lobby-list">
+                  <li>يُحجز الرهان تلقائياً حتى اعتماد النتيجة.</li>
+                  <li>جوائز معلنة قبل الانضمام، بلا مفاجآت.</li>
+                  <li>دعم بشري يحل أي نزاع بسرعة.</li>
+                </ul>
+                <Link href="/support" className="ex-more">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link>
+              </article>
+            </div>
+          </div>
+        : <div className="ex-match-grid">{filtered.map(match => <MatchCard key={match.id} match={match} user={user} onJoin={() => join(match)} onOpen={() => setLocation(`/matches/${match.id}`)} />)}</div>}
+
+      {matches.length > 0 && <div className="ex-trust" style={{ marginTop: 56 }}><div className="ex-shell ex-trust-grid">
+        <span className="ex-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
+        <span className="ex-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
+        <span className="ex-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
+      </div></div>}
+    </section>
+
+    {createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}
+    {rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}
+  </div>;
+}
+function MatchCard({ match, user, onJoin, onOpen }: { match: Match; user: User | null; onJoin: () => void; onOpen: () => void }) {
+  const owner = user?.id === match.creator_id;
+  const canRate = Boolean(user && match.status === 'COMPLETED' && match.opponent_id && (user.id === match.creator_id || user.id === match.opponent_id));
+  const isOpen = match.status === 'OPEN';
+  const joined = Boolean(match.opponent_id);
+  return <article className={`ex-mcard ${isOpen ? 'is-open' : ''}`}>
+    <div className="ex-mcard-head">
+      <span className="ex-mcard-platform"><Gamepad2 className="h-3.5 w-3.5" />{match.platform}</span>
+      <StatusBadge status={match.status === 'OPEN' ? 'OPEN_MATCH' : match.status} />
+    </div>
+    <h3 className="ex-mcard-title">{match.title}</h3>
+    <div className="ex-mcard-vs">
+      <div className="ex-mcard-side">
+        <UserAvatar username={match.creator_name} />
+        <span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id}</small></span>
+      </div>
+      <b className="ex-mcard-vs-badge">ضد</b>
+      <div className="ex-mcard-side is-opponent">
+        <UserAvatar username={match.opponent_name || 'بانتظار منافس'} />
+        <span><strong>{match.opponent_name || 'بانتظار منافس'}</strong><small>{match.opponent_efootball_id || 'سيظهر بعد الانضمام'}</small></span>
+      </div>
+    </div>
+    <div className="ex-mcard-metrics">
+      <span><small>قيمة الرهان</small><strong>{money(match.stake)}</strong></span>
+      <span><small>الجائزة</small><strong className="gold">{money(match.prize)}</strong></span>
+    </div>
+    <div className="ex-mcard-foot">
+      <span className="ex-mcard-escrow"><ShieldCheck className="h-3.5 w-3.5" />ضمان مالي</span>
+      {isOpen && !joined && <span className="ex-mcard-spots">مقعد واحد متاح</span>}
+    </div>
+    <button className={owner || !isOpen ? 'ex-btn ghost full' : 'ex-btn primary full'} onClick={owner || !isOpen ? onOpen : onJoin}>
+      {owner ? 'إدارة المباراة' : isOpen ? 'قبول التحدي' : 'عرض التفاصيل'}<ArrowLeft className="h-4 w-4" />
+    </button>
+    {owner && isOpen && <CancelMatchControl match={match} />}
+    {canRate && <Link href={`/rate/${match.id}`} className="ex-more">تقييم المنافس <ArrowLeft className="h-4 w-4" /></Link>}
+  </article>;
 }
 
 function MatchDetailPageV2() {
