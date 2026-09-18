@@ -1800,32 +1800,28 @@ function HomePage() {
             <span className="ex-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
           </div>
           {featured ? <>
-            <div className="ex-stage-meta">
-              <span className="ex-stage-kicker">{featured.title}</span>
-              <span className="ex-stage-prize-inline"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
-            </div>
-            <div className="ex-versus">
-              <div className="ex-side">
-                <span className="ex-side-badge">المُتحدّي</span>
-                <UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large />
-                <strong>{featured.creatorName}</strong>
-                <small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small>
+            <div className="ex-stage-body">
+              <div className="ex-stage-side">
+                <span className="ex-stage-avatar"><UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large /></span>
+                <span className="ex-stage-name"><strong>{featured.creatorName}</strong><small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small></span>
+                <span className="ex-stage-tag">المُتحدّي</span>
               </div>
-              <div className="ex-versus-mid">
-                <b className="ex-vs">ضد</b>
-                <span className="ex-versus-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
+              <div className="ex-stage-vs">
+                <b>ضد</b>
+                <span className="ex-stage-kicker">{featured.title}</span>
               </div>
-              <div className="ex-side">
-                <span className="ex-side-badge is-opp">المُنافس</span>
-                <UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large />
-                <strong>{featured.opponentName}</strong>
-                <small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small>
+              <div className="ex-stage-side is-opp">
+                <span className="ex-stage-avatar"><UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large /></span>
+                <span className="ex-stage-name"><strong>{featured.opponentName}</strong><small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small></span>
+                <span className="ex-stage-tag is-opp">المُنافس</span>
               </div>
             </div>
-            <div className="ex-stage-foot">
-              <span><ShieldCheck className="h-4 w-4" />{featured.note}</span>
-              <span><Clock3 className="h-4 w-4" />مفتوحة الآن</span>
+            <div className="ex-stage-stats">
+              <span className="ex-stage-stat"><small>الرهان</small><strong>{money(featured.prize / 1.9)}</strong></span>
+              <span className="ex-stage-stat is-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
+              <span className="ex-stage-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />{featured.note || 'مفعّل'}</strong></span>
             </div>
+            <div className="ex-stage-foot"><span><Clock3 className="h-4 w-4" />مفتوحة الآن للمنافسة</span></div>
           </> : <div className="ex-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
         </aside>
       </div>
