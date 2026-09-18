@@ -16,6 +16,24 @@
 .home-trust-strip { margin-top: 55px; padding: 28px 0; border-block: 1px solid var(--line); background: #0b1219; }.home-trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }.home-trust-grid span { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: center; }.home-trust-grid svg { grid-row: span 2; color: var(--green); }.home-trust-grid strong { font-size: 11px; }.home-trust-grid small { color: var(--muted); font-size: 9px; }
 @media (max-width: 700px) { .home-hero-v2 { padding: 37px 0 28px; }.home-hero-v2-grid, .home-split-grid { grid-template-columns: 1fr; gap: 22px; }.home-hero-v2-copy h1 { font-size: 48px; }.home-hero-v2-copy > p { font-size: 12px; }.home-hero-actions { flex-direction: column; margin-top: 22px; }.home-hero-actions > * { width: 100%; justify-content: center; }.home-live-stats { justify-content: space-between; gap: 10px; margin-top: 25px; }.home-live-stats strong { font-size: 18px; }.home-section-v2 { padding-top: 34px; }.home-section-heading-v2 { align-items: flex-start; flex-direction: column; gap: 10px; }.home-section-heading-v2 h2 { font-size: 21px; }.home-match-row { grid-template-columns: 1fr 1fr; gap: 12px; }.home-match-player { grid-column: 1 / -1; }.home-match-row > button { grid-column: 1 / -1; width: 100%; justify-content: center; }.home-steps { grid-template-columns: 1fr; }.home-steps article { min-height: 0; }.home-trust-grid { grid-template-columns: 1fr; gap: 16px; }.home-featured-players { gap: 7px; }.home-featured-v2 { padding: 17px; }.home-empty-state { align-items: flex-start; flex-wrap: wrap; }.home-empty-state > button { width: 100%; justify-content: center; } }
 
+/* Mobile home: trim the three large empty bands (top of the page, between the
+   content and the trust strip, and between the trust strip and the footer). */
+@media (max-width: 700px) {
+  .home-hero-v2 { padding: 18px 0 22px; }
+  .home-hero-v2-copy h1 { margin: 12px 0 10px; }
+  .home-hero-actions { margin-top: 16px; }
+  .home-live-stats { margin-top: 20px; padding-top: 16px; }
+  .home-section-v2 { padding-top: 22px; }
+  .home-section-heading-v2 { margin-bottom: 13px; }
+  .home-trust-strip { margin-top: 24px; padding: 18px 0; }
+  .home-trust-grid { gap: 12px; }
+  .home-trust-grid span { grid-template-columns: auto 1fr; }
+  /* The footer already clears the fixed bottom nav, so the page-level reserve
+     just adds an empty band on the home page. */
+  .main-content:has(.home-redesigned) { padding-bottom: 12px; }
+  .site-footer { margin-top: 22px; margin-bottom: 74px; }
+}
+
 .match-empty-panel { display: grid; gap: 14px; padding: 22px; border: 1px dashed var(--line-strong); border-radius: 18px; background: linear-gradient(160deg, rgba(66, 228, 165, .05), var(--surface)); }
 .match-empty-panel .empty-state { min-height: 0; padding: 12px; border: 0; }
 .match-empty-actions { display: grid; justify-items: center; gap: 12px; text-align: center; }
