@@ -351,16 +351,16 @@
 .ex-duel-owner-name small { overflow: hidden; color: var(--ex-faint); font-family: var(--app-font-mono); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; direction: ltr; unicode-bidi: isolate; }
 .ex-duel-owner-role { flex: 0 0 auto; padding: 4px 11px; border: 1px solid var(--ex-line-hot); border-radius: 999px; color: var(--ex-neon); background: rgba(0, 255, 179, .07); font-size: 9px; font-weight: 900; letter-spacing: .06em; }
 .ex-duel-seat {
-  display: flex; align-items: center; gap: 11px;
+  display: flex; align-items: center; justify-content: center; gap: 11px;
   margin: 0 16px 16px; padding: 13px 14px;
   border: 1px dashed rgba(0, 255, 179, .32); border-radius: 13px;
   background: linear-gradient(120deg, rgba(0, 255, 179, .06), rgba(0, 255, 179, .015));
 }
 .ex-duel-seat-icon { flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(0, 255, 179, .12); color: var(--ex-neon); }
-.ex-duel-seat-text { display: grid; gap: 2px; flex: 1; min-width: 0; text-align: right; }
+.ex-duel-seat-text { display: grid; gap: 2px; flex: 1; min-width: 0; text-align: center; }
 .ex-duel-seat-text strong { font-size: 12.5px; font-weight: 900; }
 .ex-duel-seat-text small { color: var(--ex-faint); font-size: 10px; }
-.ex-duel-seat-plus { flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--ex-line); border-radius: 9px; color: var(--ex-dim); }
+.ex-duel-seat-plus { flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--ex-line); border-radius: 10px; color: var(--ex-dim); }
 .ex-duel.is-demo .ex-duel-seat { border-color: var(--ex-line); background: rgba(148, 163, 184, .04); }
 .ex-duel.is-demo .ex-duel-seat-icon { background: rgba(148, 163, 184, .1); color: var(--ex-faint); }
 .ex-duel-stats { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 1px; border-top: 1px solid var(--ex-line); background: var(--ex-line); }
