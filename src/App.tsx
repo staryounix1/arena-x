@@ -4,11 +4,12 @@ import {
   BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft, CreditCard, Eye, EyeOff, Clock3, Copy, Gamepad2, ImagePlus, LayoutDashboard, LayoutGrid, LogIn,
   LogOut, Menu, MessageCircle, Monitor, MoreVertical, Percent, Phone, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays,
   Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet, Wifi,
-  X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package, Flame,
+  X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package, Flame, Share2, Timer, Hourglass,
 } from 'lucide-react';
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
 import { supabase, supabaseEnabled } from './lib/supabase';
 import './arena-x-home.css';
+import './wait-lobby.css';
 import './store.css';
 import './store-admin.css';
 import './control-centre.css';
@@ -1433,6 +1434,75 @@ function MatchCard({ match, user, onJoin, onOpen }: { match: Match; user: User |
   </article>;
 }
 
+function WaitingLobby({ match, secondsLeft, completedSteps, currentStep }: { match: Match; secondsLeft: number; completedSteps: number; currentStep: number }) {
+  const [copiedLink, setCopiedLink] = useState(false);
+  const shareUrl = `${window.location.origin}/matches/${match.id}`;
+  const urgent = secondsLeft > 0 && secondsLeft <= 120;
+  const copy = (value: string, done: (v: boolean) => void) => {
+    navigator.clipboard?.writeText(value).catch(() => {});
+    done(true);
+    window.setTimeout(() => done(false), 1800);
+  };
+  const shareNative = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: match.title, text: `تحدٍّ على ARENA//X بجائزة ${money(match.prize)} — هل تقبل؟`, url: shareUrl }); return; } catch { /* user dismissed */ }
+    }
+    copy(shareUrl, setCopiedLink);
+  };
+  return <section className="ex-wait" aria-live="polite">
+    {/* Compact progress replaces the desktop 6-pip bar on phones */}
+    <div className="ex-wait-progress">
+      <b>الخطوة {Math.min(currentStep + 1, 6)} من 6</b>
+      <div className="ex-wait-progress-bars">
+        {[0, 1, 2, 3, 4, 5].map(index => <i key={index} className={index < completedSteps ? 'is-done' : index === currentStep ? 'is-now' : ''} />)}
+      </div>
+    </div>
+
+    {/* Status */}
+    <div className="ex-wait-hero">
+      <span className="ex-wait-radar"><Swords /></span>
+      <span className="ex-room-phase"><i />جاري البحث عن منافس</span>
+      <h2 className="ex-wait-title">تحدّيك منشور في الساحة</h2>
+      <p className="ex-wait-sub">سيصلك إشعار فور قبول أحدهم للتحدي. لا حاجة لترك هذه الصفحة.</p>
+      <span className={`ex-wait-timer ${urgent ? 'is-urgent' : ''}`}>
+        <Timer /><span>ينتهي بعد</span><strong>{secondsLeft > 0 ? formatCountdown(secondsLeft) : '--:--'}</strong>
+      </span>
+    </div>
+
+    {/* Money */}
+    <div className="ex-wait-money">
+      <div><small>رهانك المحجوز</small><strong className="is-neon">{money(match.stake)}</strong></div>
+      <div><small>الجائزة عند الفوز</small><strong className="is-gold">{money(match.prize)}</strong></div>
+    </div>
+
+    {/* Invite */}
+    <div className="ex-wait-invite">
+      <span className="ex-wait-invite-title"><Share2 />هل تعرف خصماً؟ أدخله الساحة</span>
+      <button type="button" className="ex-btn primary ex-wait-share" onClick={() => void shareNative()}><Share2 />{navigator.share ? 'مشاركة رابط التحدي' : 'نسخ رابط التحدي'}</button>
+      <div className="ex-wait-link">
+        <input value={shareUrl} readOnly onFocus={event => event.currentTarget.select()} aria-label="رابط التحدي" />
+        <button type="button" className="ex-btn ghost" onClick={() => copy(shareUrl, setCopiedLink)}>{copiedLink ? <><Check className="h-4 w-4" />تم</> : <Copy className="h-4 w-4" />}</button>
+      </div>
+      <p className="ex-wait-tip">أرسل الرابط في مجموعات eFootball — أي لاعب يفتحه يمكنه قبول التحدي مباشرة.</p>
+    </div>
+
+    {/* Next steps */}
+    <div className="ex-wait-next">
+      <span className="ex-wait-next-title">ماذا يحدث بعد ذلك؟</span>
+      <ol>
+        <li><i>1</i><span><b>انضمام المنافس</b><p>يُحجز رهانه تلقائياً ويصبح الطرفان جاهزين.</p></span></li>
+        <li><i>2</i><span><b>تجهيز الغرفة</b><p>تنشئ الغرفة في eFootball وتُدخل رمزها.</p></span></li>
+        <li><i>3</i><span><b>اللعب وصرف الجائزة</b><p>بعد تأكيد النتيجة تُصرف الجائزة للفائز فوراً.</p></span></li>
+      </ol>
+    </div>
+
+    <div className="ex-wait-refund">
+      <Hourglass />
+      <p>لم ينضم أحد قبل انتهاء المدة؟ تُلغى المباراة تلقائياً ويُعاد رهانك كاملاً إلى محفظتك.</p>
+    </div>
+  </section>;
+}
+
 function MatchDetailPageV2() {
   const { id } = useParams<{ id: string }>();
   const {
@@ -1475,6 +1545,7 @@ function MatchDetailPageV2() {
     ? (match.room_setup_deadline_at ? new Date(match.room_setup_deadline_at).getTime() : (match.started_at ? new Date(new Date(match.started_at).getTime() + 60000).getTime() : now))
     : (match.match_deadline_at ? new Date(match.match_deadline_at).getTime() : now);
   const secondsLeft = Math.max(0, Math.ceil((phaseDeadline - now) / 1000));
+  const openSecondsLeft = isOpen && match.expires_at ? Math.max(0, Math.ceil((new Date(match.expires_at).getTime() - now) / 1000)) : 0;
 
   const steps: [string, boolean][] = [
     ['إنشاء المباراة', true],
@@ -1552,6 +1623,7 @@ function MatchDetailPageV2() {
           <div className="ex-room-hero-mid">
             <span className="ex-room-phase"><i />{pc.label}</span>
             {canPlay && <b className="ex-room-clock">{formatCountdown(secondsLeft)}</b>}
+            {isOpen && <b className="ex-room-clock ex-room-clock-open">{openSecondsLeft > 0 ? formatCountdown(openSecondsLeft) : '--:--'}</b>}
             <span className="ex-room-prize"><small>الجائزة</small><strong>{money(match.prize)}</strong></span>
           </div>
           <div className="ex-room-hero-side is-opponent">
@@ -1566,6 +1638,8 @@ function MatchDetailPageV2() {
 
     <div className="ex-shell ex-room-body">
       {message && <Notice>{message}</Notice>}
+
+      {isOpen && isHost && <WaitingLobby match={match} secondsLeft={openSecondsLeft} completedSteps={steps.filter(([, done]) => done).length} currentStep={currentStep < 0 ? 5 : currentStep} />}
 
       {/* ── STAGING ACTIONS ────────────────────────────────────────── */}
       {isOpen && user && !isHost && <div className="ex-room-cta ex-hud">
@@ -1623,7 +1697,7 @@ function MatchDetailPageV2() {
             <div className="ex-room-chat-body">
               {match.messages.length
                 ? match.messages.map(item => <div className={item.user_id === user?.id ? 'ex-msg own' : 'ex-msg'} key={item.id}><b>{item.username}</b><span>{item.message}</span></div>)
-                : <div className="ex-room-chat-empty"><MessageCircle className="h-7 w-7" /><p>لا توجد رسائل بعد.</p><small>اتفق مع منافسك على وقت البدء ورمز الغرفة.</small></div>}
+                : <div className="ex-room-chat-empty"><MessageCircle className="h-7 w-7" /><p>لا توجد رسائل بعد.</p><small>{isOpen && isHost ? 'لا يمكن المحادثة قبل انضمام منافس. شارك رابط التحدي أعلاه لتسريع الانضمام.' : 'اتفق مع منافسك على وقت البدء ورمز الغرفة.'}</small></div>}
             </div>
             {participant
               ? <form className="ex-room-chat-form" onSubmit={submitChat}><input value={chat} onChange={event => setChat(event.target.value)} placeholder="اكتب رسالة للمنافس" aria-label="رسالة" /><button className="ex-btn primary" aria-label="إرسال"><ArrowLeft className="h-4 w-4" /></button></form>
