@@ -56,6 +56,7 @@
 .ex > * { position: relative; z-index: 1; }
 .ex-shell { width: min(1280px, calc(100% - 44px)); margin-inline: auto; }
 .ex-section { padding-block: clamp(64px, 8vw, 118px); }
+.ex-challenges { padding-top: 0; }
 
 /* ── Shared atoms ───────────────────────────────────────────────────────── */
 .ex-chip {
@@ -147,7 +148,7 @@
 .ex-head p { margin: 12px 0 0; max-width: 54ch; color: var(--ex-dim); font-size: 14px; line-height: 1.85; }
 
 /* ── HERO ───────────────────────────────────────────────────────────────── */
-.ex-hero { position: relative; padding-top: clamp(40px, 6vw, 76px); padding-bottom: clamp(48px, 7vw, 90px); }
+.ex-hero { position: relative; padding-top: clamp(40px, 6vw, 76px); padding-bottom: clamp(28px, 4vw, 52px); }
 .ex-hero::before {
   position: absolute; top: -20%; left: 50%; z-index: -1;
   width: min(980px, 92vw); height: 620px;
@@ -278,48 +279,64 @@
 .ex-stage-empty small { max-width: 30ch; font-size: 12px; line-height: 1.8; }
 
 /* ── MATCH RAIL ─────────────────────────────────────────────────────────── */
-.ex-rail { display: grid; gap: 12px; }
-.ex-rail-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) .6fr .6fr auto;
-  align-items: center; gap: 20px;
-  padding: 18px 22px;
+.ex-duel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ex-duel {
+  position: relative; display: grid; gap: 0;
   border: 1px solid var(--ex-line);
-  border-radius: 8px;
-  background: linear-gradient(120deg, rgba(14, 20, 32, .9), rgba(6, 9, 14, .9));
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(0, 255, 179, .07), transparent 55%),
+    linear-gradient(160deg, rgba(16, 24, 36, .96), rgba(6, 9, 14, .98));
   overflow: hidden;
-  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  transition: border-color .2s ease, transform .2s ease, box-shadow .25s ease;
 }
-.ex-rail-row::before {
-  position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 3px;
-  background: linear-gradient(180deg, var(--ex-neon), var(--ex-neon-2));
-  transform: scaleY(0); transform-origin: center;
-  content: ''; transition: transform .25s ease;
+.ex-duel::before {
+  position: absolute; inset: 0 0 auto; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ex-neon), transparent);
+  opacity: .5; content: '';
 }
-.ex-rail-row:hover { border-color: var(--ex-line-hot); transform: translateX(-4px); box-shadow: 0 26px 50px -34px rgba(0, 255, 179, .8); }
-.ex-rail-row:hover::before { transform: scaleY(1); }
-.ex-rail-player { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.ex-rail-player .avatar { width: 44px; height: 44px; border-radius: 10px; box-shadow: 0 0 0 1px rgba(0, 255, 179, .26); }
-.ex-rail-player > span { display: grid; gap: 4px; min-width: 0; }
-.ex-rail-player strong { overflow: hidden; font-size: 14px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
-.ex-rail-player small { overflow: hidden; color: var(--ex-faint); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.ex-metric { display: grid; gap: 5px; }
-.ex-metric small { color: var(--ex-faint); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.ex-metric strong { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
-.ex-metric strong.gold { color: var(--ex-gold); text-shadow: 0 0 20px rgba(255, 203, 69, .4); }
-.ex-join {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 20px;
-  border: 1px solid var(--ex-neon);
-  border-radius: 5px;
-  background: rgba(0, 255, 179, .08);
+.ex-duel:hover { border-color: var(--ex-line-hot); transform: translateY(-4px); box-shadow: 0 30px 60px -34px rgba(0, 255, 179, .85); }
+.ex-duel.is-demo { background: linear-gradient(160deg, rgba(20, 22, 30, .96), rgba(8, 10, 14, .98)); border-style: dashed; }
+.ex-duel.is-demo::before { background: linear-gradient(90deg, transparent, rgba(148, 163, 184, .6), transparent); }
+.ex-duel-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--ex-line); }
+.ex-duel-platform { padding: 4px 10px; border: 1px solid var(--ex-line); border-radius: 999px; color: var(--ex-dim); font-size: 10px; font-weight: 900; letter-spacing: .06em; }
+.ex-duel-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ex-neon); font-size: 10px; font-weight: 900; letter-spacing: .04em; }
+.ex-duel-state i { display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--ex-neon); box-shadow: 0 0 0 3px rgba(0, 255, 179, .16); animation: ex-dot 1.8s ease-in-out infinite; }
+@keyframes ex-dot { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.ex-duel-state.is-demo { color: var(--ex-faint); }
+.ex-duel-body { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 18px 16px; }
+.ex-duel-side { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.ex-duel-side.is-empty { flex-direction: row-reverse; text-align: end; }
+.ex-duel-avatar { flex: 0 0 auto; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 13px; overflow: hidden; background: rgba(0, 255, 179, .08); box-shadow: 0 0 0 1px rgba(0, 255, 179, .28); }
+.ex-duel-avatar .avatar { width: 100%; height: 100%; border-radius: 0; }
+.ex-duel-avatar.empty { color: var(--ex-faint); border: 1px dashed var(--ex-line-hot); background: rgba(148, 163, 184, .05); box-shadow: none; }
+.ex-duel-name { display: grid; gap: 3px; min-width: 0; }
+.ex-duel-name strong { overflow: hidden; font-size: 13.5px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.ex-duel-name small { overflow: hidden; color: var(--ex-faint); font-family: var(--app-font-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+.ex-duel-side.is-empty .ex-duel-name strong { color: var(--ex-dim); font-size: 12px; }
+.ex-duel-vs { display: grid; justify-items: center; gap: 6px; }
+.ex-duel-vs b { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--ex-line-hot); border-radius: 50%; color: var(--ex-neon); font-size: 11px; font-weight: 900; box-shadow: 0 0 22px -8px var(--ex-neon); }
+.ex-duel-await { display: inline-flex; align-items: center; gap: 4px; color: var(--ex-faint); font-size: 8.5px; font-weight: 800; white-space: nowrap; }
+.ex-duel-stats { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 1px; border-top: 1px solid var(--ex-line); background: var(--ex-line); }
+.ex-duel-stat { display: grid; gap: 5px; padding: 13px 12px; background: rgba(8, 12, 18, .82); text-align: center; justify-items: center; }
+.ex-duel-stat small { color: var(--ex-faint); font-size: 9.5px; font-weight: 900; letter-spacing: .04em; }
+.ex-duel-stat strong { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+.ex-duel-stat.is-prize { background: linear-gradient(180deg, rgba(255, 203, 69, .1), rgba(8, 12, 18, .82)); }
+.ex-duel-stat.is-prize strong { color: var(--ex-gold); text-shadow: 0 0 20px rgba(255, 203, 69, .45); }
+.ex-duel-stat strong.ok { display: inline-flex; align-items: center; gap: 5px; color: var(--ex-neon); font-size: 12px; }
+.ex-duel-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 0; padding: 15px 18px;
+  border: 0; border-top: 1px solid var(--ex-line);
+  background: linear-gradient(135deg, rgba(0, 255, 179, .14), rgba(0, 255, 179, .04));
   color: var(--ex-neon);
-  font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+  font-size: 13px; font-weight: 900; letter-spacing: .03em;
   cursor: pointer;
-  transition: background .18s ease, color .18s ease, box-shadow .2s ease, transform .18s ease;
+  transition: background .18s ease, color .18s ease, box-shadow .2s ease;
 }
-.ex-join:hover { background: var(--ex-neon); color: #02120c; box-shadow: 0 0 32px -6px var(--ex-neon); transform: translateY(-2px); }
+.ex-duel-cta:hover { background: var(--ex-neon); color: #02120c; box-shadow: 0 0 40px -8px var(--ex-neon); }
+.ex-duel-cta.is-demo { background: rgba(148, 163, 184, .06); color: var(--ex-dim); }
+.ex-duel-cta.is-demo:hover { background: rgba(148, 163, 184, .16); color: var(--ex-ink); box-shadow: none; }
 
 .ex-empty {
   display: flex; align-items: center; gap: 20px;
@@ -527,6 +544,16 @@
   .ex-rail-row { grid-template-columns: minmax(0, 1fr) auto; gap: 14px 16px; }
   .ex-rail-row .ex-metric { grid-row: 2; }
   .ex-rail-row .ex-join { grid-column: 2; grid-row: 2; justify-self: end; }
+  .ex-challenges { padding-top: 0; }
+  .ex-challenges .ex-head { margin-bottom: 22px; }
+  .ex-duel-grid { grid-template-columns: 1fr; gap: 14px; }
+  .ex-duel-body { padding: 16px 14px; gap: 6px; }
+  .ex-duel-avatar { width: 42px; height: 42px; border-radius: 11px; }
+  .ex-duel-name strong { font-size: 12.5px; }
+  .ex-duel-vs b { width: 34px; height: 34px; }
+  .ex-duel-stat { padding: 11px 8px; }
+  .ex-duel-stat small { font-size: 9px; }
+  .ex-duel-stat strong { font-size: 14px; }
   .ex-board-row { grid-template-columns: 40px 40px minmax(0, 1fr) auto; gap: 13px; padding: 14px 16px; }
   .ex-board-rank { width: 34px; height: 34px; font-size: 13px; }
   .ex-board-row .avatar { width: 38px; height: 38px; border-radius: 8px; }
