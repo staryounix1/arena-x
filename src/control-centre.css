@@ -22,6 +22,9 @@
 .control-leaf { display: grid; gap: 16px; }
 .control-back { justify-self: start; }
 
+.recharge-form-toggles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.recharge-form-toggles .check-field { display: flex; align-items: center; gap: 9px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(16, 21, 29, .55); font-size: 11.5px; }
+
 /* The control centre is a short button grid, so trim the admin page's trailing
    padding to avoid a large empty band under the last button. */
 .admin-content:has(.control-centre) { padding-bottom: 12px; }
