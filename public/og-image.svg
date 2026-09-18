@@ -1,0 +1,31 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#080b10"/>
+      <stop offset="1" stop-color="#0d1420"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="420" y1="300" x2="900" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00E5FF"/>
+      <stop offset="1" stop-color="#6C5CE7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g stroke="#1b2735" stroke-width="1" opacity="0.6">
+    <path d="M0 120H1200M0 240H1200M0 360H1200M0 480H1200M200 0V630M400 0V630M600 0V630M800 0V630M1000 0V630"/>
+  </g>
+  <rect x="72" y="64" width="64" height="64" rx="16" fill="#FF3C00"/>
+  <path d="M88 104L104 76L120 104" stroke="#080b10" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="156" y="112" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" fill="#ffffff">ARENA<tspan fill="#FF3C00">//</tspan>X</text>
+  <text x="72" y="300" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" fill="#ffffff">نافس بقوة</text>
+  <text x="72" y="396" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" fill="url(#accent)">واربح بعدل</text>
+  <text x="72" y="470" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#8fa3b8">تحديات eFootball بجوائز مضمونة وضمان مالي يحمي كل مواجهة</text>
+  <g>
+    <rect x="72" y="516" width="200" height="58" rx="14" fill="#00E5FF"/>
+    <text x="172" y="554" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#04121a">مباريات</text>
+    <rect x="292" y="516" width="200" height="58" rx="14" fill="none" stroke="#2a3a4d" stroke-width="2"/>
+    <text x="392" y="554" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#ffffff">بطولات</text>
+    <rect x="512" y="516" width="200" height="58" rx="14" fill="none" stroke="#2a3a4d" stroke-width="2"/>
+    <text x="612" y="554" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#ffffff">متجر</text>
+  </g>
+  <text x="1128" y="580" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#5b6f85">arena-x-ten.vercel.app</text>
+</svg>
