@@ -1019,3 +1019,5 @@
   .ex-room-cta .ex-btn { width: 100%; }
   .ex-room-copy-track { grid-template-columns: 1fr; }
 }
+.ex-room-body { padding-block: 34px 72px; }
+@media (max-width: 760px) { .ex-room-body { padding-block: 24px 60px; } }
