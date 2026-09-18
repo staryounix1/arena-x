@@ -127,11 +127,19 @@
 /* HUD corner brackets on panels */
 .ex-hud { position: relative; }
 .ex-hud::before, .ex-hud::after {
-  position: absolute; width: 20px; height: 20px; content: ''; pointer-events: none;
-  border-color: var(--ex-neon); opacity: .75;
+  position: absolute; width: 18px; height: 18px; content: ''; pointer-events: none;
+  opacity: .85; z-index: 2;
 }
-.ex-hud::before { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
-.ex-hud::after { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+.ex-hud::before {
+  top: -1px; right: -1px;
+  border-top: 2px solid var(--ex-neon);
+  border-right: 2px solid var(--ex-neon);
+}
+.ex-hud::after {
+  bottom: -1px; left: -1px;
+  border-bottom: 2px solid var(--ex-neon);
+  border-left: 2px solid var(--ex-neon);
+}
 
 /* Section header */
 .ex-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 40px; }
@@ -203,12 +211,13 @@
   overflow: hidden;
 }
 .ex-stage::after {
-  position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
-  background: linear-gradient(100deg, transparent, rgba(0, 255, 179, .09), transparent);
-  content: ''; pointer-events: none;
-  animation: ex-sheen 5.5s ease-in-out infinite;
+  position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(0, 255, 179, .07), transparent);
+  content: ''; pointer-events: none; z-index: 1;
+  animation: ex-sheen 6s ease-in-out infinite;
 }
-@keyframes ex-sheen { 0%, 100% { left: -60%; } 55% { left: 118%; } }
+@keyframes ex-sheen { 0%, 100% { left: -60%; } 55% { left: 120%; } }
+.ex-stage > * { position: relative; z-index: 2; }
 
 .ex-stage-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .ex-stage-top > span:first-child {
