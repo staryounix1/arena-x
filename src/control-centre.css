@@ -1,0 +1,62 @@
+/* Admin control centre: nested button navigation for إعدادات المنصة */
+.control-centre { display: grid; gap: 18px; }
+.control-breadcrumb { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 10px 13px; border: 1px solid var(--line); border-radius: 13px; background: rgba(16, 21, 29, .62); }
+.control-breadcrumb button, .control-breadcrumb span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-size: 11.5px; font-weight: 800; cursor: pointer; }
+.control-breadcrumb button:hover { color: var(--text); background: var(--surface); }
+.control-breadcrumb button.active { color: var(--green); background: rgba(66, 228, 165, .09); }
+.control-breadcrumb > svg { color: #3a4756; }
+
+.control-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 12px; }
+.control-button { display: flex; align-items: center; gap: 13px; padding: 16px 15px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, rgba(20, 36, 43, .9), rgba(13, 18, 25, .9)); text-align: start; cursor: pointer; transition: .2s ease; }
+.control-button:hover { border-color: rgba(66, 228, 165, .4); transform: translateY(-2px); box-shadow: 0 16px 38px rgba(0, 0, 0, .24); }
+.control-button-icon { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; border: 1px solid rgba(66, 228, 165, .22); border-radius: 13px; color: var(--green); background: rgba(66, 228, 165, .07); }
+.control-button-copy { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.control-button-copy strong { color: var(--text); font-size: 13px; }
+.control-button-copy small { color: var(--muted); font-size: 10.5px; line-height: 1.6; }
+.control-button-arrow { flex: 0 0 auto; color: #3a4756; transition: .2s ease; }
+.control-button:hover .control-button-arrow { color: var(--green); }
+.control-button.is-back { border-style: dashed; background: rgba(16, 21, 29, .6); }
+.control-button.is-back .control-button-icon { border-color: var(--line-strong); color: var(--muted); background: transparent; }
+.control-button.is-back .control-button-arrow { transform: rotate(180deg); }
+
+.control-leaf { display: grid; gap: 16px; }
+.control-back { justify-self: start; }
+
+/* Money / payment methods */
+.money-admin-page { display: grid; gap: 16px; }
+.money-mode-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 15px 17px; border: 1px solid rgba(66, 228, 165, .28); border-radius: 15px; background: rgba(66, 228, 165, .06); }
+.money-mode-bar.is-off { border-color: var(--line-strong); background: rgba(16, 21, 29, .55); }
+.money-mode-bar strong { display: block; color: var(--text); font-size: 13px; }
+.money-mode-bar small { color: var(--muted); font-size: 11px; }
+.money-method-list { display: grid; gap: 9px; }
+.money-method-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 13px; background: rgba(16, 21, 29, .62); }
+.money-method-row.is-hidden { opacity: .55; }
+.money-method-icon { display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 11px; color: var(--green); background: rgba(66, 228, 165, .06); }
+.money-method-icon img { width: 100%; height: 100%; object-fit: contain; }
+.money-method-copy { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.money-method-copy strong { color: var(--text); font-size: 13px; }
+.money-method-copy small { color: var(--muted); font-size: 10.5px; }
+.money-icon-field { display: flex; align-items: center; gap: 14px; padding: 13px 14px; border: 1px dashed var(--line-strong); border-radius: 13px; }
+.money-icon-preview { display: grid; place-items: center; flex: 0 0 auto; width: 58px; height: 58px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 13px; color: var(--muted); background: rgba(13, 18, 25, .8); }
+.money-icon-preview img { width: 100%; height: 100%; object-fit: contain; }
+.money-icon-field > div { display: grid; gap: 5px; }
+.money-icon-field strong { color: var(--text); font-size: 12.5px; }
+.money-icon-field small { color: var(--muted); font-size: 10.5px; line-height: 1.7; }
+.money-icon-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
+
+.pricing-preview { display: grid; gap: 2px; align-content: center; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(66, 228, 165, .05); }
+.pricing-preview small { color: var(--muted); font-size: 10px; }
+.pricing-preview strong { color: var(--green); font-size: 19px; }
+.pricing-preview span { color: var(--muted); font-size: 10px; }
+
+.home-arena-buttons { display: grid; gap: 11px; }
+.home-arena-button-row { display: grid; gap: 9px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 13px; background: rgba(16, 21, 29, .55); }
+.home-arena-button-row.is-hidden { opacity: .55; }
+.home-arena-button-actions { display: flex; gap: 7px; justify-content: flex-end; }
+.home-arena-button-actions .icon-button:disabled { opacity: .3; cursor: not-allowed; }
+
+@media (max-width: 700px) {
+  .control-grid { grid-template-columns: 1fr; }
+  .control-button { padding: 14px 13px; }
+  .money-mode-bar { align-items: stretch; }
+}
