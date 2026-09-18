@@ -1729,7 +1729,6 @@ function HomePage() {
     ...openMatches.map(match => ({ id: match.id, creator_name: match.creator_name, creator_efootball_id: match.creator_efootball_id, platform: match.platform, stake: Number(match.stake), prize: Number(match.prize), real: true as const, match })),
     ...dummyMatches.map(item => ({ ...item, real: false as const })),
   ].slice(0, 6);
-  const displayPrize = openMatches.reduce((sum, match) => sum + Number(match.prize || 0), 0) + dummyMatches.reduce((sum, item) => sum + item.prize, 0);
 
   const enterCreate = () => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation('/verify?returnTo=/matches'); setCreateOpen(true); };
   const join = async (match: Match) => {
@@ -1775,13 +1774,46 @@ function HomePage() {
         </div>}
       </div>
     </div>
+    {/* ── FEATURED MAIN EVENT (first) ──────────────────────────────────── */}
+    <section className="ex-shell ex-featured">
+      <aside className="ex-stage ex-hud">
+        <div className="ex-stage-top">
+          <span className="ex-stage-label"><Zap className="h-3.5 w-3.5" />اللقاء الرئيسي</span>
+          <span className="ex-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
+        </div>
+        {featured ? <>
+          <div className="ex-stage-body">
+            <div className="ex-stage-side">
+              <span className="ex-stage-avatar"><UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large /></span>
+              <span className="ex-stage-name"><strong>{featured.creatorName}</strong><small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small></span>
+              <span className="ex-stage-tag">المُتحدّي</span>
+            </div>
+            <div className="ex-stage-vs">
+              <b>ضد</b>
+              <span className="ex-stage-kicker">{featured.title}</span>
+            </div>
+            <div className="ex-stage-side is-opp">
+              <span className="ex-stage-avatar"><UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large /></span>
+              <span className="ex-stage-name"><strong>{featured.opponentName}</strong><small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small></span>
+              <span className="ex-stage-tag is-opp">المُنافس</span>
+            </div>
+          </div>
+          <div className="ex-stage-stats">
+            <span className="ex-stage-stat"><small>الرهان</small><strong>{money(featured.prize / 1.9)}</strong></span>
+            <span className="ex-stage-stat is-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
+            <span className="ex-stage-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />{(featured.note || 'مفعّل').replace(/^ضمان\s*مالي\s*/, '') || 'مفعّل'}</strong></span>
+          </div>
+          <div className="ex-stage-foot"><span><Clock3 className="h-4 w-4" />مفتوحة الآن للمنافسة</span></div>
+        </> : <div className="ex-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
+      </aside>
+    </section>
+
     {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
     <section className="ex-section ex-shell ex-challenges">
-      <div className="ex-head">
+      <div className="ex-head is-centered">
         <div>
           <span className="ex-chip"><span className="ex-dot" />ساحة مباشرة</span>
-          <h2 className="ex-title">تحديات تنتظر منافساً</h2>
-          <p>{displayOpenCount > 0 ? `${displayOpenCount} تحدٍّ مفتوح بإجمالي جوائز ${money(displayPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
+          <h2 className="ex-title">تحديات مفتوحة تبحث عن أبطال</h2>
         </div>
         <Link href="/matches" className="ex-more">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
       </div>
@@ -1821,54 +1853,21 @@ function HomePage() {
     </section>
 
     {/* ── HERO ─────────────────────────────────────────────────────────── */}
-    <section className="ex-hero">
-      <div className="ex-shell ex-hero-grid">
-        <div>
-          <span className="ex-chip"><span className="ex-dot" />{hero.eyebrow}</span>
-          <h1>{heroTitle}<span className="line-2">{heroAccent}</span></h1>
-          <p className="ex-hero-lead">{hero.subtitle}</p>
-          <div className="ex-hero-actions">
-            {hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create'
-              ? <button key={item.id} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
-              : <Link key={item.id} href={item.href || '/matches'} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
-          </div>
-          {(hero.stats.players || hero.stats.open || hero.stats.online) && <div className="ex-hero-stats">
-            {hero.stats.players && <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>}
-            {hero.stats.open && <div><strong>{displayOpenCount}</strong><small>تحدٍّ متاح</small></div>}
-            {hero.stats.online && <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>}
-          </div>}
+    <section className="ex-hero is-compact">
+      <div className="ex-shell ex-hero-inner">
+        <span className="ex-chip"><span className="ex-dot" />{hero.eyebrow}</span>
+        <h1>{heroTitle}<span className="line-2">{heroAccent}</span></h1>
+        <p className="ex-hero-lead">{hero.subtitle}</p>
+        <div className="ex-hero-actions">
+          {hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create'
+            ? <button key={item.id} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
+            : <Link key={item.id} href={item.href || '/matches'} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
         </div>
-
-        <aside className="ex-stage ex-hud">
-          <div className="ex-stage-top">
-            <span className="ex-stage-label"><Zap className="h-3.5 w-3.5" />اللقاء الرئيسي</span>
-            <span className="ex-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
-          </div>
-          {featured ? <>
-            <div className="ex-stage-body">
-              <div className="ex-stage-side">
-                <span className="ex-stage-avatar"><UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large /></span>
-                <span className="ex-stage-name"><strong>{featured.creatorName}</strong><small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small></span>
-                <span className="ex-stage-tag">المُتحدّي</span>
-              </div>
-              <div className="ex-stage-vs">
-                <b>ضد</b>
-                <span className="ex-stage-kicker">{featured.title}</span>
-              </div>
-              <div className="ex-stage-side is-opp">
-                <span className="ex-stage-avatar"><UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large /></span>
-                <span className="ex-stage-name"><strong>{featured.opponentName}</strong><small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small></span>
-                <span className="ex-stage-tag is-opp">المُنافس</span>
-              </div>
-            </div>
-            <div className="ex-stage-stats">
-              <span className="ex-stage-stat"><small>الرهان</small><strong>{money(featured.prize / 1.9)}</strong></span>
-              <span className="ex-stage-stat is-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
-              <span className="ex-stage-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />{(featured.note || 'مفعّل').replace(/^ضمان\s*مالي\s*/, '') || 'مفعّل'}</strong></span>
-            </div>
-            <div className="ex-stage-foot"><span><Clock3 className="h-4 w-4" />مفتوحة الآن للمنافسة</span></div>
-          </> : <div className="ex-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
-        </aside>
+        {(hero.stats.players || hero.stats.open || hero.stats.online) && <div className="ex-hero-stats">
+          {hero.stats.players && <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>}
+          {hero.stats.open && <div><strong>{displayOpenCount}</strong><small>تحدٍّ متاح</small></div>}
+          {hero.stats.online && <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>}
+        </div>}
       </div>
     </section>
 

@@ -56,7 +56,7 @@
 .ex > * { position: relative; z-index: 1; }
 .ex-shell { width: min(1280px, calc(100% - 44px)); margin-inline: auto; }
 .ex-section { padding-block: clamp(64px, 8vw, 118px); }
-.ex-challenges { padding-top: 0; }
+.ex-challenges { padding-top: clamp(30px, 4vw, 54px); padding-bottom: clamp(20px, 3vw, 40px); }
 
 /* ── Shared atoms ───────────────────────────────────────────────────────── */
 .ex-chip {
@@ -146,10 +146,19 @@
 .ex-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 40px; }
 .ex-head .ex-title { font-size: clamp(24px, 3vw, 40px); margin-top: 14px; }
 .ex-head p { margin: 12px 0 0; max-width: 54ch; color: var(--ex-dim); font-size: 14px; line-height: 1.85; }
+.ex-head.is-centered { display: grid; justify-items: center; text-align: center; gap: 14px; }
+.ex-head.is-centered > div { display: grid; justify-items: center; }
+.ex-head.is-centered .ex-title { max-width: 22ch; }
+.ex-head.is-centered .ex-more { margin-top: 2px; }
+
+/* ── FEATURED MAIN EVENT (top section) ──────────────────────────────────── */
+.ex-featured { padding-top: clamp(18px, 3vw, 30px); padding-bottom: 0; }
+.ex-featured .ex-stage { max-width: 760px; margin-inline: auto; }
 
 /* ── HERO ───────────────────────────────────────────────────────────────── */
-.ex-hero { position: relative; padding-top: clamp(56px, 8vw, 104px); padding-bottom: clamp(28px, 4vw, 52px); }
-.ex-hero::before {
+.ex-hero { position: relative; padding-top: clamp(30px, 4vw, 48px); padding-bottom: clamp(20px, 3vw, 34px); }
+.ex-hero.is-compact { text-align: center; }
+.ex-hero.is-compact::before {
   position: absolute; top: -20%; left: 50%; z-index: -1;
   width: min(980px, 92vw); height: 620px;
   transform: translateX(-50%) perspective(600px) rotateX(58deg);
@@ -160,6 +169,10 @@
   content: ''; pointer-events: none; opacity: .5;
   animation: ex-grid-slide 14s linear infinite;
 }
+.ex-hero-inner { display: grid; justify-items: center; gap: 0; }
+.ex-hero-inner .ex-hero-lead { margin-inline: auto; }
+.ex-hero-inner .ex-hero-actions { justify-content: center; }
+.ex-hero-inner .ex-hero-stats { margin-inline: auto; justify-content: center; }
 @keyframes ex-grid-slide { to { background-position: 0 74px, 74px 0; } }
 
 .ex-hero-grid {
@@ -570,7 +583,7 @@
   .ex-rail-row { grid-template-columns: minmax(0, 1fr) auto; gap: 14px 16px; }
   .ex-rail-row .ex-metric { grid-row: 2; }
   .ex-rail-row .ex-join { grid-column: 2; grid-row: 2; justify-self: end; }
-  .ex-challenges { padding-top: 0; }
+  .ex-challenges { padding-top: 26px; padding-bottom: 16px; }
   .ex-challenges .ex-head { margin-bottom: 22px; }
   .ex-duel-grid { grid-template-columns: 1fr; gap: 14px; }
   .ex-duel-body { padding: 16px 14px; gap: 6px; }
