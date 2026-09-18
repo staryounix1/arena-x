@@ -934,25 +934,36 @@ function StoreHero({ accounts, packages }: { accounts: number; packages: number 
   </header>;
 }
 
-type StoreAccountOwnership = 'NONE' | 'RESERVED' | 'SOLD';
+type StoreAccountOwnership = 'NONE' | 'RESERVED' | 'SOLD' | 'RESERVED_OTHER' | 'SOLD_OTHER';
+type StoreOwnershipInfo = { state: StoreAccountOwnership; label: string; hint: string; mine: boolean; locked: boolean };
 
-function storeAccountOwnership(order: StoreOrder | undefined): { state: StoreAccountOwnership; label: string; hint: string } {
-  if (!order) return { state: 'NONE', label: '', hint: '' };
-  if (order.status === 'DELIVERED') return { state: 'SOLD', label: 'مُباع لك', hint: 'وافقت الإدارة وتم التسليم — الحساب أصبح ملكك.' };
-  if (order.payment_status === 'PAID') return { state: 'SOLD', label: 'مدفوع — قيد التسليم', hint: 'تم الدفع بنجاح، وسلّمت الإدارة الحساب إلى رصيدك.' };
-  if (['NEW', 'UNDER_REVIEW'].includes(order.status)) return { state: 'RESERVED', label: 'محجوز لك', hint: 'طلبك قيد مراجعة الإدارة ومبلغك محجوز في الضمان.' };
-  return { state: 'NONE', label: '', hint: '' };
+function storeAccountOwnership(order: StoreOrder | undefined, viewerId?: string): StoreOwnershipInfo {
+  if (!order) return { state: 'NONE', label: '', hint: '', mine: false, locked: false };
+  const mine = !!viewerId && order.userId === viewerId;
+  if (order.status === 'DELIVERED' || order.payment_status === 'PAID') {
+    return mine
+      ? { state: 'SOLD', label: 'مُباع لك', hint: 'وافقت الإدارة وتم التسليم — الحساب أصبح ملكك.', mine: true, locked: true }
+      : { state: 'SOLD_OTHER', label: 'مُباع', hint: 'تم بيع هذا الحساب للاعب آخر ولم يعد متاحاً.', mine: false, locked: true };
+  }
+  if (['NEW', 'UNDER_REVIEW'].includes(order.status)) {
+    return mine
+      ? { state: 'RESERVED', label: 'محجوز لك', hint: 'طلبك قيد مراجعة الإدارة ومبلغك محجوز في الضمان.', mine: true, locked: true }
+      : { state: 'RESERVED_OTHER', label: 'محجوز حالياً', hint: 'هذا الحساب محجوز لطلب قيد المراجعة. راقبه لاحقاً.', mine: false, locked: true };
+  }
+  return { state: 'NONE', label: '', hint: '', mine: false, locked: false };
 }
 
-function StoreAccountCard({ item, order }: { item: StoreAccount; order?: StoreOrder }) {
-  const own = storeAccountOwnership(order);
+function StoreAccountCard({ item, own }: { item: StoreAccount; own: StoreOwnershipInfo }) {
+  const locked = own.locked;
   return <article className={`sp-card ${own.state !== 'NONE' ? `is-owned tone-${own.state.toLowerCase()}` : ''}`}>
     <Link href={`/store/accounts/${item.id}`} className="sp-card-media">
       <StoreImage src={item.images[0]} alt={item.title} />
       <span className="sp-card-shade" />
       <span className="sp-card-badge"><ShieldCheck className="h-3 w-3" />موثّق</span>
       {item.tag && own.state === 'NONE' && <span className="sp-card-tag">{item.tag}</span>}
-      {own.label && <span className={`sp-card-own is-${own.state.toLowerCase()}`}>{own.state === 'SOLD' ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}{own.label}</span>}
+      {own.label && <span className={`sp-card-own is-${own.state.toLowerCase()}`}>
+        {own.state === 'SOLD' || own.state === 'SOLD_OTHER' ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}{own.label}
+      </span>}
       <span className="sp-card-platform">{item.platform}</span>
       <span className="sp-card-quick">عرض التفاصيل<ArrowLeft className="h-3.5 w-3.5" /></span>
     </Link>
@@ -965,7 +976,9 @@ function StoreAccountCard({ item, order }: { item: StoreAccount; order?: StoreOr
           ? <Link className="sp-card-cta is-owned" href="/orders"><CheckCircle2 className="h-3.5 w-3.5" />حسابي</Link>
           : own.state === 'RESERVED'
             ? <Link className="sp-card-cta is-reserved" href="/orders"><Clock3 className="h-3.5 w-3.5" />تابع الطلب</Link>
-            : <Link className="sp-card-cta" href={`/store/accounts/${item.id}`}>شراء<ArrowLeft className="h-3.5 w-3.5" /></Link>}
+            : locked
+              ? <span className={`sp-card-cta is-locked is-${own.state.toLowerCase()}`} aria-disabled="true">{own.state === 'SOLD_OTHER' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}{own.state === 'SOLD_OTHER' ? 'غير متاح' : 'غير متاح حالياً'}</span>
+              : <Link className="sp-card-cta" href={`/store/accounts/${item.id}`}>شراء<ArrowLeft className="h-3.5 w-3.5" /></Link>}
       </div>
     </div>
   </article>;
@@ -979,14 +992,13 @@ function StorePage() {
   const [maxPrice, setMaxPrice] = useState(0);
   const allAccounts = storeAccountsFrom(settings).filter(item => item.available);
   const packages = rechargePackagesFrom(settings).filter(item => item.active);
-  const orderFor = (accountId: string) => storeOrders.find(order => order.accountId === accountId && (order.status === 'DELIVERED' || ['NEW', 'UNDER_REVIEW'].includes(order.status)));
-  const myOrder = (accountId: string) => { const order = orderFor(accountId); return order && order.userId === user?.id ? order : undefined; };
-  const isSoldToOther = (accountId: string) => { const order = orderFor(accountId); return !!order && order.userId !== user?.id; };
-  const accounts = allAccounts.filter(item => !isSoldToOther(item.id));
-  const myAccounts = accounts.filter(item => myOrder(item.id));
+  const orderFor = (accountId: string) => storeOrders.find(order => order.accountId === accountId && (order.status === 'DELIVERED' || order.payment_status === 'PAID' || ['NEW', 'UNDER_REVIEW'].includes(order.status)));
+  const ownFor = (accountId: string) => storeAccountOwnership(orderFor(accountId), user?.id);
+  const accounts = allAccounts;
+  const myAccounts = accounts.filter(item => ownFor(item.id).mine);
   const mine = user ? storeOrders.filter(order => order.userId === user.id) : [];
   const reserved = mine.filter(order => ['NEW', 'UNDER_REVIEW'].includes(order.status)).length;
-  const sold = mine.filter(order => order.status === 'DELIVERED').length;
+  const sold = mine.filter(order => order.status === 'DELIVERED' || order.payment_status === 'PAID').length;
   const ceiling = Math.max(0, ...accounts.map(item => Math.ceil(item.price)));
   const platforms = ['الكل', ...Array.from(new Set(accounts.map(item => item.platform)))];
   const budget = maxPrice > 0 ? maxPrice : ceiling;
@@ -1011,7 +1023,7 @@ function StorePage() {
         {sold > 0 && <span className="sp-mine-stat tone-sold"><CheckCircle2 className="h-4 w-4" /><span><b>{sold}</b><small>حساب مُباع لك</small></span></span>}
       </div>
       {myAccounts.length > 0 && <div className="sp-mine-list">{myAccounts.map(item => {
-        const own = storeAccountOwnership(myOrder(item.id));
+        const own = ownFor(item.id);
         return <Link className={`sp-mine-item tone-${own.state.toLowerCase()}`} href={`/store/accounts/${item.id}`} key={item.id}>
           <span className="sp-mine-thumb"><StoreImage src={item.images[0]} alt={item.title} /></span>
           <span className="sp-mine-copy"><strong>{item.title}</strong><small>{item.platform} • {money(item.price)}</small></span>
@@ -1022,7 +1034,7 @@ function StorePage() {
 
     <section className="sp-catalog" id="sp-catalog">
       <div className="sp-catalog-head">
-        <div><span className="sp-eyebrow">الكتالوج / 01</span><h2>حسابات للبيع</h2><p>{filtered.length} من {accounts.length} عرضاً متاحاً</p></div>
+        <div><span className="sp-eyebrow">الكتالوج / 01</span><h2>حسابات للبيع</h2><p>{filtered.length} من {accounts.length} عرضاً في الكتالوج</p></div>
         <label className="sp-search"><Search className="h-4 w-4" /><input aria-label="البحث في الحسابات" value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث باسم الحساب أو المنصة" /></label>
       </div>
 
@@ -1035,7 +1047,7 @@ function StorePage() {
         </div>
       </div>
 
-      {filtered.length ? <div className="sp-grid">{filtered.map(item => <StoreAccountCard item={item} order={myOrder(item.id)} key={item.id} />)}</div> : <Empty icon={ShoppingBag} text="لا توجد عروض مطابقة. جرّب توسيع الفلاتر." />}
+      {filtered.length ? <div className="sp-grid">{filtered.map(item => <StoreAccountCard item={item} own={ownFor(item.id)} key={item.id} />)}</div> : <Empty icon={ShoppingBag} text="لا توجد عروض مطابقة. جرّب توسيع الفلاتر." />}
 
       <div className="sp-coin-banner ex-hud">
         <span className="sp-coin-glow" aria-hidden="true" />
@@ -1059,14 +1071,13 @@ function StoreAccountDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
-  const order = storeOrders.find(item => item.accountId === id && (item.status === 'DELIVERED' || ['NEW', 'UNDER_REVIEW'].includes(item.status)));
-  const own = storeAccountOwnership(order && order.userId === user?.id ? order : undefined);
+  const order = storeOrders.find(item => item.accountId === id && (item.status === 'DELIVERED' || item.payment_status === 'PAID' || ['NEW', 'UNDER_REVIEW'].includes(item.status)));
+  const own = storeAccountOwnership(order, user?.id);
   if (!account || !account.available) return <NotFound />;
-  if (order && order.userId !== user?.id) return <NotFound />;
   const contact = (settings.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK).replace(/\/$/, '');
   const message = encodeURIComponent(`مرحباً، أريد الاستفسار عن الحساب: ${account.title} (${account.id})`);
   const images = account.images.length ? account.images : [''];
-  const similar = allAccounts.filter(item => item.id !== account.id && item.platform === account.platform && !storeOrders.some(order => order.accountId === item.id && (order.status === 'DELIVERED' || ['NEW', 'UNDER_REVIEW'].includes(order.status)))).slice(0, 3);
+  const similar = allAccounts.filter(item => item.id !== account.id && item.platform === account.platform).slice(0, 3);
   const purchase = async () => {
     if (!user) return setLocation(`/login?returnTo=/store/accounts/${account.id}`);
     if (user.balance < account.price) { setFeedback(`رصيدك غير كافٍ. تحتاج ${money(Number((account.price - user.balance).toFixed(2)))} إضافية لشراء هذا العرض.`); return; }
@@ -1093,7 +1104,9 @@ function StoreAccountDetailPage() {
         <div className="sp-buy-badges">
           {own.state === 'SOLD' ? <span className="sp-buy-badge is-sold"><CheckCircle2 className="h-3 w-3" />مُباع لك</span>
             : own.state === 'RESERVED' ? <span className="sp-buy-badge is-reserved"><Clock3 className="h-3 w-3" />محجوز لك</span>
-              : <span className="sp-buy-badge is-live"><i />متاح للتسليم</span>}
+              : own.state === 'SOLD_OTHER' ? <span className="sp-buy-badge is-sold-other"><CheckCircle2 className="h-3 w-3" />مُباع</span>
+                : own.state === 'RESERVED_OTHER' ? <span className="sp-buy-badge is-reserved-other"><Clock3 className="h-3 w-3" />محجوز حالياً</span>
+                  : <span className="sp-buy-badge is-live"><i />متاح للتسليم</span>}
           <span className="sp-buy-badge"><ShieldCheck className="h-3 w-3" />مراجعة يدوية</span>
         </div>
         <h1>{account.title}</h1>
@@ -1104,9 +1117,9 @@ function StoreAccountDetailPage() {
         <p className="sp-buy-desc">{account.description}</p>
 
         {own.state !== 'NONE' && <div className={`sp-own-banner tone-${own.state.toLowerCase()}`}>
-          <span className="sp-own-icon">{own.state === 'SOLD' ? <CheckCircle2 className="h-5 w-5" /> : <Clock3 className="h-5 w-5" />}</span>
+          <span className="sp-own-icon">{own.state === 'SOLD' || own.state === 'SOLD_OTHER' ? <CheckCircle2 className="h-5 w-5" /> : <Clock3 className="h-5 w-5" />}</span>
           <span><strong>{own.label}</strong><small>{own.hint}</small></span>
-          <Link className="sp-own-link" href="/orders">طلباتي<ArrowLeft className="h-3.5 w-3.5" /></Link>
+          {own.mine && <Link className="sp-own-link" href="/orders">طلباتي<ArrowLeft className="h-3.5 w-3.5" /></Link>}
         </div>}
 
         <div className="sp-price-box">
@@ -1124,9 +1137,10 @@ function StoreAccountDetailPage() {
         {feedback && shortfall > 0 && <button type="button" className="sp-btn primary full" onClick={() => setLocation('/profile')}><ArrowDownToLine className="h-4 w-4" />اشحن محفظتك بـ {money(shortfall)}</button>}
         {own.state === 'SOLD' ? <Link className="sp-btn primary large full" href="/orders"><CheckCircle2 className="h-4 w-4" />تم الشراء — عرض في طلباتي</Link>
           : own.state === 'RESERVED' ? <Link className="sp-btn ghost large full" href="/orders"><Clock3 className="h-4 w-4" />الطلب قيد المراجعة — تابع الحالة</Link>
-            : !feedback && (user
-              ? <button type="button" className="sp-btn primary large full" disabled={busy} onClick={() => void purchase()}><ShoppingBag className="h-4 w-4" />{busy ? 'جارٍ إرسال الطلب...' : `إرسال طلب شراء · ${money(account.price)}`}</button>
-              : <button type="button" className="sp-btn primary large full" onClick={() => void purchase()}><LogIn className="h-4 w-4" />سجّل الدخول للطلب</button>)}
+            : own.locked ? <span className={`sp-btn is-locked large full tone-${own.state.toLowerCase()}`} aria-disabled="true">{own.state === 'SOLD_OTHER' ? <CheckCircle2 className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}{own.state === 'SOLD_OTHER' ? 'هذا الحساب مُباع ولا يمكن طلبه' : 'هذا الحساب محجوز حالياً — غير متاح للطلب'}</span>
+              : !feedback && (user
+                ? <button type="button" className="sp-btn primary large full" disabled={busy} onClick={() => void purchase()}><ShoppingBag className="h-4 w-4" />{busy ? 'جارٍ إرسال الطلب...' : `إرسال طلب شراء · ${money(account.price)}`}</button>
+                : <button type="button" className="sp-btn primary large full" onClick={() => void purchase()}><LogIn className="h-4 w-4" />سجّل الدخول للطلب</button>)}
 
         <p className="sp-safe"><ShieldCheck className="h-3.5 w-3.5" />يُحجز المبلغ من محفظتك فور الطلب، ويُعاد تلقائياً إذا ألغيت الطلب أو رفضته الإدارة.</p>
         <a className="sp-safe" href={`${contact}?text=${message}`} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" />اسأل الإدارة قبل الطلب</a>
@@ -1137,7 +1151,7 @@ function StoreAccountDetailPage() {
 
     {similar.length > 0 && <section className="sp-similar">
       <div className="sp-catalog-head"><div><span className="sp-eyebrow">عروض مشابهة</span><h2>حسابات أخرى على {account.platform}</h2></div></div>
-      <div className="sp-grid">{similar.map(item => <StoreAccountCard item={item} key={item.id} />)}</div>
+      <div className="sp-grid">{similar.map(item => <StoreAccountCard item={item} own={storeAccountOwnership(storeOrders.find(order => order.accountId === item.id && (order.status === 'DELIVERED' || order.payment_status === 'PAID' || ['NEW', 'UNDER_REVIEW'].includes(order.status))), user?.id)} key={item.id} />)}</div>
     </section>}
   </div>;
 }
@@ -1229,7 +1243,7 @@ function StoreOrdersPage() {
   if (!user) return <div className="shell page-wrap"><Empty icon={Package} text="سجّل الدخول لمتابعة طلبات المتجر." /><Link href="/login?returnTo=/orders" className="primary-button">تسجيل الدخول</Link></div>;
   const rows = storeOrders.filter(item => item.userId === user.id);
   const cancel = async (id: string) => { setBusyId(id); const okay = await cancelStoreOrder(id); setBusyId(null); if (!okay) window.alert('تعذر إلغاء الطلب. حدّث الصفحة وحاول مرة أخرى.'); };
-  return <div className="shell page-wrap"><PageTitle icon={Package} title="طلباتي" subtitle="تابع مراجعة وتسليم حسابات المتجر من مكان واحد." /><div className="order-trust-note"><ShieldCheck className="h-4 w-4" /><span><strong>رصيد محفظتك هو مصدر الدفع</strong><small>يُحجز مبلغ العرض من محفظتك فور الطلب، ويُعاد تلقائياً إلى رصيدك إذا ألغيت الطلب أو رفضته الإدارة.</small></span></div>{rows.length ? <div className="request-list store-order-list">{rows.map(item => { const own = storeAccountOwnership(item); return <article className={`request-card store-order-card ${own.state !== 'NONE' ? `is-owned tone-${own.state.toLowerCase()}` : ''}`} key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>#{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span>{own.state !== 'NONE' && <span className={`sp-mine-tag is-${own.state.toLowerCase()}`}>{own.state === 'SOLD' ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}{own.label}</span>}<StatusBadge status={item.status} />{['NEW', 'UNDER_REVIEW'].includes(item.status) && <button className="danger-button small" disabled={busyId === item.id} onClick={() => cancel(item.id)}><XCircle className="h-3.5 w-3.5" />{busyId === item.id ? 'جارٍ الإلغاء…' : 'إلغاء واستعادة المبلغ'}</button>}{item.escrow_status === 'REFUNDED' && <span className="refund-chip"><RefreshCw className="h-3.5 w-3.5" />أُعيد المبلغ</span>}<PayStoreOrderButton item={item} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>آخر تحديث</small><b>{date(item.updated_at)}</b></span><span><small>الحالة</small><b>{own.hint || 'بانتظار مراجعة الإدارة'}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'بانتظار مراجعة الإدارة'}</b></span></div></article>; })}</div> : <Empty icon={Package} text="لا توجد طلبات حسابات بعد. اختر عرضاً من المتجر لبدء الطلب." />}</div>;
+  return <div className="shell page-wrap"><PageTitle icon={Package} title="طلباتي" subtitle="تابع مراجعة وتسليم حسابات المتجر من مكان واحد." /><div className="order-trust-note"><ShieldCheck className="h-4 w-4" /><span><strong>رصيد محفظتك هو مصدر الدفع</strong><small>يُحجز مبلغ العرض من محفظتك فور الطلب، ويُعاد تلقائياً إلى رصيدك إذا ألغيت الطلب أو رفضته الإدارة.</small></span></div>{rows.length ? <div className="request-list store-order-list">{rows.map(item => { const own = storeAccountOwnership(item, user.id); return <article className={`request-card store-order-card ${own.state !== 'NONE' ? `is-owned tone-${own.state.toLowerCase()}` : ''}`} key={item.id}><div className="request-main"><span className="request-icon green"><Package className="h-5 w-5" /></span><span><strong>{item.accountTitle}</strong><small>#{item.id} • {date(item.created_at)}</small></span><span className="request-amount green-text">{money(item.price)}</span>{own.state !== 'NONE' && <span className={`sp-mine-tag is-${own.state.toLowerCase()}`}>{own.state === 'SOLD' ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}{own.label}</span>}<StatusBadge status={item.status} />{['NEW', 'UNDER_REVIEW'].includes(item.status) && <button className="danger-button small" disabled={busyId === item.id} onClick={() => cancel(item.id)}><XCircle className="h-3.5 w-3.5" />{busyId === item.id ? 'جارٍ الإلغاء…' : 'إلغاء واستعادة المبلغ'}</button>}{item.escrow_status === 'REFUNDED' && <span className="refund-chip"><RefreshCw className="h-3.5 w-3.5" />أُعيد المبلغ</span>}<PayStoreOrderButton item={item} /></div><div className="request-details"><span><small>المنصة</small><b>{item.platform}</b></span><span><small>آخر تحديث</small><b>{date(item.updated_at)}</b></span><span><small>الحالة</small><b>{own.hint || 'بانتظار مراجعة الإدارة'}</b></span><span><small>ملاحظة الإدارة</small><b>{item.adminNote || 'بانتظار مراجعة الإدارة'}</b></span></div></article>; })}</div> : <Empty icon={Package} text="لا توجد طلبات حسابات بعد. اختر عرضاً من المتجر لبدء الطلب." />}</div>;
 }
 function StoreOrdersAdminPage() {
   const { storeOrders, updateStoreOrder } = useArena();

@@ -788,3 +788,20 @@
   .sp-own-banner{grid-template-columns:auto 1fr;row-gap:10px}
   .sp-own-link{grid-column:1/-1;justify-content:center}
 }
+
+/* Owned-by-others states: account stays visible but locked */
+.sp-card.is-owned.tone-reserved_other{border-color:rgba(148,163,184,.26);background:linear-gradient(145deg,rgba(26,32,40,.92),rgba(10,15,22,.98))}
+.sp-card.is-owned.tone-sold_other{opacity:.92;border-color:rgba(148,163,184,.22);background:linear-gradient(145deg,rgba(20,26,33,.92),rgba(10,15,22,.98))}
+.sp-card.is-owned.tone-reserved_other .sp-card-media,.sp-card.is-owned.tone-sold_other .sp-card-media{filter:grayscale(.5) brightness(.78)}
+.sp-card-own.is-reserved_other{color:#dfe6ee;background:rgba(148,163,184,.9)}
+.sp-card-own.is-sold_other{color:#0b1017;background:rgba(203,213,225,.92)}
+.sp-card-cta.is-locked{cursor:not-allowed;color:#0b1017;border:1px solid transparent;background:rgba(148,163,184,.34);box-shadow:none}
+.sp-card-cta.is-locked.is-sold_other{color:#dfe6ee;background:rgba(100,116,139,.42)}
+.sp-buy-badge.is-reserved-other{color:#dfe6ee;border-color:rgba(148,163,184,.36);background:rgba(148,163,184,.12)}
+.sp-buy-badge.is-sold-other{color:#e6ebf1;border-color:rgba(203,213,225,.34);background:rgba(148,163,184,.16)}
+.sp-own-banner.tone-reserved_other{border-color:rgba(148,163,184,.3)}
+.sp-own-banner.tone-reserved_other .sp-own-icon{color:#cbd5e1;background:rgba(148,163,184,.14)}
+.sp-own-banner.tone-sold_other{border-color:rgba(148,163,184,.26)}
+.sp-own-banner.tone-sold_other .sp-own-icon{color:#e2e8f0;background:rgba(148,163,184,.16)}
+.sp-btn.is-locked{cursor:not-allowed;color:#cbd5e1;border:1px solid rgba(148,163,184,.28);background:rgba(148,163,184,.1)}
+.sp-btn.is-locked.tone-sold_other{color:#0b1017;background:rgba(203,213,225,.7)}
