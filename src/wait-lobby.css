@@ -357,7 +357,30 @@
   box-shadow: 0 26px 50px -30px rgba(0, 255, 179, 1);
 }
 .ex-quick-tier { padding: 3px 10px; border: 1px solid var(--ex-line); border-radius: 999px; color: var(--ex-faint); font-size: 9.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.ex-quick-stake { color: var(--ex-ink); font-family: var(--app-font-mono); font-size: clamp(22px, 3vw, 28px); font-weight: 900; line-height: 1; }
+/* Amount chip mirrors the green selected stake pill used in the create-match modal */
+.ex-quick-stake {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 9px 8px;
+  border: 1px solid var(--ex-neon);
+  border-radius: 8px;
+  background: rgba(0, 255, 179, .1);
+  color: var(--ex-neon);
+  font-family: var(--app-font-mono);
+  font-size: clamp(20px, 2.8vw, 26px);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 24px -8px rgba(0, 255, 179, .9);
+  transition: background .2s ease, box-shadow .2s ease, color .2s ease;
+}
+.ex-quick-card:hover .ex-quick-stake {
+  background: var(--ex-neon);
+  color: #02120c;
+  box-shadow: 0 0 34px -6px rgba(0, 255, 179, 1);
+}
 .ex-quick-prize { color: var(--ex-faint); font-size: 10.5px; font-weight: 800; }
 .ex-quick-prize b { color: var(--ex-gold); }
 .ex-quick-go { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; padding: 7px 14px; border-radius: 8px; background: rgba(0, 255, 179, .1); color: var(--ex-neon); font-size: 11px; font-weight: 900; }
