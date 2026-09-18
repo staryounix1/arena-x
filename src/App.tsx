@@ -1319,18 +1319,7 @@ function MatchesPage() {
   ];
 
   return <div className="ex">
-    <section className="ex-section ex-shell" style={{ paddingBottom: 0 }}>
-      <div className="ex-arena-head">
-        <div>
-          <span className="ex-chip"><span className="ex-dot" />ساحة المباريات</span>
-          <h1 className="ex-title" style={{ fontSize: 'clamp(30px, 5vw, 56px)' }}>اختر تحديك.<em>وادخل الساحة.</em></h1>
-          <p className="ex-sub">مباريات مفتوحة بجوائز مضمونة، نظام حجز آمن، ونتائج موثّقة. أنشئ تحديك أو اقبل تحدٍّ قائم في ثوانٍ.</p>
-        </div>
-        <button className="ex-btn primary ex-arena-cta" onClick={() => enterCreate()}><Plus className="h-5 w-5" />إنشاء مباراة</button>
-      </div>
-    </section>
-
-    <section className="ex-section ex-shell" style={{ paddingTop: 36 }}>
+    <section className="ex-section ex-shell" style={{ paddingTop: 36, paddingBottom: 0 }}>
       {filtered.length === 0 && <div className="ex-lobby">
         <div className="ex-lobby-hero ex-hud">
           <span className="ex-lobby-icon"><Swords className="h-9 w-9" /></span>
