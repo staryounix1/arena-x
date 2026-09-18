@@ -148,7 +148,7 @@
 .ex-head p { margin: 12px 0 0; max-width: 54ch; color: var(--ex-dim); font-size: 14px; line-height: 1.85; }
 
 /* ── HERO ───────────────────────────────────────────────────────────────── */
-.ex-hero { position: relative; padding-top: clamp(40px, 6vw, 76px); padding-bottom: clamp(28px, 4vw, 52px); }
+.ex-hero { position: relative; padding-top: clamp(56px, 8vw, 104px); padding-bottom: clamp(28px, 4vw, 52px); }
 .ex-hero::before {
   position: absolute; top: -20%; left: 50%; z-index: -1;
   width: min(980px, 92vw); height: 620px;

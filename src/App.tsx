@@ -1775,6 +1775,51 @@ function HomePage() {
         </div>}
       </div>
     </div>
+    {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
+    <section className="ex-section ex-shell ex-challenges">
+      <div className="ex-head">
+        <div>
+          <span className="ex-chip"><span className="ex-dot" />ساحة مباشرة</span>
+          <h2 className="ex-title">تحديات تنتظر منافساً</h2>
+          <p>{displayOpenCount > 0 ? `${displayOpenCount} تحدٍّ مفتوح بإجمالي جوائز ${money(displayPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
+        </div>
+        <Link href="/matches" className="ex-more">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
+      </div>
+      {railItems.length ? <div className="ex-duel-grid">
+        {railItems.map(item => {
+          const real = item.real;
+          return <article className={`ex-duel ${real ? '' : 'is-demo'}`} key={item.id}>
+            <div className="ex-duel-top">
+              <span className="ex-duel-platform">{item.platform}</span>
+              {real ? <span className="ex-duel-state"><i />مفتوح الآن</span> : <span className="ex-duel-state is-demo"><Sparkles className="h-3 w-3" />تجريبي</span>}
+            </div>
+            <div className="ex-duel-body">
+              <div className="ex-duel-side">
+                <span className="ex-duel-avatar"><UserAvatar username={item.creator_name} /></span>
+                <span className="ex-duel-name"><strong>{item.creator_name}</strong><small>{item.creator_efootball_id}</small></span>
+              </div>
+              <div className="ex-duel-vs">
+                <b>ضد</b>
+                <span className="ex-duel-await"><Swords className="h-3.5 w-3.5" />ينتظر منافساً</span>
+              </div>
+              <div className="ex-duel-side is-empty">
+                <span className="ex-duel-avatar empty"><UserPlus className="h-5 w-5" /></span>
+                <span className="ex-duel-name"><strong>مقعد فارغ</strong><small>كن التحدي القادم</small></span>
+              </div>
+            </div>
+            <div className="ex-duel-stats">
+              <span className="ex-duel-stat"><small>الرهان</small><strong>{money(item.stake)}</strong></span>
+              <span className="ex-duel-stat is-prize"><small>الجائزة المضمونة</small><strong>{money(item.prize)}</strong></span>
+              <span className="ex-duel-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />مفعّل</strong></span>
+            </div>
+            <button className={`ex-duel-cta ${real ? '' : 'is-demo'}`} onClick={() => real ? join(item.match) : enterCreate()}>
+              {real ? 'قبول التحدي' : 'أنشئ تحديك'} <ArrowLeft className="h-4 w-4" />
+            </button>
+          </article>;
+        })}
+      </div> : <div className="ex-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="ex-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
+    </section>
+
     {/* ── HERO ─────────────────────────────────────────────────────────── */}
     <section className="ex-hero">
       <div className="ex-shell ex-hero-grid">
@@ -1825,51 +1870,6 @@ function HomePage() {
           </> : <div className="ex-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
         </aside>
       </div>
-    </section>
-
-    {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
-    <section className="ex-section ex-shell ex-challenges">
-      <div className="ex-head">
-        <div>
-          <span className="ex-chip"><span className="ex-dot" />ساحة مباشرة</span>
-          <h2 className="ex-title">تحديات تنتظر منافساً</h2>
-          <p>{displayOpenCount > 0 ? `${displayOpenCount} تحدٍّ مفتوح بإجمالي جوائز ${money(displayPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
-        </div>
-        <Link href="/matches" className="ex-more">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
-      </div>
-      {railItems.length ? <div className="ex-duel-grid">
-        {railItems.map(item => {
-          const real = item.real;
-          return <article className={`ex-duel ${real ? '' : 'is-demo'}`} key={item.id}>
-            <div className="ex-duel-top">
-              <span className="ex-duel-platform">{item.platform}</span>
-              {real ? <span className="ex-duel-state"><i />مفتوح الآن</span> : <span className="ex-duel-state is-demo"><Sparkles className="h-3 w-3" />تجريبي</span>}
-            </div>
-            <div className="ex-duel-body">
-              <div className="ex-duel-side">
-                <span className="ex-duel-avatar"><UserAvatar username={item.creator_name} /></span>
-                <span className="ex-duel-name"><strong>{item.creator_name}</strong><small>{item.creator_efootball_id}</small></span>
-              </div>
-              <div className="ex-duel-vs">
-                <b>ضد</b>
-                <span className="ex-duel-await"><Swords className="h-3.5 w-3.5" />ينتظر منافساً</span>
-              </div>
-              <div className="ex-duel-side is-empty">
-                <span className="ex-duel-avatar empty"><UserPlus className="h-5 w-5" /></span>
-                <span className="ex-duel-name"><strong>مقعد فارغ</strong><small>كن التحدي القادم</small></span>
-              </div>
-            </div>
-            <div className="ex-duel-stats">
-              <span className="ex-duel-stat"><small>الرهان</small><strong>{money(item.stake)}</strong></span>
-              <span className="ex-duel-stat is-prize"><small>الجائزة المضمونة</small><strong>{money(item.prize)}</strong></span>
-              <span className="ex-duel-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />مفعّل</strong></span>
-            </div>
-            <button className={`ex-duel-cta ${real ? '' : 'is-demo'}`} onClick={() => real ? join(item.match) : enterCreate()}>
-              {real ? 'قبول التحدي' : 'أنشئ تحديك'} <ArrowLeft className="h-4 w-4" />
-            </button>
-          </article>;
-        })}
-      </div> : <div className="ex-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="ex-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
     </section>
 
     {/* ── PATH + TOURNAMENT ────────────────────────────────────────────── */}
