@@ -9,7 +9,7 @@ import {
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
 import { supabase, supabaseEnabled } from './lib/supabase';
 import './home-redesign.css';
-import './home-2026.css';
+import './arena-x-home.css';
 import './store.css';
 import './store-admin.css';
 import './control-centre.css';
@@ -756,7 +756,7 @@ function PublicNavbar() {
   return <>
     <header className="site-header"><div className="shell nav-inner"><Link href="/" className="brand"><span className="brand-mark"><Swords className="h-5 w-5" /></span><span><strong>eFootball <em>ARENA</em></strong><small>متجر ومنصة المنافسة</small></span></Link><nav className="desktop-nav">{links.map(({ href, label, icon: Icon }) => <Link href={href} key={href} className="nav-link"><Icon className="h-4 w-4" />{label}</Link>)}</nav><div className="nav-actions"><button type="button" className="language-pill" onClick={() => setLocale(locale === 'ar' ? 'fr' : locale === 'fr' ? 'en' : 'ar')} title="تبديل لغة الواجهة">{copy.language}</button>{user ? <><button className="balance-chip" onClick={() => setRechargeOpen(true)}><Wallet className="h-4 w-4" /><span className="balance-chip-label">الرصيد</span><strong>{user.role === 'ADMIN' ? 'إدارة' : money(user.balance)}</strong><Plus className="h-4 w-4" /></button><div className="notification-menu"><button type="button" className="icon-button notification-button" onClick={() => setNotifOpen(!notifOpen)} aria-label={copy.notifications} aria-expanded={notifOpen}><Bell className="h-4 w-4" />{unread > 0 && <span className="notification-dot" />}</button><NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} onOpenAll={() => { setNotifOpen(false); setLocation('/notifications'); }} /></div></> : <><Link href="/login" className="text-link">تسجيل الدخول</Link><Link href="/register" className="primary-button small">إنشاء حساب</Link></>}<div className="more-menu"><button className="icon-button more-menu-button" onClick={() => setMobile(!mobile)} aria-label="المزيد" aria-expanded={mobile}><MoreVertical className="h-5 w-5" /></button>{mobile && <div className="more-dropdown" onClick={() => setMobile(false)}>{moreLinks.map(({ href, label, icon: Icon }) => <Link href={href} key={href} className="more-dropdown-link"><Icon className="h-4 w-4" />{label}</Link>)}{user && <button type="button" className="more-dropdown-link more-dropdown-logout" onClick={logout}><LogOut className="h-4 w-4" />تسجيل الخروج</button>}</div>}</div></div></div></header>
      <button type="button" className={`online-presence ${scrolled ? 'is-scrolled ' : ''}${onlineExpanded ? 'is-open' : ''}`} onClick={() => setOnlineExpanded(value => !value)} aria-expanded={onlineExpanded} aria-label={`${shownOnline} مستخدم متصل الآن`}><span className="online-presence-icon"><Radio className="h-3.5 w-3.5" /></span>{onlineExpanded && <><strong>{shownOnline}</strong><span>متصل الآن</span></>}</button>
-      <button type="button" className={`online-presence broadcast-presence ${scrolled ? 'is-scrolled ' : ''}${broadcastExpanded ? 'is-open ' : ''}${liveActive ? 'is-live' : ''}`} onClick={() => { if (broadcastExpanded) { setLocation('/live'); setBroadcastExpanded(false); return; } setBroadcastExpanded(true); }} aria-expanded={broadcastExpanded} aria-label="البث المباشر"><span className="online-presence-icon"><Video className="h-3.5 w-3.5" /></span>{broadcastExpanded && <><strong>{liveActive ? 'ON AIR' : 'LIVE'}</strong><span>{liveActive ? 'مباشر الآن' : 'البث المباشر'}</span></>}</button>
+      <button type="button" className={`online-presence broadcast-presence ${scrolled ? 'is-scrolled ' : ''}${broadcastExpanded ? 'is-open ' : ''}${liveActive ? 'is-live' : ''}`} onClick={() => { if (broadcastExpanded) { setLocation('/live'); setBroadcastExpanded(false); return; } setBroadcastExpanded(true); }} aria-expanded={broadcastExpanded} aria-label="البث المباشر"><span className="online-presence-icon"><Video className="h-3.5 w-3.5" /></span>{broadcastExpanded && <><strong>{liveActive ? 'على الهواء' : 'مباشر'}</strong><span>{liveActive ? 'مباشر الآن' : 'البث المباشر'}</span></>}</button>
     <AppBottomNav />
     {rechargeOpen && user && <RechargeModal onClose={() => setRechargeOpen(false)} />}
   </>;
@@ -807,7 +807,7 @@ function StoreTabs({ current }: { current: 'accounts' | 'recharge' }) { const { 
 function StoreProductCard({ item }: { item: StoreAccount }) { return <article className="store-product-card"><Link href={`/store/accounts/${item.id}`} className="store-product-media"><StoreImage src={item.images[0]} alt={item.title} /><span className="store-verified-badge"><ShieldCheck className="h-3 w-3" />موثّق</span>{item.tag && <span className="store-product-tag">{item.tag}</span>}<span className="store-product-platform">{item.platform}</span></Link><div className="store-product-body"><Link href={`/store/accounts/${item.id}`}><h3>{item.title}</h3></Link><p>{item.description}</p><div className="store-product-footer"><strong>{money(item.price)}</strong><Link className="secondary-button small" href={`/store/accounts/${item.id}`}>التفاصيل <ArrowLeft className="h-3.5 w-3.5" /></Link></div></div></article>; }
 function StorePage() {
   const { settings } = useArena(); const [query, setQuery] = useState(''); const [platform, setPlatform] = useState('الكل'); const [sort, setSort] = useState('curated'); const accounts = storeAccountsFrom(settings).filter(item => item.available); const platforms = ['الكل', ...Array.from(new Set(accounts.map(item => item.platform)))]; const filtered = accounts.filter(item => (platform === 'الكل' || item.platform === platform) && `${item.title} ${item.description} ${item.platform}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === 'price-low' ? a.price - b.price : sort === 'price-high' ? b.price - a.price : 0);
-  return <div className="shell page-wrap store-page"><StoreTabs current="accounts" /><div className="store-hero"><div><span className="eyebrow"><span className="pulse-dot" />ARENA//X STORE</span><h1>اختَر حسابك.<br /><em>ادخل الساحة.</em></h1><p>حسابات مختارة بعناية، تفاصيل واضحة، وتسليم منظم من فريق ARENA//X. لا مفاجآت، فقط بداية أقوى لمباراتك القادمة.</p><div className="store-hero-actions"><Link className="primary-button" href="#catalog">تصفح العروض <ArrowLeft className="h-4 w-4" /></Link><Link className="secondary-button" href="/support">اسأل فريقنا <MessageCircle className="h-4 w-4" /></Link></div></div><div className="store-hero-art"><span className="store-orbit store-orbit-one" /><span className="store-orbit store-orbit-two" /><div className="store-hero-score"><small>DROP 02 / STORE</small><strong>{accounts.length}</strong><span>حساباً جاهزاً للمنافسة</span></div></div></div><TrustRail className="store-trust-rail" /><div id="catalog" className="store-section-heading"><div><span className="eyebrow muted">CATALOG / 01</span><h2>حسابات للبيع</h2><p>اضغط على أي عرض لرؤية البيانات والصور كاملة.</p></div><div className="search-box store-search"><Search className="h-4 w-4" /><input aria-label="البحث في الحسابات" value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث عن حساب" /></div></div><div className="store-filter-bar"><div className="filter-list" aria-label="تصفية المنصة">{platforms.map(item => <button type="button" key={item} className={platform === item ? 'filter-active' : ''} onClick={() => setPlatform(item)}>{item}</button>)}</div><label className="store-sort"><span>الترتيب</span><select aria-label="ترتيب العروض" value={sort} onChange={event => setSort(event.target.value)}><option value="curated">مختارة للإدارة</option><option value="price-low">السعر: الأقل أولاً</option><option value="price-high">السعر: الأعلى أولاً</option></select></label></div>{filtered.length ? <div className="store-product-grid">{filtered.map(item => <StoreProductCard item={item} key={item.id} />)}</div> : <Empty icon={ShoppingBag} text="لا توجد عروض مطابقة للبحث." />}<div className="store-callout panel-card"><div><span className="eyebrow"><span className="pulse-dot" />SECURE DELIVERY</span><h2>تحتاج مساعدة في الاختيار؟</h2><p>فريق الإدارة يساعدك في اختيار العرض المناسب للمنصة والميزانية.</p></div><Link className="secondary-button" href="/support">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link></div></div>;
+  return <div className="shell page-wrap store-page"><StoreTabs current="accounts" /><div className="store-hero"><div><span className="eyebrow"><span className="pulse-dot" />متجر ARENA//X</span><h1>اختَر حسابك.<br /><em>ادخل الساحة.</em></h1><p>حسابات مختارة بعناية، تفاصيل واضحة، وتسليم منظم من فريق ARENA//X. لا مفاجآت، فقط بداية أقوى لمباراتك القادمة.</p><div className="store-hero-actions"><Link className="primary-button" href="#catalog">تصفح العروض <ArrowLeft className="h-4 w-4" /></Link><Link className="secondary-button" href="/support">اسأل فريقنا <MessageCircle className="h-4 w-4" /></Link></div></div><div className="store-hero-art"><span className="store-orbit store-orbit-one" /><span className="store-orbit store-orbit-two" /><div className="store-hero-score"><small>الدفعة الثانية / المتجر</small><strong>{accounts.length}</strong><span>حساباً جاهزاً للمنافسة</span></div></div></div><TrustRail className="store-trust-rail" /><div id="catalog" className="store-section-heading"><div><span className="eyebrow muted">الكتالوج / 01</span><h2>حسابات للبيع</h2><p>اضغط على أي عرض لرؤية البيانات والصور كاملة.</p></div><div className="search-box store-search"><Search className="h-4 w-4" /><input aria-label="البحث في الحسابات" value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث عن حساب" /></div></div><div className="store-filter-bar"><div className="filter-list" aria-label="تصفية المنصة">{platforms.map(item => <button type="button" key={item} className={platform === item ? 'filter-active' : ''} onClick={() => setPlatform(item)}>{item}</button>)}</div><label className="store-sort"><span>الترتيب</span><select aria-label="ترتيب العروض" value={sort} onChange={event => setSort(event.target.value)}><option value="curated">مختارة للإدارة</option><option value="price-low">السعر: الأقل أولاً</option><option value="price-high">السعر: الأعلى أولاً</option></select></label></div>{filtered.length ? <div className="store-product-grid">{filtered.map(item => <StoreProductCard item={item} key={item.id} />)}</div> : <Empty icon={ShoppingBag} text="لا توجد عروض مطابقة للبحث." />}<div className="store-callout panel-card"><div><span className="eyebrow"><span className="pulse-dot" />تسليم آمن</span><h2>تحتاج مساعدة في الاختيار؟</h2><p>فريق الإدارة يساعدك في اختيار العرض المناسب للمنصة والميزانية.</p></div><Link className="secondary-button" href="/support">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link></div></div>;
 }
 function StoreAccountDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -840,7 +840,7 @@ function StoreAccountDetailPage() {
     </div>
   </div>;
 }
-function StoreRechargePage() { const { settings, user } = useArena(); const [, setLocation] = useLocation(); const packages = rechargePackagesFrom(settings).filter(item => item.active); const [selectedPackage, setSelectedPackage] = useState<RechargePackage | null>(null); const openRecharge = (pack: RechargePackage) => user ? setSelectedPackage(pack) : setLocation('/login?returnTo=/store/recharge'); return <div className="shell page-wrap store-page"><PageTitle icon={Gamepad2} title="شحن كوينز eFootball" subtitle="اختر عدد الكوينز، ادفع بالدولار، وأرسل الطلب إلى حسابك في eFootball." /><StoreTabs current="recharge" /><div className="store-section-heading"><div><span className="eyebrow muted">COINS / 12 PACKS</span><h2>باقات كوينز eFootball</h2><p>السعر بالدولار وعدد الكوينز قابلان للتعديل من لوحة تحكم المتجر.</p></div></div><div className="recharge-grid">{packages.map(item => <article className="recharge-card" key={item.id}><span className="recharge-icon"><Gamepad2 className="h-5 w-5" /></span><small>{item.title}</small><strong>{money(item.price)}</strong><span className="recharge-coins">{item.coins.toLocaleString('en-US')} كوينز eFootball</span>{item.bonus && <span className="recharge-bonus">{item.bonus}</span>}<p>{item.description}</p><button className="primary-button full" onClick={() => openRecharge(item)}>طلب شحن الكوينز <ArrowLeft className="h-4 w-4" /></button></article>)}</div>{selectedPackage && user && <CoinRechargeModal pack={selectedPackage} onClose={() => setSelectedPackage(null)} />}</div>; }
+function StoreRechargePage() { const { settings, user } = useArena(); const [, setLocation] = useLocation(); const packages = rechargePackagesFrom(settings).filter(item => item.active); const [selectedPackage, setSelectedPackage] = useState<RechargePackage | null>(null); const openRecharge = (pack: RechargePackage) => user ? setSelectedPackage(pack) : setLocation('/login?returnTo=/store/recharge'); return <div className="shell page-wrap store-page"><PageTitle icon={Gamepad2} title="شحن كوينز eFootball" subtitle="اختر عدد الكوينز، ادفع بالدولار، وأرسل الطلب إلى حسابك في eFootball." /><StoreTabs current="recharge" /><div className="store-section-heading"><div><span className="eyebrow muted">الكوينز / الباقات</span><h2>باقات كوينز eFootball</h2><p>السعر بالدولار وعدد الكوينز قابلان للتعديل من لوحة تحكم المتجر.</p></div></div><div className="recharge-grid">{packages.map(item => <article className="recharge-card" key={item.id}><span className="recharge-icon"><Gamepad2 className="h-5 w-5" /></span><small>{item.title}</small><strong>{money(item.price)}</strong><span className="recharge-coins">{item.coins.toLocaleString('en-US')} كوينز eFootball</span>{item.bonus && <span className="recharge-bonus">{item.bonus}</span>}<p>{item.description}</p><button className="primary-button full" onClick={() => openRecharge(item)}>طلب شحن الكوينز <ArrowLeft className="h-4 w-4" /></button></article>)}</div>{selectedPackage && user && <CoinRechargeModal pack={selectedPackage} onClose={() => setSelectedPackage(null)} />}</div>; }
 function PayStoreOrderButton({ item }: { item: StoreOrder }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -923,19 +923,19 @@ function StoreLivePage() {
   return <div className="shell page-wrap store-page live-page">
     <Link href="/store" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link>
     <header className="live-page-header">
-       <div className="live-page-copy"><span className="eyebrow"><span className="live-dot" />ARENA//X BROADCAST NETWORK</span><h1>المباراة<br /><em>تبدأ هنا.</em></h1><p>بث مباشر، مواعيد واضحة، وإعادات لأقوى لحظات الساحة. افتح المشاهدة، واختر موعد المواجهة التالية.</p><div className="live-header-meta"><span><strong>{mainState === 'LIVE' ? 'ON AIR' : mainState === 'UPCOMING' ? 'NEXT UP' : 'REPLAY'}</strong><small>{mainState === 'LIVE' ? 'البث الرئيسي متاح الآن' : mainState === 'UPCOMING' ? 'المواجهة القادمة خلال دقائق' : 'إعادة من مكتبة الساحة'}</small></span><span><strong>{onlineCount || 1}</strong><small>مشاهد في الساحة</small></span></div></div>
-       <div className="live-signal-art"><span className="live-signal-ring ring-one" /><span className="live-signal-ring ring-two" /><div className="live-signal-core"><Radio className="h-10 w-10" /><span>{mainState === 'LIVE' ? 'LIVE' : mainState === 'UPCOMING' ? 'READY' : 'REPLAY'}</span><b>ARENA<br />FEED</b></div><span className="live-signal-label">SIGNAL / 01</span></div>
+       <div className="live-page-copy"><span className="eyebrow"><span className="live-dot" />شبكة بث ARENA//X</span><h1>المباراة<br /><em>تبدأ هنا.</em></h1><p>بث مباشر، مواعيد واضحة، وإعادات لأقوى لحظات الساحة. افتح المشاهدة، واختر موعد المواجهة التالية.</p><div className="live-header-meta"><span><strong>{mainState === 'LIVE' ? 'على الهواء' : mainState === 'UPCOMING' ? 'التالي' : 'إعادة'}</strong><small>{mainState === 'LIVE' ? 'البث الرئيسي متاح الآن' : mainState === 'UPCOMING' ? 'المواجهة القادمة خلال دقائق' : 'إعادة من مكتبة الساحة'}</small></span><span><strong>{onlineCount || 1}</strong><small>مشاهد في الساحة</small></span></div></div>
+       <div className="live-signal-art"><span className="live-signal-ring ring-one" /><span className="live-signal-ring ring-two" /><div className="live-signal-core"><Radio className="h-10 w-10" /><span>{mainState === 'LIVE' ? 'بث مباشر' : mainState === 'UPCOMING' ? 'جاهز' : 'إعادة'}</span><b>ARENA<br />FEED</b></div><span className="live-signal-label">إشارة / 01</span></div>
     </header>
 
     <section className="live-stage" aria-label="البث الرئيسي وجدول البث">
-        <article className="live-player-card"><div className="live-card-topline"><span className={mainState === 'LIVE' ? 'live-status' : 'upcoming-status'}><i />{mainState === 'LIVE' ? 'مباشر الآن' : mainState === 'UPCOMING' ? 'قادم قريباً' : 'إعادة متاحة'}</span><span className="live-viewers"><Users className="h-3.5 w-3.5" />{onlineCount || 1} مشاهد</span></div><div className="live-player-frame"><StoreMedia slot={liveSlot} autoPlay={mainState === 'LIVE'} /></div><div className="live-player-info"><div><span className="eyebrow muted">MAIN STAGE / CHANNEL 01</span><h2>{liveSlot.title}</h2><p>{liveSlot.subtitle}</p></div><span className="live-quality"><Monitor className="h-3.5 w-3.5" />1080P</span></div></article>
-      <aside className="live-schedule-card"><div className="live-section-title"><div><span className="eyebrow muted">UP NEXT / 03 EVENTS</span><h2>جدول الساحة</h2></div><CalendarDays className="h-5 w-5" /></div><div className="live-schedule-list">{schedule.map(item => { const timer = countdownValue(item.startsAt, now); return <article className="live-schedule-item" key={item.id}><span className={`schedule-swatch ${item.tone}`} /><div className="schedule-time"><strong>{scheduleTime(item.startsAt)}</strong><small>{scheduleDay(item.startsAt, now)}</small></div><div className="schedule-copy"><span>{item.league}</span><h3>{item.title}</h3><small>{item.platform} · جائزة {item.prize}</small></div><div className="schedule-countdown"><small>{timer.expired ? 'يبدأ الآن' : 'يبدأ خلال'}</small><b>{timer.expired ? 'LIVE' : countdownText(item.startsAt, now)}</b></div></article>; })}</div></aside>
+        <article className="live-player-card"><div className="live-card-topline"><span className={mainState === 'LIVE' ? 'live-status' : 'upcoming-status'}><i />{mainState === 'LIVE' ? 'مباشر الآن' : mainState === 'UPCOMING' ? 'قادم قريباً' : 'إعادة متاحة'}</span><span className="live-viewers"><Users className="h-3.5 w-3.5" />{onlineCount || 1} مشاهد</span></div><div className="live-player-frame"><StoreMedia slot={liveSlot} autoPlay={mainState === 'LIVE'} /></div><div className="live-player-info"><div><span className="eyebrow muted">المنصة الرئيسية / القناة 01</span><h2>{liveSlot.title}</h2><p>{liveSlot.subtitle}</p></div><span className="live-quality"><Monitor className="h-3.5 w-3.5" />1080P</span></div></article>
+      <aside className="live-schedule-card"><div className="live-section-title"><div><span className="eyebrow muted">القادم / 03 مواجهات</span><h2>جدول الساحة</h2></div><CalendarDays className="h-5 w-5" /></div><div className="live-schedule-list">{schedule.map(item => { const timer = countdownValue(item.startsAt, now); return <article className="live-schedule-item" key={item.id}><span className={`schedule-swatch ${item.tone}`} /><div className="schedule-time"><strong>{scheduleTime(item.startsAt)}</strong><small>{scheduleDay(item.startsAt, now)}</small></div><div className="schedule-copy"><span>{item.league}</span><h3>{item.title}</h3><small>{item.platform} · جائزة {item.prize}</small></div><div className="schedule-countdown"><small>{timer.expired ? 'يبدأ الآن' : 'يبدأ خلال'}</small><b>{timer.expired ? 'LIVE' : countdownText(item.startsAt, now)}</b></div></article>; })}</div></aside>
     </section>
 
-    <section className="live-program"><div className="live-program-heading"><div><span className="eyebrow muted">BROADCAST LIBRARY / 02</span><h2>ماذا تريد أن تشاهد؟</h2><p>تنقّل بين البث الحالي، المواعيد القادمة، وأفضل الإعادات.</p></div><div className="live-filter-bar" role="tablist" aria-label="تصفية محتوى البث">{([['ALL', 'الكل'], ['LIVE', 'مباشر'], ['UPCOMING', 'قادم'], ['REPLAY', 'إعادات']] as const).map(([key, label]) => <button type="button" role="tab" aria-selected={view === key} className={view === key ? 'active' : ''} onClick={() => setView(key)} key={key}>{label}</button>)}</div></div>
+    <section className="live-program"><div className="live-program-heading"><div><span className="eyebrow muted">مكتبة البث / 02</span><h2>ماذا تريد أن تشاهد؟</h2><p>تنقّل بين البث الحالي، المواعيد القادمة، وأفضل الإعادات.</p></div><div className="live-filter-bar" role="tablist" aria-label="تصفية محتوى البث">{([['ALL', 'الكل'], ['LIVE', 'مباشر'], ['UPCOMING', 'قادم'], ['REPLAY', 'إعادات']] as const).map(([key, label]) => <button type="button" role="tab" aria-selected={view === key} className={view === key ? 'active' : ''} onClick={() => setView(key)} key={key}>{label}</button>)}</div></div>
       {(view === 'ALL' || view === 'UPCOMING') && <div className="live-upcoming-strip"><div className="live-upcoming-intro"><span className="panel-icon amber"><Clock3 className="h-5 w-5" /></span><div><strong>لا تفوّت صافرة البداية</strong><small>اضبط تذكيرك للمواجهة القادمة وكن أول من يدخل البث.</small></div></div><div className="live-next-countdown"><small>الموعد الأقرب</small><strong>{countdownText(schedule[0].startsAt, now)}</strong><span>{schedule[0].title}</span></div></div>}
-      {(view === 'ALL' || view === 'LIVE') && <div className="live-library-banner"><span className="live-dot" /><div><strong>قناة ARENA//X الرئيسية</strong><small>{hasLive ? 'البث مفتوح الآن. اضغط على التشغيل لمشاهدة المواجهة.' : 'لا يوجد بث مباشر مفعّل حالياً. سيظهر هنا بمجرد نشر الرابط.'}</small></div><span className="live-library-code">CH / 01</span></div>}
-      {(view === 'ALL' || view === 'REPLAY') && <div className="broadcast-grid live-replay-grid">{replaySlots.map((slot, index) => <article className="broadcast-card" key={slot.id}><div className="broadcast-media"><StoreMedia slot={slot} /><span className="broadcast-type">إعادة</span><span className="replay-duration">FULL MATCH</span></div><div className="broadcast-copy"><small>REPLAY 0{index + 1} / ARENA//X</small><h2>{slot.title}</h2><p>{slot.subtitle}</p><span className="broadcast-card-link">مشاهدة الإعادة <ArrowLeft className="h-3.5 w-3.5" /></span></div></article>)}</div>}
+      {(view === 'ALL' || view === 'LIVE') && <div className="live-library-banner"><span className="live-dot" /><div><strong>قناة ARENA//X الرئيسية</strong><small>{hasLive ? 'البث مفتوح الآن. اضغط على التشغيل لمشاهدة المواجهة.' : 'لا يوجد بث مباشر مفعّل حالياً. سيظهر هنا بمجرد نشر الرابط.'}</small></div><span className="live-library-code">قناة / 01</span></div>}
+      {(view === 'ALL' || view === 'REPLAY') && <div className="broadcast-grid live-replay-grid">{replaySlots.map((slot, index) => <article className="broadcast-card" key={slot.id}><div className="broadcast-media"><StoreMedia slot={slot} /><span className="broadcast-type">إعادة</span><span className="replay-duration">المباراة كاملة</span></div><div className="broadcast-copy"><small>إعادة 0{index + 1} / ARENA//X</small><h2>{slot.title}</h2><p>{slot.subtitle}</p><span className="broadcast-card-link">مشاهدة الإعادة <ArrowLeft className="h-3.5 w-3.5" /></span></div></article>)}</div>}
     </section>
   </div>;
 }
@@ -1053,144 +1053,144 @@ function HomePage() {
   };
   const totalPrize = openMatches.reduce((sum, match) => sum + Number(match.prize || 0), 0);
 
-  return <div className="home-2026">
+  return <div className="ax">
     {/* ── HERO ─────────────────────────────────────────────────────────── */}
-    <section className="hx-hero">
-      <div className="shell hx-hero-grid">
+    <section className="ax-hero">
+      <div className="ax-shell ax-hero-grid">
         <div>
-          <span className="hx-eyebrow"><span className="hx-dot" />{hero.eyebrow}</span>
+          <span className="ax-tag"><span className="ax-pulse" />{hero.eyebrow}</span>
           <h1>{hero.title}<em>{hero.titleAccent}</em></h1>
-          <p className="hx-hero-lead">{hero.subtitle}</p>
-          <div className="hx-hero-actions">
+          <p className="ax-hero-lead">{hero.subtitle}</p>
+          <div className="ax-hero-actions">
             {hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create'
-              ? <button key={item.id} className={`hx-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
-              : <Link key={item.id} href={item.href || '/matches'} className={`hx-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
+              ? <button key={item.id} className={`ax-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
+              : <Link key={item.id} href={item.href || '/matches'} className={`ax-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
           </div>
-          <div className="hx-stats">
-            <div className="hx-stat"><strong>{players.length}</strong><small>لاعب مسجل</small></div>
-            <div className="hx-stat"><strong>{openMatchCount}</strong><small>تحدٍّ متاح</small></div>
-            <div className="hx-stat"><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>
+          <div className="ax-hero-stats">
+            <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>
+            <div><strong>{openMatchCount}</strong><small>تحدٍّ متاح</small></div>
+            <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>
           </div>
         </div>
 
-        <aside className="hx-main-event">
-          <div className="hx-event-top">
-            <span><Zap className="h-3.5 w-3.5" />مواجهة مميزة</span>
-            <span className="hx-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'مباشرة الآن'}</span>
+        <aside className="ax-stage">
+          <div className="ax-stage-top">
+            <span><Zap className="h-3.5 w-3.5" />المواجهة الرئيسية</span>
+            <span className="ax-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
           </div>
           {featured ? <>
-            <span className="hx-event-kicker">{featured.title}</span>
-            <div className="hx-versus">
-              <div className="hx-side">
+            <span className="ax-stage-kicker">{featured.title}</span>
+            <div className="ax-versus">
+              <div className="ax-side">
                 <UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large />
                 <strong>{featured.creatorName}</strong>
                 <small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small>
               </div>
-              <b className="hx-vs-badge">VS</b>
-              <div className="hx-side">
+              <b className="ax-vs">ضد</b>
+              <div className="ax-side">
                 <UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large />
                 <strong>{featured.opponentName}</strong>
                 <small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small>
               </div>
             </div>
-            <div className="hx-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div>
-            <div className="hx-event-foot">
+            <div className="ax-stage-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div>
+            <div className="ax-stage-foot">
               <span><ShieldCheck className="h-4 w-4" />{featured.note}</span>
               <span><Clock3 className="h-4 w-4" />مفتوحة الآن</span>
             </div>
-          </> : <div className="hx-event-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
+          </> : <div className="ax-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
         </aside>
       </div>
     </section>
 
-    {/* ── LIVE RAIL ────────────────────────────────────────────────────── */}
-    <section className="shell hx-section">
-      <div className="hx-head">
+    {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
+    <section className="ax-section ax-shell">
+      <div className="ax-head">
         <div>
-          <span className="hx-eyebrow"><span className="hx-dot" />ساحة مباشرة</span>
-          <h2>تحديات تنتظر منافساً</h2>
+          <span className="ax-tag"><span className="ax-pulse" />ساحة مباشرة</span>
+          <h2 className="ax-h2">تحديات تنتظر منافساً</h2>
           <p>{openMatchCount > 0 ? `${openMatchCount} تحدٍّ مفتوح بإجمالي جوائز ${money(totalPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
         </div>
-        <Link href="/matches" className="hx-link">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
+        <Link href="/matches" className="ax-link">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
       </div>
-      {openMatches.length ? <div className="hx-rail">
-        {openMatches.slice(0, 4).map(match => <article className="hx-rail-row" key={match.id}>
-          <div className="hx-rail-player">
+      {openMatches.length ? <div className="ax-rail">
+        {openMatches.slice(0, 4).map(match => <article className="ax-rail-row" key={match.id}>
+          <div className="ax-rail-player">
             <UserAvatar username={match.creator_name} />
             <span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id} • {match.platform}</small></span>
           </div>
-          <div className="hx-metric"><small>الرهان</small><strong>{money(match.stake)}</strong></div>
-          <div className="hx-metric"><small>الجائزة</small><strong className="amber">{money(match.prize)}</strong></div>
-          <button className="hx-join" onClick={() => join(match)}>قبول التحدي <ArrowLeft className="h-4 w-4" /></button>
+          <div className="ax-metric"><small>الرهان</small><strong>{money(match.stake)}</strong></div>
+          <div className="ax-metric"><small>الجائزة</small><strong className="gold">{money(match.prize)}</strong></div>
+          <button className="ax-join" onClick={() => join(match)}>قبول التحدي <ArrowLeft className="h-4 w-4" /></button>
         </article>)}
-      </div> : <div className="hx-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="hx-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
+      </div> : <div className="ax-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="ax-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
     </section>
 
     {/* ── PATH + TOURNAMENT ────────────────────────────────────────────── */}
-    <section className="shell hx-section hx-split">
+    <section className="ax-section ax-shell ax-split">
       <div>
-        <div className="hx-head" style={{ marginBottom: 16 }}>
-          <div><span className="hx-eyebrow">ثلاث خطوات</span><h2>من التسجيل إلى الجائزة</h2></div>
+        <div className="ax-head" style={{ marginBottom: 20 }}>
+          <div><span className="ax-tag">ثلاث خطوات</span><h2 className="ax-h2">من التسجيل إلى الجائزة</h2></div>
         </div>
-        <div className="hx-steps">
-          <article className="hx-step"><span className="hx-step-num">01</span><Swords className="h-5 w-5" /><h3>افتح تحدياً</h3><p>اختر قيمة الرهان والمنصة، وانشر مباراتك في ثوانٍ.</p></article>
-          <article className="hx-step"><span className="hx-step-num">02</span><ShieldCheck className="h-5 w-5" /><h3>العبة داخل الضمان</h3><p>يُحجز الرهان تلقائياً ولا يُصرف حتى اعتماد النتيجة.</p></article>
-          <article className="hx-step"><span className="hx-step-num">03</span><Trophy className="h-5 w-5" /><h3>استلم أرباحك</h3><p>تراجع الإدارة النتيجة، ثم يُضاف المبلغ إلى محفظتك.</p></article>
+        <div className="ax-steps">
+          <article className="ax-step"><span className="ax-step-num">01</span><Swords className="h-5 w-5" /><h3>افتح تحدياً</h3><p>اختر قيمة الرهان والمنصة، وانشر مباراتك في ثوانٍ.</p></article>
+          <article className="ax-step"><span className="ax-step-num">02</span><ShieldCheck className="h-5 w-5" /><h3>اللعبة داخل الضمان</h3><p>يُحجز الرهان تلقائياً ولا يُصرف حتى اعتماد النتيجة.</p></article>
+          <article className="ax-step"><span className="ax-step-num">03</span><Trophy className="h-5 w-5" /><h3>استلم أرباحك</h3><p>تراجع الإدارة النتيجة، ثم يُضاف المبلغ إلى محفظتك.</p></article>
         </div>
       </div>
-      <aside className="hx-tournament">
+      <aside className="ax-tournament">
         {tournament ? <>
-          <span className="hx-tournament-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</span>
+          <span className="ax-tournament-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</span>
           <h2>{tournament.title}</h2>
           <p>{tournament.description || tournament.rules}</p>
-          <div className="hx-tournament-meta">
+          <div className="ax-tournament-meta">
             <span><small>مجموع الجوائز</small><strong>{money(tournament.prize_pool)}</strong></span>
             <span><small>المشاركون</small><strong>{tournament.participant_count}/{tournament.max_players}</strong></span>
           </div>
-          <Link href="/tournaments" className="hx-btn primary">احجز مقعدك <ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/tournaments" className="ax-btn primary">احجز مقعدك <ArrowLeft className="h-4 w-4" /></Link>
         </> : <>
-          <span className="hx-tournament-kicker"><Trophy className="h-4 w-4" />البطولات</span>
+          <span className="ax-tournament-kicker"><Trophy className="h-4 w-4" />البطولات</span>
           <h2>قريباً على الساحة</h2>
           <p>تُفتح التسجيلات للبطولة القادمة هنا. تابعنا حتى لا يفوتك المقعد.</p>
-          <Link href="/tournaments" className="hx-btn ghost">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/tournaments" className="ax-btn ghost">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link>
         </>}
       </aside>
     </section>
 
     {/* ── LEADERBOARD ──────────────────────────────────────────────────── */}
-    <section className="shell hx-section">
-      <div className="hx-head">
-        <div><span className="hx-eyebrow">ترتيب حي</span><h2>أفضل اللاعبين على الساحة</h2><p>مبني على نتائج مباريات حقيقية موثّقة.</p></div>
-        <Link href="/leaderboard" className="hx-link">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link>
+    <section className="ax-section ax-shell">
+      <div className="ax-head">
+        <div><span className="ax-tag">ترتيب حي</span><h2 className="ax-h2">أفضل اللاعبين على الساحة</h2><p>مبني على نتائج مباريات حقيقية موثّقة.</p></div>
+        <Link href="/leaderboard" className="ax-link">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link>
       </div>
-      {rankedPlayers.length ? <div className="hx-board">
-        {rankedPlayers.map((player, index) => <div className="hx-board-row" key={player.id}>
-          <span className={`hx-board-rank rank-${index + 1}`}>{index + 1}</span>
+      {rankedPlayers.length ? <div className="ax-board">
+        {rankedPlayers.map((player, index) => <div className={`ax-board-row ${index === 0 ? 'is-top' : ''}`} key={player.id}>
+          <span className={`ax-board-rank r${index + 1}`}>{index + 1}</span>
           <UserAvatar username={player.username} teamId={player.favorite_team} />
-          <span className="hx-board-copy"><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span>
-          <b className="hx-board-rate">{player.win_rate}%</b>
+          <span className="ax-board-copy"><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span>
+          <b className="ax-board-rate">{player.win_rate}%</b>
         </div>)}
-      </div> : <div className="hx-empty"><BarChart3 className="h-7 w-7" /><div><strong>الترتيب قيد الإنشاء</strong><p>تظهر النتائج هنا بعد أولى المباريات المكتملة.</p></div></div>}
+      </div> : <div className="ax-empty"><BarChart3 className="h-7 w-7" /><div><strong>الترتيب قيد الإنشاء</strong><p>تظهر النتائج هنا بعد أولى المباريات المكتملة.</p></div></div>}
     </section>
 
     {/* ── TRUST ────────────────────────────────────────────────────────── */}
-    <section className="hx-trust">
-      <div className="shell hx-trust-grid">
-        <span className="hx-trust-item"><ShieldCheck className="h-5 w-5" /><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span>
-        <span className="hx-trust-item"><Users className="h-5 w-5" /><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span>
-        <span className="hx-trust-item"><MessageCircle className="h-5 w-5" /><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span>
+    <section className="ax-trust">
+      <div className="ax-shell ax-trust-grid">
+        <span className="ax-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
+        <span className="ax-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
+        <span className="ax-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
       </div>
     </section>
 
     {/* ── CLOSING CTA ──────────────────────────────────────────────────── */}
-    <section className="shell hx-cta">
+    <section className="ax-shell ax-cta">
       <div>
         <h2>ساحتك جاهزة. هل أنت؟</h2>
         <p>انضم إلى لاعبين يتنافسون الآن على جوائز حقيقية داخل نظام ضمان يحمي كل طرف.</p>
       </div>
-      <div className="hx-cta-actions">
-        <button className="hx-btn primary" onClick={enterCreate}><Swords className="h-5 w-5" />أنشئ أول تحدٍّ</button>
-        <Link href="/leaderboard" className="hx-btn ghost">تصفّح الصدارة <ArrowLeft className="h-4 w-4" /></Link>
+      <div className="ax-cta-actions">
+        <button className="ax-btn primary" onClick={enterCreate}><Swords className="h-5 w-5" />أنشئ أول تحدٍّ</button>
+        <Link href="/leaderboard" className="ax-btn ghost">تصفّح الصدارة <ArrowLeft className="h-4 w-4" /></Link>
       </div>
     </section>
 
