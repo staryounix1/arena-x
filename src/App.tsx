@@ -1019,11 +1019,11 @@ function WithdrawModal({ onClose }: { onClose: () => void }) {
   return <Modal onClose={onClose}><div className="modal-heading"><span className="panel-icon amber"><ArrowUpFromLine className="h-5 w-5" /></span><span><h2>طلب سحب</h2><p>الرصيد المتاح: <b>{money(user?.balance || 0)}</b></p></span></div>{sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>تم تسجيل طلب السحب</h3><p>سيتم تحويل المبلغ بعد اعتماد الإدارة.</p><button className="primary-button" onClick={onClose}>حسناً</button></div> : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<Field label="المبلغ ($)" type="number" value={amount} onChange={setAmount} test="input-withdraw-amount" />{Number(amount) > 0 && <div className="fee-notice">عمولة السحب 5%: {money(Number(amount) * 0.05)} • الصافي المحوّل: {money(Number(amount) * 0.95)}</div>}<label className="form-field"><span>طريقة الاستلام</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><div className="payment-card"><p>معلومات الطريقة</p><span>{selected?.details}</span></div><Field label="رقم الحساب أو الهاتف" value={destination} onChange={setDestination} test="input-withdraw-destination" /><label className="form-field"><span>ملاحظات</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={2} /></label><button className="primary-button full">إرسال طلب السحب</button></form>}<div className="modal-history"><strong>آخر طلبات السحب</strong>{withdrawals.filter(item => item.userId === user?.id).slice(0, 3).map(item => <div key={item.id}><span>#{item.id} • {money(item.amount)} • صافي {money(item.payoutAmount)}</span><StatusBadge status={item.status} /></div>)}</div></Modal>;
 }
 
-function CreateMatchModal({ onClose }: { onClose: () => void }) {
+function CreateMatchModal({ onClose, initialStake }: { onClose: () => void; initialStake?: number }) {
   const { user, createMatch, settings } = useArena();
   const [, setLocation] = useLocation();
   const [title, setTitle] = useState('');
-  const [stake, setStake] = useState('20');
+  const [stake, setStake] = useState(initialStake ? String(initialStake) : '20');
   const [platform, setPlatform] = useState('الهاتف');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1294,13 +1294,12 @@ function MatchesPage() {
   const [platform, setPlatform] = useState('الكل');
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [prefillStake, setPrefillStake] = useState<number | undefined>(undefined);
   const [rechargeOpen, setRechargeOpen] = useState(false);
 
   const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
   const openCount = matches.filter(item => item.status === 'OPEN').length;
   const playingCount = matches.filter(item => item.status === 'PLAYING').length;
-  const totalOpenPrize = matches.filter(item => item.status === 'OPEN').reduce((sum, item) => sum + Number(item.prize || 0), 0);
-  const biggestStake = matches.filter(item => item.status === 'OPEN').reduce((max, item) => Math.max(max, Number(item.stake || 0)), 0);
 
   const filtered = matches.filter(item => (status === 'ALL' || item.status === status) && (platform === 'الكل' || item.platform === platform) && (!search || `${item.title} ${item.creator_name}`.toLowerCase().includes(search.toLowerCase())));
 
@@ -1310,7 +1309,7 @@ function MatchesPage() {
     if (user.balance < match.stake) return setRechargeOpen(true);
     if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`);
   };
-  const enterCreate = () => user ? setCreateOpen(true) : setLocation('/login');
+  const enterCreate = (amount?: number) => { if (!user) return setLocation('/login'); setPrefillStake(amount); setCreateOpen(true); };
 
   const filters: [string, string, number][] = [
     ['OPEN', 'متاحة', openCount],
@@ -1327,20 +1326,45 @@ function MatchesPage() {
           <h1 className="ex-title" style={{ fontSize: 'clamp(30px, 5vw, 56px)' }}>اختر تحديك.<em>وادخل الساحة.</em></h1>
           <p className="ex-sub">مباريات مفتوحة بجوائز مضمونة، نظام حجز آمن، ونتائج موثّقة. أنشئ تحديك أو اقبل تحدٍّ قائم في ثوانٍ.</p>
         </div>
-        <button className="ex-btn primary ex-arena-cta" onClick={enterCreate}><Plus className="h-5 w-5" />إنشاء مباراة</button>
-      </div>
-
-      <div className="ex-arena-stats">
-        <span><i className="ex-stat-ico"><Swords className="h-4 w-4" /></i><b>{openCount}</b><small>تحدٍّ مفتوح</small></span>
-        <span><i className="ex-stat-ico is-hot"><Radio className="h-4 w-4" /></i><b className="is-live">{playingCount}</b><small>مباراة جارية</small></span>
-        <span><i className="ex-stat-ico is-gold"><Trophy className="h-4 w-4" /></i><b>{money(totalOpenPrize)}</b><small>جوائز مفتوحة</small></span>
-        <span><i className="ex-stat-ico is-gold"><Flame className="h-4 w-4" /></i><b>{biggestStake ? money(biggestStake) : '—'}</b><small>أعلى رهان</small></span>
-        <span><i className="ex-stat-ico is-hot"><Users className="h-4 w-4" /></i><b className="is-live">{shownOnline}</b><small>متصل الآن</small></span>
+        <button className="ex-btn primary ex-arena-cta" onClick={() => enterCreate()}><Plus className="h-5 w-5" />إنشاء مباراة</button>
       </div>
     </section>
 
     <section className="ex-section ex-shell" style={{ paddingTop: 36 }}>
-      <div className="ex-toolbar">
+      {filtered.length === 0 && <div className="ex-lobby">
+        <div className="ex-lobby-hero ex-hud">
+          <span className="ex-lobby-icon"><Swords className="h-9 w-9" /></span>
+          <h3>{status === 'OPEN' ? 'الساحة بانتظار أول تحدٍّ' : 'لا توجد نتائج مطابقة'}</h3>
+          <p>{search || platform !== 'الكل' || status !== 'OPEN'
+            ? 'جرّب تغيير الفلتر أو مسح البحث لإظهار كل المباريات.'
+            : 'لا توجد مباريات مفتوحة في هذه اللحظة. كن السبّاق: أنشئ تحديك، وستظهر أول مواجهة مباشرة هنا في ثوانٍ.'}</p>
+          <div className="ex-lobby-actions">
+            <button className="ex-btn primary" onClick={() => enterCreate()}><Plus className="h-5 w-5" />إنشاء أول تحدٍّ</button>
+            {(search || platform !== 'الكل' || status !== 'OPEN') && <button className="ex-btn ghost" onClick={() => { setStatus('ALL'); setPlatform('الكل'); setSearch(''); }}>إظهار كل المباريات</button>}
+          </div>
+        </div>
+
+        <div className="ex-lobby-side">
+          <article className="ex-lobby-card ex-hud">
+            <span className="ex-lobby-card-title"><Flame className="h-4 w-4" />اقتراحات سريعة</span>
+            <p>ابدأ برهان يناسب ميزانيتك — اختر مبلغاً وسنفتح لك نافذة التحدي عليه مباشرة.</p>
+            <div className="ex-stake-grid">
+              {[5, 10, 20, 50].map(amount => <button type="button" key={amount} className="ex-stake" onClick={() => enterCreate(amount)}><small>رهان</small><b>{money(amount)}</b></button>)}
+            </div>
+          </article>
+          <article className="ex-lobby-card ex-hud">
+            <span className="ex-lobby-card-title"><ShieldCheck className="h-4 w-4" />كيف تعمل الساحة؟</span>
+            <ul className="ex-lobby-list">
+              <li>يُحجز الرهان تلقائياً حتى اعتماد النتيجة.</li>
+              <li>جوائز معلنة قبل الانضمام، بلا مفاجآت.</li>
+              <li>دعم بشري يحل أي نزاع بسرعة.</li>
+            </ul>
+            <Link href="/support" className="ex-more">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link>
+          </article>
+        </div>
+      </div>}
+
+      {filtered.length > 0 && <div className="ex-toolbar">
         <div className="ex-seg" role="tablist" aria-label="حالة المباراة">
           {filters.map(([id, label, count]) => <button type="button" role="tab" aria-selected={status === id} key={id} className={status === id ? 'is-on' : ''} onClick={() => setStatus(id)}>{label}<i>{count}</i></button>)}
         </div>
@@ -1348,51 +1372,17 @@ function MatchesPage() {
           <label className="ex-search"><Search className="h-4 w-4" /><input aria-label="البحث في المباريات" value={search} onChange={event => setSearch(event.target.value)} placeholder="ابحث باسم اللاعب أو المباراة" /></label>
           <label className="ex-select"><select aria-label="تصفية المنصة" value={platform} onChange={event => setPlatform(event.target.value)}><option>الكل</option><option>الهاتف</option><option>PlayStation</option><option>Xbox / PC</option></select></label>
         </div>
-      </div>
+      </div>}
+      {filtered.length > 0 && <div className="ex-match-grid">{filtered.map(match => <MatchCard key={match.id} match={match} user={user} onJoin={() => join(match)} onOpen={() => setLocation(`/matches/${match.id}`)} />)}</div>}
 
-      {filtered.length === 0
-        ? <div className="ex-lobby">
-            <div className="ex-lobby-hero ex-hud">
-              <span className="ex-lobby-icon"><Swords className="h-9 w-9" /></span>
-              <h3>{status === 'OPEN' ? 'الساحة بانتظار أول تحدٍّ' : 'لا توجد نتائج مطابقة'}</h3>
-              <p>{search || platform !== 'الكل' || status !== 'OPEN'
-                ? 'جرّب تغيير الفلتر أو مسح البحث لإظهار كل المباريات.'
-                : 'لا توجد مباريات مفتوحة في هذه اللحظة. كن السبّاق: أنشئ تحديك، وستظهر أول مواجهة مباشرة هنا في ثوانٍ.'}</p>
-              <div className="ex-lobby-actions">
-                <button className="ex-btn primary" onClick={enterCreate}><Plus className="h-5 w-5" />إنشاء أول تحدٍّ</button>
-                {(search || platform !== 'الكل' || status !== 'OPEN') && <button className="ex-btn ghost" onClick={() => { setStatus('ALL'); setPlatform('الكل'); setSearch(''); }}>إظهار كل المباريات</button>}
-              </div>
-            </div>
-
-            <div className="ex-lobby-side">
-              <article className="ex-lobby-card ex-hud">
-                <span className="ex-lobby-card-title"><Flame className="h-4 w-4" />اقتراحات سريعة</span>
-                <p>ابدأ برهان يناسب ميزانيتك — يمكنك تعديله في أي وقت.</p>
-                <div className="ex-stake-grid">
-                  {[5, 10, 20, 50].map(amount => <button type="button" key={amount} className="ex-stake" onClick={enterCreate}><small>رهان</small><b>{money(amount)}</b></button>)}
-                </div>
-              </article>
-              <article className="ex-lobby-card ex-hud">
-                <span className="ex-lobby-card-title"><ShieldCheck className="h-4 w-4" />كيف تعمل الساحة؟</span>
-                <ul className="ex-lobby-list">
-                  <li>يُحجز الرهان تلقائياً حتى اعتماد النتيجة.</li>
-                  <li>جوائز معلنة قبل الانضمام، بلا مفاجآت.</li>
-                  <li>دعم بشري يحل أي نزاع بسرعة.</li>
-                </ul>
-                <Link href="/support" className="ex-more">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link>
-              </article>
-            </div>
-          </div>
-        : <div className="ex-match-grid">{filtered.map(match => <MatchCard key={match.id} match={match} user={user} onJoin={() => join(match)} onOpen={() => setLocation(`/matches/${match.id}`)} />)}</div>}
-
-      {matches.length > 0 && <div className="ex-trust" style={{ marginTop: 56 }}><div className="ex-shell ex-trust-grid">
+      <div className="ex-trust" style={{ marginTop: 56 }}><div className="ex-shell ex-trust-grid">
         <span className="ex-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
         <span className="ex-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
         <span className="ex-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
-      </div></div>}
+      </div></div>
     </section>
 
-    {createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}
+    {createOpen && <CreateMatchModal onClose={() => { setCreateOpen(false); setPrefillStake(undefined); }} initialStake={prefillStake} />}
     {rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}
   </div>;
 }
