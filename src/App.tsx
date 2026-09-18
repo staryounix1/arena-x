@@ -1718,6 +1718,11 @@ function HomePage() {
     || tournaments.find(item => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
   const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
   const hero = homeArenaFrom(settings);
+  const winnerTicker = matches
+    .filter(item => item.status === 'COMPLETED' && (item.winner_name || item.winner_id) && item.payout_status === 'APPROVED')
+    .sort((a, b) => new Date(b.completed_at || b.created_at || 0).getTime() - new Date(a.completed_at || a.created_at || 0).getTime())
+    .slice(0, 12)
+    .map(item => ({ id: item.id, winner: item.winner_name || 'لاعب', prize: Number(item.prize) || 0, platform: item.platform }));
   const dummyMatches = hero.dummyEnabled ? buildDummyMatches(hero.dummyCount) : [];
   const displayOpenCount = openMatchCount + dummyMatches.length;
   const railItems = [
@@ -1786,14 +1791,16 @@ function HomePage() {
                 <strong>{featured.creatorName}</strong>
                 <small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small>
               </div>
-              <b className="ex-vs">ضد</b>
+              <div className="ex-versus-mid">
+                <b className="ex-vs">ضد</b>
+                <span className="ex-versus-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
+              </div>
               <div className="ex-side">
                 <UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large />
                 <strong>{featured.opponentName}</strong>
                 <small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small>
               </div>
             </div>
-            <div className="ex-stage-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div>
             <div className="ex-stage-foot">
               <span><ShieldCheck className="h-4 w-4" />{featured.note}</span>
               <span><Clock3 className="h-4 w-4" />مفتوحة الآن</span>
@@ -1803,10 +1810,20 @@ function HomePage() {
       </div>
     </section>
 
-    {/* ── MARQUEE ──────────────────────────────────────────────────────── */}
-    <div className="ex-marquee" aria-hidden="true">
-      <div className="ex-marquee-track">
-        {[...marqueeItems, ...marqueeItems].map((item, index) => <span key={index}><b>ARENA//X</b>{item}</span>)}
+    {/* ── WINNERS TICKER ───────────────────────────────────────────────── */}
+    <div className="ex-winners" aria-label="أحدث الفائزين">
+      <span className="ex-winners-badge"><Trophy className="h-3.5 w-3.5" />فائزون</span>
+      <div className="ex-winners-viewport">
+        {winnerTicker.length ? <div className="ex-winners-track">
+          {[...winnerTicker, ...winnerTicker].map((item, index) => <span className="ex-winner" key={`${item.id}-${index}`}>
+            <b>{item.winner}</b>
+            <em>فاز بـ</em>
+            <strong>{money(item.prize)}</strong>
+            <i>{item.platform}</i>
+          </span>)}
+        </div> : <div className="ex-winners-track is-static">
+          {[...marqueeItems, ...marqueeItems].map((item, index) => <span className="ex-winner is-plain" key={index}><b>ARENA//X</b><em>{item}</em></span>)}
+        </div>}
       </div>
     </div>
 

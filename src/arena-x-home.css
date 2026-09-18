@@ -249,6 +249,7 @@
 .ex-side .avatar { width: 70px; height: 70px; border-radius: 12px; box-shadow: 0 0 0 1px rgba(0, 255, 179, .3), 0 0 30px -6px rgba(0, 255, 179, .6); }
 .ex-side strong { overflow: hidden; max-width: 100%; font-size: 15px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
 .ex-side small { color: var(--ex-faint); font-size: 11px; }
+.ex-versus-mid { display: grid; justify-items: center; gap: 10px; }
 .ex-vs {
   display: grid; place-items: center;
   width: 50px; height: 50px;
@@ -259,14 +260,15 @@
   font-size: 13px; font-weight: 900; letter-spacing: .04em;
   box-shadow: 0 0 28px -6px rgba(0, 255, 179, .8);
 }
-.ex-stage-prize {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 20px; border-radius: 8px;
-  background: linear-gradient(120deg, rgba(255, 203, 69, .09), rgba(4, 7, 11, .7));
-  border: 1px solid rgba(255, 203, 69, .2);
+.ex-versus-prize {
+  display: grid; gap: 2px; justify-items: center;
+  padding: 9px 14px; border-radius: 10px;
+  border: 1px solid rgba(255, 203, 69, .26);
+  background: linear-gradient(150deg, rgba(255, 203, 69, .12), rgba(4, 7, 11, .6));
+  white-space: nowrap;
 }
-.ex-stage-prize span { color: var(--ex-dim); font-size: 11.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.ex-stage-prize strong { color: var(--ex-gold); font-size: clamp(26px, 3.2vw, 36px); font-weight: 900; letter-spacing: -.02em; text-shadow: 0 0 28px rgba(255, 203, 69, .5); }
+.ex-versus-prize small { color: var(--ex-dim); font-size: 9px; font-weight: 900; letter-spacing: .06em; }
+.ex-versus-prize strong { color: var(--ex-gold); font-size: clamp(18px, 2vw, 24px); font-weight: 900; letter-spacing: -.02em; direction: ltr; unicode-bidi: isolate; text-shadow: 0 0 22px rgba(255, 203, 69, .5); }
 .ex-stage-foot { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--ex-line); }
 .ex-stage-foot span { display: inline-flex; align-items: center; gap: 8px; color: #a9bdd6; font-size: 11.5px; font-weight: 700; }
 .ex-stage-foot svg { color: var(--ex-neon); }
@@ -331,24 +333,41 @@
 .ex-empty strong { display: block; font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
 .ex-empty p { margin: 6px 0 0; color: var(--ex-dim); font-size: 13px; line-height: 1.8; }
 
-/* ── MARQUEE STRIP ──────────────────────────────────────────────────────── */
-.ex-marquee {
-  position: relative;
-  padding-block: 20px;
+/* ── WINNERS TICKER ─────────────────────────────────────────────────────── */
+.ex-winners {
+  display: flex; align-items: stretch;
   border-block: 1px solid var(--ex-line);
-  background: linear-gradient(90deg, rgba(0, 255, 179, .05), rgba(139, 92, 255, .05));
+  background: linear-gradient(90deg, rgba(0, 255, 179, .05), rgba(255, 203, 69, .05));
   overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
-.ex-marquee-track { display: flex; gap: 56px; width: max-content; animation: ex-marquee 34s linear infinite; }
-.ex-marquee:hover .ex-marquee-track { animation-play-state: paused; }
-@keyframes ex-marquee { to { transform: translateX(50%); } }
-.ex-marquee span {
-  display: inline-flex; align-items: center; gap: 12px;
-  color: var(--ex-dim); font-size: 13px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; white-space: nowrap;
+.ex-winners-badge {
+  display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
+  padding: 11px 18px;
+  border-inline-end: 1px solid var(--ex-line);
+  color: var(--ex-gold);
+  background: rgba(255, 203, 69, .06);
+  font-size: 11px; font-weight: 900; white-space: nowrap;
 }
-.ex-marquee span b { color: var(--ex-neon); }
-.ex-marquee span::after { color: var(--ex-neon); content: '◆'; font-size: 9px; }
+.ex-winners-viewport { position: relative; flex: 1; min-width: 0; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
+.ex-winners-track { display: flex; align-items: center; gap: 34px; width: max-content; padding: 11px 22px; animation: ex-winners 40s linear infinite; }
+.ex-winners-viewport:hover .ex-winners-track { animation-play-state: paused; }
+.ex-winners-track.is-static { animation-duration: 52s; }
+@keyframes ex-winners { from { transform: translateX(0); } to { transform: translateX(50%); } }
+.ex-winner {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--ex-ink); font-size: 12.5px; font-weight: 800; white-space: nowrap;
+}
+.ex-winner b { color: var(--ex-neon); font-weight: 900; }
+.ex-winner em { color: var(--ex-faint); font-size: 11px; font-style: normal; }
+.ex-winner strong { color: var(--ex-gold); font-weight: 900; direction: ltr; unicode-bidi: isolate; }
+.ex-winner i {
+  padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--ex-line); color: var(--ex-dim);
+  font-size: 9px; font-style: normal; font-weight: 800;
+}
+.ex-winner::after { margin-inline-start: 12px; color: rgba(0, 255, 179, .35); content: '◆'; font-size: 8px; }
+.ex-winner.is-plain { text-transform: uppercase; letter-spacing: .14em; font-size: 11.5px; }
+.ex-winner.is-plain b { color: var(--ex-neon); }
 
 /* ── SPLIT: PATH + TOURNAMENT ───────────────────────────────────────────── */
 .ex-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(26px, 3.6vw, 48px); align-items: start; }
@@ -497,6 +516,14 @@
   .ex-hero-stats strong { font-size: 26px; }
   .ex-hero-stats small { font-size: 10px; white-space: normal; }
   .ex-head { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 30px; }
+  .ex-winners-badge { padding: 10px 12px; font-size: 10px; }
+  .ex-winners-track { gap: 22px; padding: 10px 14px; animation-duration: 30s; }
+  .ex-winner { font-size: 11.5px; gap: 6px; }
+  .ex-versus { gap: 8px; margin: 20px 0; }
+  .ex-versus-prize { padding: 7px 10px; }
+  .ex-versus-prize strong { font-size: 17px; }
+  .ex-versus-prize small { font-size: 8px; }
+  .ex-vs { width: 42px; height: 42px; font-size: 12px; }
   .ex-rail-row { grid-template-columns: minmax(0, 1fr) auto; gap: 14px 16px; }
   .ex-rail-row .ex-metric { grid-row: 2; }
   .ex-rail-row .ex-join { grid-column: 2; grid-row: 2; justify-self: end; }
@@ -518,7 +545,7 @@
   .ex-board-rate { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ex::before, .ex-hero::before, .ex-stage::after, .ex-marquee-track, .ex-chip .ex-dot, .ex-live-pill i { animation: none !important; }
+  .ex::before, .ex-hero::before, .ex-stage::after, .ex-winners-track, .ex-chip .ex-dot, .ex-live-pill i { animation: none !important; }
 }
 
 /* ============================================================================
