@@ -1564,7 +1564,7 @@ function MatchDetailPageV2() {
       </div>
     </div>
 
-    <div className="ex-shell ex-section" style={{ paddingTop: 34 }}>
+    <div className="ex-shell ex-room-body">
       {message && <Notice>{message}</Notice>}
 
       {/* ── STAGING ACTIONS ────────────────────────────────────────── */}
