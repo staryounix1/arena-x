@@ -422,18 +422,20 @@
 .ex-board-rate { color: var(--ex-neon); font-size: 17px; font-weight: 900; font-variant-numeric: tabular-nums; text-shadow: 0 0 18px rgba(0, 255, 179, .5); }
 
 /* ── TRUST BAND ─────────────────────────────────────────────────────────── */
-.ex-trust { background: transparent; }
+.ex-trust {
+  position: relative;
+  width: min(1280px, calc(100% - 44px));
+  margin-inline: auto;
+  padding: 22px;
+  border: 1px solid var(--ex-line);
+  border-radius: 10px;
+  background: linear-gradient(165deg, rgba(14, 20, 32, .9), rgba(6, 9, 14, .9));
+  overflow: hidden;
+}
 .ex-trust-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  padding: clamp(22px, 3vw, 30px);
-  border: 1px solid var(--ex-line);
-  border-radius: 12px;
-  background:
-    radial-gradient(120% 140% at 88% -20%, rgba(0, 255, 179, .1), transparent 58%),
-    linear-gradient(165deg, rgba(14, 20, 32, .92), rgba(6, 9, 14, .92));
-  overflow: hidden;
 }
 .ex-trust-item { display: flex; align-items: center; gap: 16px; }
 .ex-trust-item svg { flex: 0 0 auto; color: var(--ex-neon); filter: drop-shadow(0 0 10px rgba(0, 255, 179, .6)); }
@@ -490,7 +492,8 @@
   .ex-board-row { grid-template-columns: 40px 40px minmax(0, 1fr) auto; gap: 13px; padding: 14px 16px; }
   .ex-board-rank { width: 34px; height: 34px; font-size: 13px; }
   .ex-board-row .avatar { width: 38px; height: 38px; border-radius: 8px; }
-  .ex-trust-grid { grid-template-columns: 1fr; gap: 18px; padding: 22px; }
+  .ex-trust { width: calc(100% - 36px); padding: 22px; }
+  .ex-trust-grid { grid-template-columns: 1fr; gap: 18px; }
   .ex-tournament-meta { grid-template-columns: 1fr; }
   .ex-empty { flex-direction: column; align-items: flex-start; }
   .ex-empty .ex-btn { width: 100%; }

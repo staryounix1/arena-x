@@ -373,8 +373,10 @@
 
 /* ── Matches page: remove dead space between sections ───────────────────── */
 .ex-matches-section { padding-top: 30px; padding-bottom: 34px; }
-.ex-matches-trust { margin-top: 34px; }
+/* Inside the matches shell the panel should span the shell width, not add
+   the homepage shell margins a second time. */
+.ex-matches-trust { width: 100%; margin-top: 34px; }
 @media (max-width: 760px) {
-  .ex-matches-section { padding-top: 22px; padding-bottom: 26px; }
-  .ex-matches-trust { margin-top: 26px; }
+  .ex-matches-section { padding-top: 22px; padding-bottom: 22px; }
+  .ex-matches-trust { width: 100%; margin-top: 24px; }
 }
