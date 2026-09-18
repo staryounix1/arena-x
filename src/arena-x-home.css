@@ -1105,6 +1105,27 @@
 .ex.is-live .ex-room-card-title svg,
 .ex.is-live .ex-room-cta .ex-room-card-title { color: #ff9ecb; }
 
+/* Live mode — catch every remaining green accent inside the room so the whole
+   page reads magenta while a match is in progress. */
+.ex.is-live .ex-room-versus.is-open { border-color: rgba(255, 45, 149, .44); }
+.ex.is-live .ex-room-versus { box-shadow: 0 40px 80px -56px rgba(255, 45, 149, .5); }
+.ex.is-live .ex-room-side .avatar { box-shadow: 0 0 0 1px rgba(255, 45, 149, .34), 0 0 40px -10px rgba(255, 45, 149, .7); }
+.ex.is-live .ex-room-vs { border-color: rgba(255, 45, 149, .42); background: rgba(255, 45, 149, .09); color: #ff9ecb; box-shadow: 0 0 26px -8px rgba(255, 45, 149, .85); }
+.ex.is-live .ex-room-ok { color: #ff9ecb; }
+.ex.is-live .ex-room-code { border-color: rgba(255, 45, 149, .4); background: linear-gradient(165deg, rgba(255, 45, 149, .08), rgba(6, 9, 14, .92)); }
+.ex.is-live .ex-room-code-value code { border-color: rgba(255, 45, 149, .42); color: #ff9ecb; }
+.ex.is-live .ex-room-copy { border-color: rgba(255, 45, 149, .42); background: rgba(255, 45, 149, .1); color: #ff9ecb; }
+.ex.is-live .ex-room-copy:hover { background: var(--ex-magenta); color: #fff; }
+.ex.is-live .ex-room-code-edit input:focus { border-color: rgba(255, 45, 149, .5); box-shadow: 0 0 0 3px rgba(255, 45, 149, .16); }
+.ex.is-live .ex-room-copy-track span.is-done { border-color: rgba(255, 45, 149, .4); color: #ff9ecb; }
+.ex.is-live .ex-room-live strong { color: #ff9ecb; }
+.ex.is-live .ex-step-pip.is-done small { color: #d79ab8; }
+.ex.is-live .ex-room-claim-summary > span { border-color: rgba(255, 45, 149, .22); }
+.ex.is-live .ex-btn.ghost:hover { border-color: var(--ex-magenta); color: #ff9ecb; box-shadow: 0 0 30px -6px rgba(255, 45, 149, .55); }
+.ex.is-live .ex-room-note,
+.ex.is-live .ex-room-hero-hint,
+.ex.is-live .ex-room-card .ex-room-note { color: #bface0; }
+
 /* Room code */
 .ex-room-code { display: grid; gap: 13px; padding: 22px; border: 1px solid var(--ex-line-hot); border-radius: 12px; background: linear-gradient(165deg, rgba(0, 255, 179, .06), rgba(6, 9, 14, .92)); }
 .ex-room-code-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
