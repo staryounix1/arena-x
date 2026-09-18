@@ -25,6 +25,11 @@
 .recharge-form-toggles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
 .recharge-form-toggles .check-field { display: flex; align-items: center; gap: 9px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(16, 21, 29, .55); font-size: 11.5px; }
 
+.quick-amount-editor { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 9px; margin: 10px 0 11px; }
+.quick-amount-chip { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 11px; background: rgba(16, 21, 29, .55); }
+.quick-amount-chip input { width: 100%; min-width: 0; padding: 7px 9px; border: 1px solid var(--line-strong); border-radius: 8px; background: rgba(5, 11, 15, .6); color: var(--text); font-family: var(--app-font-mono); font-size: 12px; }
+.quick-amount-chip-preview { color: var(--green); font-family: var(--app-font-mono); font-size: 11px; white-space: nowrap; }
+
 /* The control centre is a short button grid, so trim the admin page's trailing
    padding to avoid a large empty band under the last button. */
 .admin-content:has(.control-centre) { padding-bottom: 12px; }
