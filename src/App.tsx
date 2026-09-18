@@ -244,7 +244,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useStored<Notification[]>('arenax_notifications', []);
     const [supportTickets, setSupportTickets] = useStored<SupportTicket[]>('arenax_support_tickets', []);
     const [storeOrders, setStoreOrders] = useStored<StoreOrder[]>('arenax_store_orders', []);
-     const [settings, setSettings] = useStored<Record<string, string>>('arenax_settings', { commission_rate: '0.10', whatsapp_mode: 'link', whatsapp_direct_link: DEFAULT_ADMIN_WHATSAPP_LINK, whatsapp_meta_phone_number_id: '', online_count_mode: 'auto', online_count_manual: '25', recharge_amounts: '5,10,20,50,100,200,500', cih_rib: 'YOUR-CIH-RIB', cih_name: 'إدارة ARENA//X', cashplus_name: 'إدارة ARENA//X', cashplus_cin: 'YOUR-CASHPLUS-CIN', featured_matches: JSON.stringify(DEFAULT_FEATURED_MATCHES), store_accounts: JSON.stringify(DEFAULT_STORE_ACCOUNTS), store_recharge_packages: JSON.stringify(DEFAULT_RECHARGE_PACKAGES), store_live_slots: JSON.stringify(DEFAULT_LIVE_SLOTS), home_arena: JSON.stringify(DEFAULT_HOME_ARENA), payment_manual_enabled: 'true', payment_electronic_enabled: 'false' });
+     const [settings, setSettings] = useStored<Record<string, string>>('arenax_settings', { commission_rate: '0.10', whatsapp_mode: 'link', whatsapp_direct_link: DEFAULT_ADMIN_WHATSAPP_LINK, whatsapp_meta_phone_number_id: '', online_count_mode: 'auto', online_count_manual: '25', recharge_amounts: '5,10,20,50,100,200,500', cih_rib: 'YOUR-CIH-RIB', cih_name: 'إدارة ARENA//X', cashplus_name: 'إدارة ARENA//X', cashplus_cin: 'YOUR-CASHPLUS-CIN', featured_matches: JSON.stringify(DEFAULT_FEATURED_MATCHES), store_accounts: JSON.stringify(DEFAULT_STORE_ACCOUNTS), store_recharge_packages: JSON.stringify(DEFAULT_RECHARGE_PACKAGES), store_live_slots: JSON.stringify(DEFAULT_LIVE_SLOTS), home_arena: JSON.stringify(DEFAULT_HOME_ARENA), recharge_form: JSON.stringify(DEFAULT_RECHARGE_FORM), payment_manual_enabled: 'true', payment_electronic_enabled: 'false' });
     const [onlineCount, setOnlineCount] = useState(1);
     const [leaderboardPlayers, setLeaderboardPlayers] = useState<LeaderboardPlayer[]>([]);
 
@@ -902,9 +902,39 @@ const fallbackPaymentMethods = (kind: PaymentMethod['kind'], settings: Record<st
   { id: 'fallback-cashplus-withdrawal', kind, name: 'Cash Plus', details: 'سيتم التحويل إلى رقم الهاتف أو الحساب الذي تدخله في طلب السحب.', enabled: true, sort_order: 20, mode: 'MANUAL', icon_url: '' },
 ];
 function RechargeModal({ onClose }: { onClose: () => void }) {
-  const { user, recharge, settings, recharges, paymentMethods } = useArena(); const methods = paymentMethods.filter(item => item.kind === 'RECHARGE' && item.enabled).sort((a, b) => a.sort_order - b.sort_order); const options = methods.length ? methods : fallbackPaymentMethods('RECHARGE', settings); const [methodId, setMethodId] = useState(options[0]?.id || ''); const [amount, setAmount] = useState('50'); const [whatsapp, setWhatsapp] = useState(user?.whatsapp || ''); const [notes, setNotes] = useState(''); const [sent, setSent] = useState(false); const [error, setError] = useState(''); const selected = options.find(item => item.id === methodId) || options[0]; const quickAmounts = (settings.recharge_amounts || '5,10,20,50,100,200,500').split(',').map(item => Number(item.trim())).filter(item => item > 0); const submit = async (event: FormEvent) => { event.preventDefault(); const value = Number(amount); if (!value || value < 5 || !selected) return setError('اختر طريقة دفع ومبلغاً صحيحاً. الحد الأدنى للشحن هو 5 دولارات.'); if (await recharge(value, selected.name, whatsapp, notes)) setSent(true); else setError('تعذر حفظ طلب الشحن. حاول مرة أخرى.'); };
-  return <Modal onClose={onClose} wide><div className="modal-heading"><span className="panel-icon green"><Wallet className="h-5 w-5" /></span><span><h2>شحن الرصيد</h2><p>اختر طريقة الدفع التي أضافتها الإدارة.</p></span></div>{sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>تم إرسال الطلب</h3><p>ستراجع الإدارة طلب الشحن يدوياً.</p><button className="primary-button" onClick={onClose}>حسناً</button></div> : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<div className="form-grid"><Field label="المبلغ المطلوب ($)" type="number" value={amount} onChange={setAmount} test="input-recharge-amount" /><label className="form-field"><span>طريقة الدفع</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label></div><div className="payment-card"><p>بيانات التحويل</p><strong>{selected?.name}</strong><span>{selected?.details}</span></div><div className="quick-amounts"><span>اختر مبلغاً سريعاً</span><div>{quickAmounts.map(value => <button type="button" className={Number(amount) === value ? 'quick-amount active' : 'quick-amount'} onClick={() => setAmount(String(value))} key={value}>{money(value)}</button>)}</div></div><Field label="رقم واتساب للتأكيد" value={whatsapp} onChange={setWhatsapp} test="input-recharge-whatsapp" /><label className="form-field"><span>ملاحظات إضافية</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} /></label><button className="primary-button full">إرسال طلب الشحن <ArrowLeft className="h-4 w-4" /></button></form>}<div className="modal-history"><strong>آخر طلباتك</strong>{recharges.filter(item => item.userId === user?.id).slice(0, 3).map(item => <div key={item.id}><span>#{item.id} • {money(item.amount)}</span><StatusBadge status={item.status} /></div>)}</div></Modal>;
+  const { user, recharge, settings, recharges, paymentMethods } = useArena();
+  const cfg = rechargeFormFrom(settings);
+  const methods = paymentMethods.filter(item => item.kind === 'RECHARGE' && item.enabled).sort((a, b) => a.sort_order - b.sort_order);
+  const options = methods.length ? methods : fallbackPaymentMethods('RECHARGE', settings);
+  const [methodId, setMethodId] = useState(options[0]?.id || '');
+  const [amount, setAmount] = useState(cfg.defaultAmount || '50');
+  const [whatsapp, setWhatsapp] = useState(user?.whatsapp || '');
+  const [notes, setNotes] = useState('');
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => { setAmount(rechargeFormFrom(settings).defaultAmount || '50'); }, [settings.recharge_form]);
+  const selected = options.find(item => item.id === methodId) || options[0];
+  const quickAmounts = (settings.recharge_amounts || '5,10,20,50,100,200,500').split(',').map(item => Number(item.trim())).filter(item => item > 0);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const value = Number(amount);
+    if (!value || value < 5 || !selected) return setError('اختر طريقة دفع ومبلغاً صحيحاً. الحد الأدنى للشحن هو 5 دولارات.');
+    if (await recharge(value, selected.name, whatsapp, notes)) setSent(true);
+    else setError('تعذر حفظ طلب الشحن. حاول مرة أخرى.');
+  };
+  return <Modal onClose={onClose} wide><div className="modal-heading"><span className="panel-icon green"><Wallet className="h-5 w-5" /></span><span><h2>{cfg.title}</h2><p>{cfg.subtitle}</p></span></div>
+    {sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>{cfg.successTitle}</h3><p>{cfg.successText}</p><button className="primary-button" onClick={onClose}>حسناً</button></div>
+    : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}
+      <div className="form-grid"><Field label={cfg.amountLabel} type="number" value={amount} onChange={setAmount} test="input-recharge-amount" /><label className="form-field"><span>{cfg.methodLabel}</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label></div>
+      {cfg.showDetails && <div className="payment-card"><p>{cfg.detailsTitle}</p><strong>{selected?.name}</strong><span>{selected?.details}</span></div>}
+      {cfg.showQuickAmounts && <div className="quick-amounts"><span>{cfg.quickLabel}</span><div>{quickAmounts.map(value => <button type="button" className={Number(amount) === value ? 'quick-amount active' : 'quick-amount'} onClick={() => setAmount(String(value))} key={value}>{money(value)}</button>)}</div></div>}
+      {cfg.showWhatsapp && <Field label={cfg.whatsappLabel} value={whatsapp} onChange={setWhatsapp} test="input-recharge-whatsapp" />}
+      {cfg.showNotes && <label className="form-field"><span>{cfg.notesLabel}</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} /></label>}
+      <button className="primary-button full">{cfg.submitLabel} <ArrowLeft className="h-4 w-4" /></button>
+    </form>}
+    {cfg.showHistory && <div className="modal-history"><strong>{cfg.historyTitle}</strong>{recharges.filter(item => item.userId === user?.id).slice(0, 3).map(item => <div key={item.id}><span>#{item.id} • {money(item.amount)}</span><StatusBadge status={item.status} /></div>)}</div>}</Modal>;
 }
+
 function WithdrawModal({ onClose }: { onClose: () => void }) {
   const { user, requestWithdrawal, withdrawals, settings, paymentMethods } = useArena(); const methods = paymentMethods.filter(item => item.kind === 'WITHDRAWAL' && item.enabled).sort((a, b) => a.sort_order - b.sort_order); const options = methods.length ? methods : fallbackPaymentMethods('WITHDRAWAL', settings); const [methodId, setMethodId] = useState(options[0]?.id || ''); const [amount, setAmount] = useState(''); const [destination, setDestination] = useState(''); const [notes, setNotes] = useState(''); const [error, setError] = useState(''); const [sent, setSent] = useState(false); const selected = options.find(item => item.id === methodId) || options[0]; const submit = async (event: FormEvent) => { event.preventDefault(); const okay = await requestWithdrawal(Number(amount), selected?.name || '', destination, notes); if (!okay) return setError('تعذر تسجيل طلب السحب. تحقق من المبلغ والرصيد ثم حاول مرة أخرى.'); setSent(true); };
   return <Modal onClose={onClose}><div className="modal-heading"><span className="panel-icon amber"><ArrowUpFromLine className="h-5 w-5" /></span><span><h2>طلب سحب</h2><p>الرصيد المتاح: <b>{money(user?.balance || 0)}</b></p></span></div>{sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>تم تسجيل طلب السحب</h3><p>سيتم تحويل المبلغ بعد اعتماد الإدارة.</p><button className="primary-button" onClick={onClose}>حسناً</button></div> : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<Field label="المبلغ ($)" type="number" value={amount} onChange={setAmount} test="input-withdraw-amount" />{Number(amount) > 0 && <div className="fee-notice">عمولة السحب 5%: {money(Number(amount) * 0.05)} • الصافي المحوّل: {money(Number(amount) * 0.95)}</div>}<label className="form-field"><span>طريقة الاستلام</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><div className="payment-card"><p>معلومات الطريقة</p><span>{selected?.details}</span></div><Field label="رقم الحساب أو الهاتف" value={destination} onChange={setDestination} test="input-withdraw-destination" /><label className="form-field"><span>ملاحظات</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={2} /></label><button className="primary-button full">إرسال طلب السحب</button></form>}<div className="modal-history"><strong>آخر طلبات السحب</strong>{withdrawals.filter(item => item.userId === user?.id).slice(0, 3).map(item => <div key={item.id}><span>#{item.id} • {money(item.amount)} • صافي {money(item.payoutAmount)}</span><StatusBadge status={item.status} /></div>)}</div></Modal>;
@@ -1071,9 +1101,8 @@ const ADMIN_GROUPS: ControlNode[] = [
     { id: 'arena-matches', label: 'تعديل مباريات', icon: Swords },
     { id: 'arena-tournaments', label: 'تعديل بطولات', icon: Trophy },
   ] },
-  { id: 'money', label: 'إدارة الأموال', hint: 'الشحن والسحب وطرق الدفع', icon: Wallet, children: [
-    { id: 'money-recharge', label: 'شحن', hint: 'طلبات وباقات الشحن', icon: ArrowDownToLine },
-    { id: 'money-withdraw', label: 'سحب', hint: 'طلبات السحب', icon: ArrowUpFromLine },
+  { id: 'money', label: 'إدارة الأموال', hint: 'الشحن وطرق الدفع', icon: Wallet, children: [
+    { id: 'money-recharge-form', label: 'تعديل شحن الرصيد', hint: 'حقول ومبالغ نافذة الشحن', icon: ArrowDownToLine },
     { id: 'money-methods', label: 'طرق الدفع', hint: 'يدوي وإلكتروني', icon: CreditCard, children: [
       { id: 'money-methods-manual', label: 'طرق دفع يدوي', hint: 'CIH وCash Plus', icon: CreditCard },
       { id: 'money-methods-electronic', label: 'طرق دفع إلكتروني', hint: 'بطاقات ومحافظ رقمية', icon: CreditCard },
@@ -1129,9 +1158,7 @@ function AdminSettingsPage() {
 function ControlLeaf({ id }: { id: string }) {
   const { tournaments, saveTournament, deleteTournament } = useArena();
   switch (id) {
-    case 'money-recharge': return <AdminRechargesPage />;
-    case 'money-withdraw': return <AdminWithdrawalsPage />;
-    case 'money-methods-manual': return <PaymentMethodsAdmin mode="MANUAL" />;
+    case 'money-recharge-form': return <RechargeFormAdmin />;
     case 'money-methods-electronic': return <PaymentMethodsAdmin mode="ELECTRONIC" />;
     case 'home-arena': return <HomeArenaAdmin />;
     case 'home-featured': return <FeaturedMatchesSettings />;
@@ -1337,6 +1364,124 @@ function PaymentMethodsAdmin({ mode }: { mode: PaymentMode }) {
         </div>
       </div>
       <button className="primary-button" type="submit"><Save className="h-4 w-4" />{editingId ? 'حفظ التعديلات' : 'إضافة الطريقة'}</button>
+    </form>
+  </div>;
+}
+
+type RechargeFormConfig = {
+  title: string;
+  subtitle: string;
+  amountLabel: string;
+  methodLabel: string;
+  detailsTitle: string;
+  quickLabel: string;
+  whatsappLabel: string;
+  notesLabel: string;
+  submitLabel: string;
+  successTitle: string;
+  successText: string;
+  historyTitle: string;
+  defaultAmount: string;
+  showDetails: boolean;
+  showQuickAmounts: boolean;
+  showWhatsapp: boolean;
+  showNotes: boolean;
+  showHistory: boolean;
+};
+const DEFAULT_RECHARGE_FORM: RechargeFormConfig = {
+  title: 'شحن الرصيد',
+  subtitle: 'اختر طريقة الدفع التي أضافتها الإدارة.',
+  amountLabel: 'المبلغ المطلوب ($)',
+  methodLabel: 'طريقة الدفع',
+  detailsTitle: 'بيانات التحويل',
+  quickLabel: 'اختر مبلغاً سريعاً',
+  whatsappLabel: 'رقم واتساب للتأكيد',
+  notesLabel: 'ملاحظات إضافية',
+  submitLabel: 'إرسال طلب الشحن',
+  successTitle: 'تم إرسال الطلب',
+  successText: 'ستراجع الإدارة طلب الشحن يدوياً.',
+  historyTitle: 'آخر طلباتك',
+  defaultAmount: '50',
+  showDetails: true,
+  showQuickAmounts: true,
+  showWhatsapp: true,
+  showNotes: true,
+  showHistory: true,
+};
+const rechargeFormFrom = (settings: Record<string, string>): RechargeFormConfig => {
+  const raw = readSettingJson<Partial<RechargeFormConfig>>(settings, 'recharge_form', DEFAULT_RECHARGE_FORM);
+  if (!raw || typeof raw !== 'object') return DEFAULT_RECHARGE_FORM;
+  const text = (key: keyof RechargeFormConfig, fallback: string) => {
+    const value = raw[key];
+    return typeof value === 'string' && value.trim() ? value : fallback;
+  };
+  return {
+    title: text('title', DEFAULT_RECHARGE_FORM.title),
+    subtitle: text('subtitle', DEFAULT_RECHARGE_FORM.subtitle),
+    amountLabel: text('amountLabel', DEFAULT_RECHARGE_FORM.amountLabel),
+    methodLabel: text('methodLabel', DEFAULT_RECHARGE_FORM.methodLabel),
+    detailsTitle: text('detailsTitle', DEFAULT_RECHARGE_FORM.detailsTitle),
+    quickLabel: text('quickLabel', DEFAULT_RECHARGE_FORM.quickLabel),
+    whatsappLabel: text('whatsappLabel', DEFAULT_RECHARGE_FORM.whatsappLabel),
+    notesLabel: text('notesLabel', DEFAULT_RECHARGE_FORM.notesLabel),
+    submitLabel: text('submitLabel', DEFAULT_RECHARGE_FORM.submitLabel),
+    successTitle: text('successTitle', DEFAULT_RECHARGE_FORM.successTitle),
+    successText: text('successText', DEFAULT_RECHARGE_FORM.successText),
+    historyTitle: text('historyTitle', DEFAULT_RECHARGE_FORM.historyTitle),
+    defaultAmount: text('defaultAmount', DEFAULT_RECHARGE_FORM.defaultAmount),
+    showDetails: raw.showDetails !== false,
+    showQuickAmounts: raw.showQuickAmounts !== false,
+    showWhatsapp: raw.showWhatsapp !== false,
+    showNotes: raw.showNotes !== false,
+    showHistory: raw.showHistory !== false,
+  };
+};
+
+function RechargeFormAdmin() {
+  const { settings, saveSettings } = useArena();
+  const [form, setForm] = useState<RechargeFormConfig>(() => rechargeFormFrom(settings));
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setForm(rechargeFormFrom(settings)); }, [settings.recharge_form]);
+  const update = (key: keyof RechargeFormConfig, value: string | boolean) => setForm(old => ({ ...old, [key]: value }));
+  const reset = () => { setForm(DEFAULT_RECHARGE_FORM); setSaved(false); };
+  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings({ recharge_form: JSON.stringify(form) }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  const fields: { key: keyof RechargeFormConfig; label: string }[] = [
+    { key: 'title', label: 'عنوان النافذة' },
+    { key: 'subtitle', label: 'الوصف تحت العنوان' },
+    { key: 'amountLabel', label: 'تسمية حقل المبلغ' },
+    { key: 'methodLabel', label: 'تسمية حقل طريقة الدفع' },
+    { key: 'detailsTitle', label: 'عنوان بطاقة بيانات التحويل' },
+    { key: 'quickLabel', label: 'تسمية المبالغ السريعة' },
+    { key: 'whatsappLabel', label: 'تسمية حقل واتساب' },
+    { key: 'notesLabel', label: 'تسمية حقل الملاحظات' },
+    { key: 'submitLabel', label: 'نص زر الإرسال' },
+    { key: 'successTitle', label: 'عنوان رسالة النجاح' },
+    { key: 'successText', label: 'نص رسالة النجاح' },
+    { key: 'historyTitle', label: 'عنوان سجل آخر الطلبات' },
+  ];
+  const toggles: { key: keyof RechargeFormConfig; label: string }[] = [
+    { key: 'showDetails', label: 'إظهار بطاقة بيانات التحويل' },
+    { key: 'showQuickAmounts', label: 'إظهار المبالغ السريعة' },
+    { key: 'showWhatsapp', label: 'إظهار حقل واتساب' },
+    { key: 'showNotes', label: 'إظهار حقل الملاحظات' },
+    { key: 'showHistory', label: 'إظهار سجل آخر الطلبات' },
+  ];
+  return <div className="admin-page"><AdminSectionHeader icon={ArrowDownToLine} title="تعديل شحن الرصيد" subtitle="تحكم في حقول نافذة شحن الرصيد ونصوصها كما تظهر للمستخدم." />
+    <form className="settings-form panel-card" onSubmit={submit}>{saved && <Notice>تم حفظ نافذة الشحن.</Notice>}
+      <div className="settings-section"><h3>النصوص</h3>
+        <div className="form-grid">
+          {fields.map(field => <Field key={field.key} label={field.label} value={String(form[field.key])} onChange={value => update(field.key, value)} />)}
+        </div>
+      </div>
+      <div className="settings-section"><h3>المبلغ الافتراضي</h3>
+        <div className="form-grid"><Field label="المبلغ المبدئي داخل الحقل ($)" type="number" value={form.defaultAmount} onChange={value => update('defaultAmount', value)} /><small className="settings-hint">يُعرض هذا المبلغ عند فتح النافذة قبل أن يختار المستخدم.</small></div>
+      </div>
+      <div className="settings-section"><h3>العناصر الظاهرة</h3>
+        <div className="recharge-form-toggles">
+          {toggles.map(item => <label className="check-field" key={item.key}><input type="checkbox" checked={Boolean(form[item.key])} onChange={event => update(item.key, event.target.checked)} /> {item.label}</label>)}
+        </div>
+      </div>
+      <div className="request-actions"><button className="primary-button" type="submit"><Save className="h-4 w-4" />حفظ التعديلات</button><button type="button" className="secondary-button" onClick={reset}>استعادة الافتراضي</button></div>
     </form>
   </div>;
 }
