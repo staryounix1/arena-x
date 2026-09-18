@@ -22,6 +22,15 @@
 .control-leaf { display: grid; gap: 16px; }
 .control-back { justify-self: start; }
 
+/* The control centre is a short button grid, so trim the admin page's trailing
+   padding to avoid a large empty band under the last button. */
+.admin-content:has(.control-centre) { padding-bottom: 12px; }
+@media (max-width: 760px) {
+  .main-content:has(.admin-shell) { padding-bottom: 24px; }
+  .admin-content:has(.control-centre) { padding-bottom: 8px; }
+  .admin-shell:has(.control-centre) { padding-bottom: 0; }
+}
+
 /* Money / payment methods */
 .money-admin-page { display: grid; gap: 16px; }
 .money-mode-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 15px 17px; border: 1px solid rgba(66, 228, 165, .28); border-radius: 15px; background: rgba(66, 228, 165, .06); }
