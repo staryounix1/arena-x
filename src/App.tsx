@@ -1063,14 +1063,6 @@ type ControlIcon = typeof Wallet;
 type ControlNode = { id: string; label: string; hint?: string; icon: ControlIcon; children?: ControlNode[] };
 
 const ADMIN_GROUPS: ControlNode[] = [
-  { id: 'money', label: 'إدارة الأموال', hint: 'الشحن والسحب وطرق الدفع', icon: Wallet, children: [
-    { id: 'money-recharge', label: 'شحن', hint: 'طلبات وباقات الشحن', icon: ArrowDownToLine },
-    { id: 'money-withdraw', label: 'سحب', hint: 'طلبات السحب', icon: ArrowUpFromLine },
-    { id: 'money-methods', label: 'طرق الدفع', hint: 'يدوي وإلكتروني', icon: CreditCard, children: [
-      { id: 'money-methods-manual', label: 'طرق دفع يدوي', hint: 'CIH وCash Plus', icon: CreditCard },
-      { id: 'money-methods-electronic', label: 'طرق دفع إلكتروني', hint: 'بطاقات ومحافظ رقمية', icon: CreditCard },
-    ] },
-  ] },
   { id: 'home', label: 'تعديل الصفحة الرئيسية', hint: 'ساحة المباريات والمواجهات', icon: LayoutGrid, children: [
     { id: 'home-arena', label: 'ساحة المباريات الحية', hint: 'الأزرار والمحتوى', icon: Swords },
     { id: 'home-featured', label: 'مواجهات الصفحة الرئيسية', hint: 'إضافة وتعديل وإخفاء', icon: Sparkles },
@@ -1078,6 +1070,14 @@ const ADMIN_GROUPS: ControlNode[] = [
   { id: 'arena', label: 'تعديل ARENA', hint: 'المباريات والبطولات', icon: Swords, children: [
     { id: 'arena-matches', label: 'تعديل مباريات', icon: Swords },
     { id: 'arena-tournaments', label: 'تعديل بطولات', icon: Trophy },
+  ] },
+  { id: 'money', label: 'إدارة الأموال', hint: 'الشحن والسحب وطرق الدفع', icon: Wallet, children: [
+    { id: 'money-recharge', label: 'شحن', hint: 'طلبات وباقات الشحن', icon: ArrowDownToLine },
+    { id: 'money-withdraw', label: 'سحب', hint: 'طلبات السحب', icon: ArrowUpFromLine },
+    { id: 'money-methods', label: 'طرق الدفع', hint: 'يدوي وإلكتروني', icon: CreditCard, children: [
+      { id: 'money-methods-manual', label: 'طرق دفع يدوي', hint: 'CIH وCash Plus', icon: CreditCard },
+      { id: 'money-methods-electronic', label: 'طرق دفع إلكتروني', hint: 'بطاقات ومحافظ رقمية', icon: CreditCard },
+    ] },
   ] },
   { id: 'pricing', label: 'الإدارة والتسعير', hint: 'العمولة والحدود والأسعار', icon: Percent },
   { id: 'live', label: 'بث مباشر', hint: 'خانات البث الثلاث', icon: Video },
