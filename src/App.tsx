@@ -5,6 +5,7 @@ import {
   LogOut, Menu, MessageCircle, Monitor, MoreVertical, Percent, Phone, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays, FileText,
   Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet, Wifi,
   X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package, Flame, Share2, Timer, Hourglass,
+  Play, Volume2, VolumeX, Maximize2, PictureInPicture2, ThumbsUp, Heart, Signal, Gauge, Captions, ChevronRight, Sparkle, TrendingUp,
 } from 'lucide-react';
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
 import { supabase, supabaseEnabled } from './lib/supabase';
@@ -902,6 +903,123 @@ function countdownValue(startsAt: string, now: number) {
 function countdownText(startsAt: string, now: number) { const value = countdownValue(startsAt, now); return `${String(value.hours).padStart(2, '0')}:${String(value.minutes).padStart(2, '0')}:${String(value.seconds).padStart(2, '0')}`; }
 function scheduleDay(startsAt: string, now: number) { const dateValue = new Date(startsAt); const today = new Date(now); const tomorrow = new Date(now); tomorrow.setDate(today.getDate() + 1); if (dateValue.toDateString() === today.toDateString()) return 'اليوم'; if (dateValue.toDateString() === tomorrow.toDateString()) return 'غداً'; return dateValue.toLocaleDateString('ar-MA', { weekday: 'long' }); }
 function scheduleTime(startsAt: string) { return new Date(startsAt).toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit' }); }
+function LiveStatChip({ icon: Icon, label, value, tone = 'green' }: { icon: typeof Radio; label: string; value: string; tone?: 'green' | 'blue' | 'amber' | 'red' }) {
+  return <span className={`lv-stat lv-tone-${tone}`}><span className="lv-stat-ico"><Icon className="h-3.5 w-3.5" /></span><span className="lv-stat-copy"><small>{label}</small><strong>{value}</strong></span></span>;
+}
+
+function LivePlayerStage({ slot, mainState, onlineCount, schedule, now }: { slot: LiveSlot; mainState: LiveState; onlineCount: number; schedule: LiveScheduleItem[]; now: number }) {
+  const [muted, setMuted] = useState(true);
+  const [quality, setQuality] = useState('1080P');
+  const [reacted, setReacted] = useState<Record<string, number>>({});
+  const [frame, setFrame] = useState<HTMLDivElement | null>(null);
+  const isLive = mainState === 'LIVE';
+  const next = schedule[0];
+  const reactions = [
+    { key: 'fire', icon: Flame, label: 'حماس' },
+    { key: 'like', icon: ThumbsUp, label: 'إعجاب' },
+    { key: 'heart', icon: Heart, label: 'دعم' },
+  ];
+
+  const goFullscreen = () => { const node = frame || document.querySelector('.lv-frame'); if (node?.requestFullscreen) void node.requestFullscreen(); };
+
+  return <article className="lv-player-card ex-hud" ref={(node: HTMLDivElement | null) => setFrame(node)}>
+    <div className="lv-player-top">
+      <span className={`lv-live-badge ${isLive ? 'is-live' : mainState === 'UPCOMING' ? 'is-next' : 'is-replay'}`}>
+        <i />{isLive ? 'على الهواء' : mainState === 'UPCOMING' ? 'يبدأ قريباً' : 'إعادة'}
+      </span>
+      <span className="lv-viewers"><Users className="h-3.5 w-3.5" />{onlineCount || 1} مشاهد</span>
+      <span className="lv-top-spacer" />
+      <span className="lv-signal-bars" aria-hidden="true"><i /><i /><i /><i /></span>
+      <span className="lv-quality-pill">{quality}</span>
+    </div>
+
+    <div className="lv-frame">
+      <StoreMedia slot={slot} autoPlay={isLive} />
+      {!slot.url && <div className="lv-frame-overlay">
+        <span className="lv-frame-overlay-badge"><Radio className="h-4 w-4" />قناة ARENA//X</span>
+        <p>لا يوجد بث مفعّل في هذه اللحظة. سيظهر المشغل تلقائياً فور نشر رابط البث من لوحة التحكم.</p>
+      </div>}
+      <div className="lv-frame-controls">
+        <button type="button" className="lv-ctrl" onClick={() => setMuted(v => !v)} aria-label="كتم الصوت">{muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}</button>
+        <span className="lv-ctrl-sep" />
+        {(['1080P', '720P', 'AUTO'] as const).map(item => <button type="button" key={item} className={`lv-ctrl lv-ctrl-text ${quality === item ? 'is-on' : ''}`} onClick={() => setQuality(item)}>{item}</button>)}
+        <span className="lv-ctrl-sep" />
+        <button type="button" className="lv-ctrl" aria-label="ترجمة"><Captions className="h-4 w-4" /></button>
+        <button type="button" className="lv-ctrl" aria-label="صورة داخل صورة"><PictureInPicture2 className="h-4 w-4" /></button>
+        <button type="button" className="lv-ctrl" onClick={goFullscreen} aria-label="ملء الشاشة"><Maximize2 className="h-4 w-4" /></button>
+      </div>
+    </div>
+
+    <div className="lv-player-info">
+      <div className="lv-player-copy">
+        <span className="lv-eyebrow"><Signal className="h-3.5 w-3.5" />القناة الرئيسية / CH-01</span>
+        <h2>{slot.title}</h2>
+        <p>{slot.subtitle}</p>
+      </div>
+      <div className="lv-player-actions">
+        <button type="button" className="lv-btn ghost"><Share2 className="h-4 w-4" />مشاركة</button>
+        <button type="button" className="lv-btn primary"><Play className="h-4 w-4" />{isLive ? 'مشاهدة الآن' : 'تشغيل'}</button>
+      </div>
+    </div>
+
+    <div className="lv-reaction-bar">
+      <span className="lv-reaction-label"><Flame className="h-3.5 w-3.5" />تفاعل الجمهور</span>
+      <div className="lv-reactions">
+        {reactions.map(({ key, icon: Icon, label }) => <button type="button" key={key} className={`lv-reaction ${reacted[key] ? 'is-on' : ''}`} onClick={() => setReacted(old => ({ ...old, [key]: (old[key] || 0) + 1 }))}><Icon className="h-4 w-4" /><span>{label}</span>{reacted[key] ? <b>{reacted[key]}</b> : null}</button>)}
+      </div>
+      {next && <div className="lv-next-inline"><small>التالية</small><strong>{countdownText(next.startsAt, now)}</strong></div>}
+    </div>
+  </article>;
+}
+
+function LiveScheduleRail({ schedule, now }: { schedule: LiveScheduleItem[]; now: number }) {
+  const [tab, setTab] = useState<'ALL' | 'TODAY' | 'NEXT'>('ALL');
+  const rows = tab === 'ALL' ? schedule : tab === 'TODAY' ? schedule.filter(item => scheduleDay(item.startsAt, now) === 'اليوم') : [schedule[0]];
+  return <aside className="lv-schedule-card ex-hud">
+    <div className="lv-schedule-head">
+      <div><span className="lv-eyebrow"><CalendarDays className="h-3.5 w-3.5" />جدول البث</span><h2>المواجهات القادمة</h2></div>
+      <span className="lv-schedule-count">{schedule.length} مباريات</span>
+    </div>
+    <div className="lv-schedule-tabs" role="tablist" aria-label="تصفية الجدول">
+      {([['ALL', 'الكل'], ['TODAY', 'اليوم'], ['NEXT', 'التالية']] as const).map(([key, label]) => <button type="button" role="tab" aria-selected={tab === key} key={key} className={tab === key ? 'is-on' : ''} onClick={() => setTab(key)}>{label}</button>)}
+    </div>
+    <div className="lv-schedule-list">
+      {rows.length === 0 && <p className="lv-schedule-empty">لا توجد مواجهات في هذا القسم.</p>}
+      {rows.map(item => { const timer = countdownValue(item.startsAt, now); return <article className={`lv-schedule-item tone-${item.tone}`} key={item.id}>
+        <span className="lv-schedule-swatch" />
+        <div className="lv-schedule-body">
+          <span className="lv-schedule-league">{item.league}</span>
+          <h3>{item.title}</h3>
+          <span className="lv-schedule-meta"><Monitor className="h-3 w-3" />{item.platform}<i>·</i>{item.prize}</span>
+        </div>
+        <div className="lv-schedule-right">
+          <strong className="lv-schedule-time">{scheduleTime(item.startsAt)}</strong>
+          <small>{scheduleDay(item.startsAt, now)}</small>
+          <b className={`lv-schedule-timer ${timer.expired ? 'is-live' : ''}`}>{timer.expired ? 'LIVE' : countdownText(item.startsAt, now)}</b>
+        </div>
+      </article>; })}
+    </div>
+    <button type="button" className="lv-schedule-cta"><Bell className="h-4 w-4" />ذكّرني بكل المواجهات</button>
+  </aside>;
+}
+
+function LiveReplayCard({ slot, index }: { slot: LiveSlot; index: number }) {
+  return <article className="lv-replay-card">
+    <div className="lv-replay-media">
+      <StoreMedia slot={slot} />
+      <span className="lv-replay-badge"><Hourglass className="h-3 w-3" />إعادة</span>
+      <span className="lv-replay-code">RPL-0{index + 1}</span>
+      <div className="lv-replay-hover"><span className="lv-replay-play"><Play className="h-5 w-5" /></span><span>تشغيل الإعادة</span></div>
+    </div>
+    <div className="lv-replay-copy">
+      <span className="lv-replay-eyebrow">ARENA//X / مكتبة البث</span>
+      <h3>{slot.title}</h3>
+      <p>{slot.subtitle}</p>
+      <button type="button" className="lv-replay-link"><Play className="h-3.5 w-3.5" />مشاهدة الآن<ChevronLeft className="h-3.5 w-3.5" /></button>
+    </div>
+  </article>;
+}
+
 function StoreLivePage() {
   const { settings, tournaments, onlineCount } = useArena();
   const slots = liveSlotsFrom(settings);
@@ -919,22 +1037,83 @@ function StoreLivePage() {
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
   if (!liveSlot) return <div className="shell page-wrap store-page"><Link href="/store" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link><Empty icon={Video} text="لا توجد خانات بث بعد. أضف محتوى من لوحة الإدارة." /></div>;
-  return <div className="shell page-wrap store-page live-page">
+
+  const upcomingCount = schedule.filter(item => !countdownValue(item.startsAt, now).expired).length;
+  const featured = schedule[0];
+  const featuredTimer = featured ? countdownValue(featured.startsAt, now) : null;
+
+  return <div className="shell page-wrap store-page lv-page">
     <Link href="/store" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link>
-    <header className="live-page-header">
-       <div className="live-page-copy"><span className="eyebrow"><span className="live-dot" />شبكة بث ARENA//X</span><h1>المباراة<br /><em>تبدأ هنا.</em></h1><p>بث مباشر، مواعيد واضحة، وإعادات لأقوى لحظات الساحة. افتح المشاهدة، واختر موعد المواجهة التالية.</p><div className="live-header-meta"><span><strong>{mainState === 'LIVE' ? 'على الهواء' : mainState === 'UPCOMING' ? 'التالي' : 'إعادة'}</strong><small>{mainState === 'LIVE' ? 'البث الرئيسي متاح الآن' : mainState === 'UPCOMING' ? 'المواجهة القادمة خلال دقائق' : 'إعادة من مكتبة الساحة'}</small></span><span><strong>{onlineCount || 1}</strong><small>مشاهد في الساحة</small></span></div></div>
-       <div className="live-signal-art"><span className="live-signal-ring ring-one" /><span className="live-signal-ring ring-two" /><div className="live-signal-core"><Radio className="h-10 w-10" /><span>{mainState === 'LIVE' ? 'بث مباشر' : mainState === 'UPCOMING' ? 'جاهز' : 'إعادة'}</span><b>ARENA<br />FEED</b></div><span className="live-signal-label">إشارة / 01</span></div>
+
+    <header className="lv-hero ex-hud">
+      <span className="lv-hero-glow g-one" aria-hidden="true" />
+      <span className="lv-hero-glow g-two" aria-hidden="true" />
+      <span className="lv-hero-grid" aria-hidden="true" />
+      <div className="lv-hero-copy">
+        <span className={`lv-hero-eyebrow ${hasLive ? 'is-live' : ''}`}><i />{hasLive ? 'بث مباشر الآن' : 'شبكة بث ARENA//X'}</span>
+        <h1>المباراة<br /><em>تبدأ هنا.</em></h1>
+        <p>بث بجودة احترافية، مواعيد دقيقة، وإعادات لأقوى لحظات الساحة. اختر قناتك وابدأ المشاهدة فوراً.</p>
+        <div className="lv-hero-actions">
+          <a href="#lv-stage" className="lv-btn primary large"><Play className="h-4 w-4" />{hasLive ? 'دخول البث المباشر' : 'استعرض جدول البث'}</a>
+          <a href="#lv-library" className="lv-btn ghost large"><Hourglass className="h-4 w-4" />مكتبة الإعادات</a>
+        </div>
+        <div className="lv-hero-stats">
+          <LiveStatChip icon={Radio} label="الحالة" value={hasLive ? 'على الهواء' : 'قريباً'} tone={hasLive ? 'red' : 'amber'} />
+          <LiveStatChip icon={Users} label="مشاهدون" value={String(onlineCount || 1)} tone="blue" />
+          <LiveStatChip icon={CalendarDays} label="مواجهات قادمة" value={String(upcomingCount)} />
+          <LiveStatChip icon={Trophy} label="جوائز معلنة" value={featured?.prize || '—'} tone="amber" />
+        </div>
+      </div>
+      <div className="lv-hero-art" aria-hidden="true">
+        <span className="lv-ring r-one" /><span className="lv-ring r-two" /><span className="lv-ring r-three" />
+        <div className="lv-orb">
+          <span className="lv-orb-pulse" />
+          <Radio className="h-9 w-9" />
+          <strong>{hasLive ? 'ON AIR' : 'STANDBY'}</strong>
+          <small>ARENA FEED<br />CH-01</small>
+        </div>
+        {featured && <div className="lv-hero-floating">
+          <span><Clock3 className="h-3.5 w-3.5" />المواجهة القادمة</span>
+          <strong>{featuredTimer?.expired ? 'يبدأ الآن' : countdownText(featured.startsAt, now)}</strong>
+          <small>{featured.title}</small>
+        </div>}
+      </div>
     </header>
 
-    <section className="live-stage" aria-label="البث الرئيسي وجدول البث">
-        <article className="live-player-card"><div className="live-card-topline"><span className={mainState === 'LIVE' ? 'live-status' : 'upcoming-status'}><i />{mainState === 'LIVE' ? 'مباشر الآن' : mainState === 'UPCOMING' ? 'قادم قريباً' : 'إعادة متاحة'}</span><span className="live-viewers"><Users className="h-3.5 w-3.5" />{onlineCount || 1} مشاهد</span></div><div className="live-player-frame"><StoreMedia slot={liveSlot} autoPlay={mainState === 'LIVE'} /></div><div className="live-player-info"><div><span className="eyebrow muted">المنصة الرئيسية / القناة 01</span><h2>{liveSlot.title}</h2><p>{liveSlot.subtitle}</p></div><span className="live-quality"><Monitor className="h-3.5 w-3.5" />1080P</span></div></article>
-      <aside className="live-schedule-card"><div className="live-section-title"><div><span className="eyebrow muted">القادم / 03 مواجهات</span><h2>جدول الساحة</h2></div><CalendarDays className="h-5 w-5" /></div><div className="live-schedule-list">{schedule.map(item => { const timer = countdownValue(item.startsAt, now); return <article className="live-schedule-item" key={item.id}><span className={`schedule-swatch ${item.tone}`} /><div className="schedule-time"><strong>{scheduleTime(item.startsAt)}</strong><small>{scheduleDay(item.startsAt, now)}</small></div><div className="schedule-copy"><span>{item.league}</span><h3>{item.title}</h3><small>{item.platform} · جائزة {item.prize}</small></div><div className="schedule-countdown"><small>{timer.expired ? 'يبدأ الآن' : 'يبدأ خلال'}</small><b>{timer.expired ? 'LIVE' : countdownText(item.startsAt, now)}</b></div></article>; })}</div></aside>
+    <section className="lv-stage" id="lv-stage" aria-label="البث الرئيسي وجدول المواجهات">
+      <LivePlayerStage slot={liveSlot} mainState={mainState} onlineCount={onlineCount || 1} schedule={schedule} now={now} />
+      <LiveScheduleRail schedule={schedule} now={now} />
     </section>
 
-    <section className="live-program"><div className="live-program-heading"><div><span className="eyebrow muted">مكتبة البث / 02</span><h2>ماذا تريد أن تشاهد؟</h2><p>تنقّل بين البث الحالي، المواعيد القادمة، وأفضل الإعادات.</p></div><div className="live-filter-bar" role="tablist" aria-label="تصفية محتوى البث">{([['ALL', 'الكل'], ['LIVE', 'مباشر'], ['UPCOMING', 'قادم'], ['REPLAY', 'إعادات']] as const).map(([key, label]) => <button type="button" role="tab" aria-selected={view === key} className={view === key ? 'active' : ''} onClick={() => setView(key)} key={key}>{label}</button>)}</div></div>
-      {(view === 'ALL' || view === 'UPCOMING') && <div className="live-upcoming-strip"><div className="live-upcoming-intro"><span className="panel-icon amber"><Clock3 className="h-5 w-5" /></span><div><strong>لا تفوّت صافرة البداية</strong><small>اضبط تذكيرك للمواجهة القادمة وكن أول من يدخل البث.</small></div></div><div className="live-next-countdown"><small>الموعد الأقرب</small><strong>{countdownText(schedule[0].startsAt, now)}</strong><span>{schedule[0].title}</span></div></div>}
-      {(view === 'ALL' || view === 'LIVE') && <div className="live-library-banner"><span className="live-dot" /><div><strong>قناة ARENA//X الرئيسية</strong><small>{hasLive ? 'البث مفتوح الآن. اضغط على التشغيل لمشاهدة المواجهة.' : 'لا يوجد بث مباشر مفعّل حالياً. سيظهر هنا بمجرد نشر الرابط.'}</small></div><span className="live-library-code">قناة / 01</span></div>}
-      {(view === 'ALL' || view === 'REPLAY') && <div className="broadcast-grid live-replay-grid">{replaySlots.map((slot, index) => <article className="broadcast-card" key={slot.id}><div className="broadcast-media"><StoreMedia slot={slot} /><span className="broadcast-type">إعادة</span><span className="replay-duration">المباراة كاملة</span></div><div className="broadcast-copy"><small>إعادة 0{index + 1} / ARENA//X</small><h2>{slot.title}</h2><p>{slot.subtitle}</p><span className="broadcast-card-link">مشاهدة الإعادة <ArrowLeft className="h-3.5 w-3.5" /></span></div></article>)}</div>}
+    <section className="lv-library" id="lv-library">
+      <div className="lv-library-head">
+        <div><span className="lv-eyebrow"><LayoutGrid className="h-3.5 w-3.5" />مكتبة البث</span><h2>ماذا تريد أن تشاهد؟</h2><p>تنقّل بين البث الحالي، المواعيد القادمة، وأفضل إعادات الساحة.</p></div>
+        <div className="lv-filter" role="tablist" aria-label="تصفية محتوى البث">{([['ALL', 'الكل'], ['LIVE', 'مباشر'], ['UPCOMING', 'قادم'], ['REPLAY', 'إعادات']] as const).map(([key, label]) => <button type="button" role="tab" aria-selected={view === key} className={view === key ? 'is-on' : ''} onClick={() => setView(key)} key={key}>{label}</button>)}</div>
+      </div>
+
+      {(view === 'ALL' || view === 'LIVE') && <div className={`lv-now-bar ${hasLive ? 'is-live' : ''}`}>
+        <span className="lv-now-dot" />
+        <div><strong>{hasLive ? 'البث الرئيسي مفتوح الآن' : 'لا يوجد بث مباشر مفعّل حالياً'}</strong><small>{hasLive ? 'اضغط على المشغل لمتابعة المواجهة لحظة بلحظة.' : 'سيظهر البث هنا تلقائياً بمجرد نشر الرابط من لوحة التحكم.'}</small></div>
+        <span className="lv-now-code">CH-01</span>
+      </div>}
+
+      {(view === 'ALL' || view === 'UPCOMING') && <div className="lv-upcoming-bar">
+        <span className="lv-upcoming-ico"><Clock3 className="h-5 w-5" /></span>
+        <div className="lv-upcoming-copy"><strong>لا تفوّت صافرة البداية</strong><small>أقرب مواجهة على جدول الساحة — اضبط تذكيرك وكن أول من يدخل البث.</small></div>
+        <div className="lv-upcoming-timer"><small>يبدأ خلال</small><strong>{featuredTimer?.expired ? 'الآن' : countdownText(featured!.startsAt, now)}</strong><span>{featured?.title}</span></div>
+      </div>}
+
+      {(view === 'ALL' || view === 'REPLAY') && (replaySlots.length
+        ? <div className="lv-replay-grid">{replaySlots.map((slot, index) => <LiveReplayCard key={slot.id} slot={slot} index={index} />)}</div>
+        : <Empty icon={Hourglass} text="لا توجد إعادات منشورة بعد." />)}
+
+      {(view === 'ALL' || view === 'UPCOMING') && <div className="lv-teaser-rail">
+        {schedule.map(item => { const timer = countdownValue(item.startsAt, now); return <article className={`lv-teaser tone-${item.tone}`} key={item.id}>
+          <span className="lv-teaser-top"><span className="lv-teaser-league">{item.league}</span><span className="lv-teaser-chip">{timer.expired ? 'LIVE' : scheduleDay(item.startsAt, now)}</span></span>
+          <h3>{item.title}</h3>
+          <div className="lv-teaser-foot"><span className="lv-teaser-prize"><Trophy className="h-3.5 w-3.5" />{item.prize}</span><strong>{timer.expired ? 'يبدأ الآن' : countdownText(item.startsAt, now)}</strong></div>
+        </article>; })}
+      </div>}
     </section>
   </div>;
 }
