@@ -1254,11 +1254,11 @@ function MatchesPage() {
       </div>
 
       <div className="ex-arena-stats">
-        <span><Swords className="h-5 w-5" /><b>{openCount}</b><small>تحدٍّ مفتوح</small></span>
-        <span><Radio className="h-5 w-5" /><b className="is-live">{playingCount}</b><small>مباراة جارية</small></span>
-        <span><Trophy className="h-5 w-5" /><b>{money(totalOpenPrize)}</b><small>جوائز مفتوحة</small></span>
-        <span><Flame className="h-5 w-5" /><b>{biggestStake ? money(biggestStake) : '—'}</b><small>أعلى رهان</small></span>
-        <span><Users className="h-5 w-5" /><b className="is-live">{shownOnline}</b><small>متصل الآن</small></span>
+        <span><i className="ex-stat-ico"><Swords className="h-4 w-4" /></i><b>{openCount}</b><small>تحدٍّ مفتوح</small></span>
+        <span><i className="ex-stat-ico is-hot"><Radio className="h-4 w-4" /></i><b className="is-live">{playingCount}</b><small>مباراة جارية</small></span>
+        <span><i className="ex-stat-ico is-gold"><Trophy className="h-4 w-4" /></i><b>{money(totalOpenPrize)}</b><small>جوائز مفتوحة</small></span>
+        <span><i className="ex-stat-ico is-gold"><Flame className="h-4 w-4" /></i><b>{biggestStake ? money(biggestStake) : '—'}</b><small>أعلى رهان</small></span>
+        <span><i className="ex-stat-ico is-hot"><Users className="h-4 w-4" /></i><b className="is-live">{shownOnline}</b><small>متصل الآن</small></span>
       </div>
     </section>
 
