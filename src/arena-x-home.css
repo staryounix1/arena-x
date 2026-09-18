@@ -728,7 +728,7 @@
   --ex-gold: #ffcb45;
   display: grid; gap: 0;
 }
-.ex-cmodal-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 15px; align-items: start; padding: 24px 24px 20px; border-bottom: 1px solid var(--ex-line); }
+.ex-cmodal-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 15px; align-items: start; padding: 22px 24px 20px 74px; border-bottom: 1px solid var(--ex-line); }
 .ex-cmodal-ico {
   display: grid; place-items: center;
   width: 46px; height: 46px;
@@ -800,7 +800,7 @@
 .ex-cmodal-note { color: var(--ex-faint); font-size: 11px; text-align: center; }
 
 @media (max-width: 520px) {
-  .ex-cmodal-head { padding: 20px 18px 16px; }
+  .ex-cmodal-head { padding: 20px 18px 16px 70px; }
   .ex-cmodal-body { padding: 18px 18px 22px; gap: 16px; }
   .ex-stake-picks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ex-cmodal-actions { flex-direction: column-reverse; }
