@@ -87,7 +87,7 @@ a { color: inherit; text-decoration: none; }
 .notification-dropdown-empty small { font-size: 10px; }
 .bottom-nav { display: none; }
 .site-footer { margin-top: 80px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
-.footer-inner { display: flex; justify-content: space-between; gap: 20px; padding: 24px 0; }
+.footer-inner { display: flex; justify-content: center; gap: 20px; padding: 24px 0; text-align: center; }
 .footer-inner strong { color: var(--text); }
 
 .primary-button, .secondary-button, .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 10px 16px; border: 1px solid transparent; border-radius: 12px; font-size: 12px; font-weight: 800; transition: .2s ease; }
