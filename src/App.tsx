@@ -1019,10 +1019,86 @@ function WithdrawModal({ onClose }: { onClose: () => void }) {
 }
 
 function CreateMatchModal({ onClose }: { onClose: () => void }) {
-   const { user, createMatch } = useArena(); const [, setLocation] = useLocation(); const [title, setTitle] = useState(''); const [stake, setStake] = useState('20'); const [platform, setPlatform] = useState('الهاتف'); const [error, setError] = useState('');
-   if (!canPlay(user)) return <Modal onClose={onClose}><div className="verification-callout"><ShieldCheck className="h-10 w-10" /><h2>فعّل حسابك أولاً</h2><p>بدء المباريات متاح بعد تأكيد رقم واتساب وإرسال بطاقة التعريف ومراجعتها من الإدارة.</p><button className="primary-button full" onClick={() => { onClose(); setLocation('/verify?returnTo=/matches'); }}>الانتقال إلى تفعيل الحساب <ArrowLeft className="h-4 w-4" /></button></div></Modal>;
-     const submit = async (event: FormEvent) => { event.preventDefault(); if (!canPlay(user)) return setLocation('/verify?returnTo=/matches'); const value = Number(stake); const id = value >= 5 ? await createMatch(title, value, platform) : null; if (!id) return setError(value < 5 ? 'الحد الأدنى للمباراة هو 5 دولارات.' : 'تعذر إنشاء المباراة. تحقق من الرصيد ثم حاول مرة أخرى.'); onClose(); setLocation(`/matches/${id}`); };
-   return <Modal onClose={onClose}><div className="modal-heading"><span className="panel-icon green"><Swords className="h-5 w-5" /></span><span><h2>إنشاء مباراة جديدة</h2><p>حدّد قيمة الرهان والمنصة ثم انتظر منافساً.</p></span></div><form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<Field label="عنوان المباراة" value={title} onChange={setTitle} placeholder="مثال: تحدٍّ سريع" /><div className="form-grid"><Field label="قيمة الرهان ($)" type="number" value={stake} onChange={setStake} /><label className="form-field"><span>المنصة</span><select value={platform} onChange={event => setPlatform(event.target.value)}><option>الهاتف</option><option>PlayStation</option><option>Xbox / PC</option></select></label></div><div className="summary-row"><span>الجائزة المتوقعة</span><strong>{money(Number(stake || 0) * 1.8)}</strong></div><button className="primary-button full">نشر التحدي <ArrowLeft className="h-4 w-4" /></button></form></Modal>;
+  const { user, createMatch, settings } = useArena();
+  const [, setLocation] = useLocation();
+  const [title, setTitle] = useState('');
+  const [stake, setStake] = useState('20');
+  const [platform, setPlatform] = useState('الهاتف');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  if (!canPlay(user)) return <Modal onClose={onClose}><div className="verification-callout"><ShieldCheck className="h-10 w-10" /><h2>فعّل حسابك أولاً</h2><p>بدء المباريات متاح بعد تأكيد رقم واتساب وإرسال بطاقة التعريف ومراجعتها من الإدارة.</p><button className="primary-button full" onClick={() => { onClose(); setLocation('/verify?returnTo=/matches'); }}>الانتقال إلى تفعيل الحساب <ArrowLeft className="h-4 w-4" /></button></div></Modal>;
+
+  const presets = [5, 10, 20, 50, 100];
+  const stakeValue = Number(stake) || 0;
+  const prize = Math.round(stakeValue * 1.8 * 100) / 100;
+  const balance = Number(user?.balance || 0);
+  const short = stakeValue > balance;
+  const tooLow = stakeValue > 0 && stakeValue < 5;
+  const maxStake = Math.max(5, Math.floor(balance));
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (busy) return;
+    if (stakeValue < 5) return setError('الحد الأدنى للمباراة هو 5 دولارات.');
+    if (short) return setError('رصيدك غير كافٍ لهذا الرهان. اشحن محفظتك ثم حاول مرة أخرى.');
+    setBusy(true);
+    const id = await createMatch(title, stakeValue, platform);
+    if (!id) { setBusy(false); return setError('تعذر إنشاء المباراة. تحقق من الرصيد ثم حاول مرة أخرى.'); }
+    onClose();
+    setLocation(`/matches/${id}`);
+  };
+
+  return <Modal onClose={onClose}>
+    <div className="ex-cmodal ex-hud">
+      <div className="ex-cmodal-head">
+        <span className="ex-cmodal-ico"><Swords className="h-5 w-5" /></span>
+        <span><h2>إنشاء مباراة جديدة</h2><p>حدّد الرهان والمنصة، وستُحجز قيمة الرهان من محفظتك حتى اعتماد النتيجة.</p></span>
+      </div>
+
+      <form className="ex-cmodal-body" onSubmit={submit}>
+        {error && <Notice type="error">{error}</Notice>}
+
+        <label className="ex-field">
+          <span>عنوان المباراة</span>
+          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="مثال: تحدٍّ سريع" required />
+        </label>
+
+        <div className="ex-field">
+          <span>قيمة الرهان ($)</span>
+          <div className="ex-stake-picks">
+            {presets.map(amount => <button type="button" key={amount} className={`ex-pick ${stakeValue === amount ? 'is-on' : ''}`} onClick={() => setStake(String(amount))} disabled={amount > balance}>{money(amount)}</button>)}
+          </div>
+          <div className="ex-stake-input">
+            <input type="number" min="5" step="1" value={stake} onChange={event => setStake(event.target.value)} placeholder="20" />
+            <span>$</span>
+          </div>
+          {short && <small className="ex-field-warn"><AlertCircle className="h-3.5 w-3.5" />رصيدك {money(balance)} — الحد الأقصى المتاح {money(maxStake)}.</small>}
+        </div>
+
+        <div className="ex-field">
+          <span>المنصة</span>
+          <div className="ex-platform-picks">
+            {(['الهاتف', 'PlayStation', 'Xbox / PC'] as const).map(item => <button type="button" key={item} className={`ex-pick ${platform === item ? 'is-on' : ''}`} onClick={() => setPlatform(item)}><Gamepad2 className="h-3.5 w-3.5" />{item}</button>)}
+          </div>
+        </div>
+
+        <div className="ex-cmodal-summary">
+          <div><small>قيمة الرهان</small><strong>{money(stakeValue)}</strong></div>
+          <div><small>الجائزة المتوقعة</small><strong className="gold">{money(prize)}</strong></div>
+          <div><small>رصيدك بعد الخصم</small><strong>{money(Math.max(0, balance - stakeValue))}</strong></div>
+        </div>
+
+        <div className="ex-cmodal-escrow"><ShieldCheck className="h-4 w-4" />يُحجز الرهان تلقائياً داخل الضمان، ويُصرف للمنتصر بعد اعتماد النتيجة.</div>
+
+        <div className="ex-cmodal-actions">
+          <button type="button" className="ex-btn ghost" onClick={onClose}>إلغاء</button>
+          <button type="submit" className="ex-btn primary" disabled={busy || tooLow || short}>{busy ? 'جارٍ النشر…' : 'نشر التحدي'}<ArrowLeft className="h-4 w-4" /></button>
+        </div>
+        <small className="ex-cmodal-note">الحد الأدنى للرهان {money(5)} • الجائزة = الرهان × 1.8</small>
+      </form>
+    </div>
+  </Modal>;
 }
 
 function HomePage() {
