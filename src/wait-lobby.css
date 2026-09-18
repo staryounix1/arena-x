@@ -170,3 +170,101 @@
   .ex-wait-roomcode .ex-room-code-edit { flex-direction: column; }
   .ex-wait-roomcode .ex-room-code-edit .ex-btn { justify-content: center; }
 }
+
+/* ============================================================================
+   MATCH RESULT / WINNER — shown once the admin decides the winner
+   ========================================================================== */
+.ex-result {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: clamp(22px, 3vw, 32px);
+  margin-bottom: 18px;
+  text-align: center;
+  border: 1px solid rgba(0, 255, 179, .4);
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 50% -20%, rgba(0, 255, 179, .2), transparent 62%),
+    linear-gradient(170deg, rgba(14, 20, 32, .97), rgba(5, 8, 12, .97));
+  box-shadow: 0 34px 70px -50px rgba(0, 0, 0, .95);
+}
+.ex-result.is-self { border-color: rgba(255, 203, 69, .5); background:
+    radial-gradient(120% 140% at 50% -20%, rgba(255, 203, 69, .22), transparent 62%),
+    linear-gradient(170deg, rgba(20, 17, 10, .97), rgba(6, 5, 9, .97)); }
+.ex-result-glow {
+  position: absolute; top: 0; inset-inline: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ex-neon), transparent);
+  animation: ex-sheen 2.8s ease-in-out infinite;
+}
+.ex-result.is-self .ex-result-glow { background: linear-gradient(90deg, transparent, var(--ex-gold), transparent); }
+.ex-result-crown { font-size: 42px; line-height: 1; filter: drop-shadow(0 8px 22px rgba(255, 203, 69, .55)); animation: ex-pop .5s cubic-bezier(.2, 1.4, .5, 1) both; }
+@keyframes ex-pop { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.ex-result-kicker { color: var(--ex-faint); font-size: 10.5px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.ex-result-title { margin: 2px 0 0; font-size: clamp(22px, 3vw, 30px); font-weight: 900; letter-spacing: -.01em; }
+.ex-result.is-self .ex-result-title { color: var(--ex-gold); text-shadow: 0 0 32px rgba(255, 203, 69, .5); }
+.ex-result-sub { margin: 0; max-width: 46ch; color: var(--ex-dim); font-size: 13.5px; line-height: 1.85; }
+.ex-result-sub b { color: var(--ex-ink); }
+.ex-result-prize { color: var(--ex-gold); }
+.ex-result-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; margin-top: 6px; }
+.ex-result-meta > span { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--ex-line); border-radius: 10px; background: rgba(3, 6, 10, .5); }
+.ex-result-meta small { color: var(--ex-faint); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.ex-result-meta b { font-size: 15px; font-weight: 900; }
+
+/* Winning side of the hero gets a marker and a soft glow. */
+.ex-room-hero.is-decided .ex-room-hero-side.is-winner .avatar { box-shadow: 0 0 0 1px rgba(255, 203, 69, .6), 0 0 34px -6px rgba(255, 203, 69, .8); }
+.ex-room-hero-side.is-winner strong { color: var(--ex-gold); }
+.ex-room-crown { font-size: 20px; line-height: 1; }
+
+/* ============================================================================
+   MATCH RESULT / WINNER — shown once the admin decides the winner
+   ========================================================================== */
+.ex-result {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: clamp(22px, 3vw, 32px);
+  margin-bottom: 18px;
+  text-align: center;
+  border: 1px solid rgba(0, 255, 179, .4);
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 50% -20%, rgba(0, 255, 179, .2), transparent 62%),
+    linear-gradient(170deg, rgba(14, 20, 32, .97), rgba(5, 8, 12, .97));
+  box-shadow: 0 34px 70px -50px rgba(0, 0, 0, .95);
+}
+.ex-result.is-self {
+  border-color: rgba(255, 203, 69, .5);
+  background:
+    radial-gradient(120% 140% at 50% -20%, rgba(255, 203, 69, .22), transparent 62%),
+    linear-gradient(170deg, rgba(20, 17, 10, .97), rgba(6, 5, 9, .97));
+}
+.ex-result-glow {
+  position: absolute; top: 0; inset-inline: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ex-neon), transparent);
+  animation: ex-sheen 2.8s ease-in-out infinite;
+}
+.ex-result.is-self .ex-result-glow { background: linear-gradient(90deg, transparent, var(--ex-gold), transparent); }
+.ex-result-crown { font-size: 42px; line-height: 1; filter: drop-shadow(0 8px 22px rgba(255, 203, 69, .55)); animation: ex-pop .5s cubic-bezier(.2, 1.4, .5, 1) both; }
+@keyframes ex-pop { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.ex-result-kicker { color: var(--ex-faint); font-size: 10.5px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.ex-result-title { margin: 2px 0 0; font-size: clamp(22px, 3vw, 30px); font-weight: 900; letter-spacing: -.01em; }
+.ex-result.is-self .ex-result-title { color: var(--ex-gold); text-shadow: 0 0 32px rgba(255, 203, 69, .5); }
+.ex-result-sub { margin: 0; max-width: 46ch; color: var(--ex-dim); font-size: 13.5px; line-height: 1.85; }
+.ex-result-sub b { color: var(--ex-ink); }
+.ex-result-prize { color: var(--ex-gold); }
+.ex-result-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; margin-top: 6px; }
+.ex-result-meta > span { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--ex-line); border-radius: 10px; background: rgba(3, 6, 10, .5); }
+.ex-result-meta small { color: var(--ex-faint); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.ex-result-meta b { font-size: 15px; font-weight: 900; }
+
+.ex-room-hero.is-decided .ex-room-hero-side.is-winner .avatar { box-shadow: 0 0 0 1px rgba(255, 203, 69, .6), 0 0 34px -6px rgba(255, 203, 69, .8); }
+.ex-room-hero-side.is-winner strong { color: var(--ex-gold); }
+.ex-room-crown { font-size: 20px; line-height: 1; }
+
+@media (max-width: 760px) {
+  .ex-result-meta { grid-template-columns: 1fr; }
+}

@@ -1503,6 +1503,28 @@ function WaitingLobby({ match, secondsLeft, completedSteps, currentStep }: { mat
   </section>;
 }
 
+function WinnerBanner({ match, iWon, participant }: { match: Match; iWon: boolean; participant: boolean }) {
+  const paid = match.payout_status === 'APPROVED';
+  return <section className={`ex-result ${iWon ? 'is-self' : ''}`} aria-live="polite">
+    <span className="ex-result-glow" aria-hidden="true" />
+    <span className="ex-result-crown" aria-hidden="true">🏆</span>
+    <span className="ex-result-kicker">{paid ? 'تم اعتماد الجائزة' : 'اعتمدت الإدارة النتيجة'}</span>
+    <h2 className="ex-result-title">
+      {participant && iWon ? 'مبروك! أنت الفائز' : `مبروك ${match.winner_name || 'للفائز'}`}
+    </h2>
+    <p className="ex-result-sub">
+      {participant && iWon
+        ? <>فزت بالمباراة وحصلت على <b className="ex-result-prize">{money(match.prize)}</b>. {paid ? 'أُضيفت الجائزة إلى محفظتك.' : 'تُضاف الجائزة إلى محفظتك فور اعتماد الدفع.'}</>
+        : <>اعتمدت الإدارة فوز <b>{match.winner_name || 'اللاعب'}</b> بالمباراة وجائزتها <b className="ex-result-prize">{money(match.prize)}</b>.</>}
+    </p>
+    <div className="ex-result-meta">
+      <span><small>الجائزة</small><b className="gold-text">{money(match.prize)}</b></span>
+      <span><small>حالة الصرف</small><b className={paid ? 'green-text' : ''}>{payoutLabel(match.payout_status)}</b></span>
+      <span><small>الرهان</small><b>{money(match.stake)}</b></span>
+    </div>
+  </section>;
+}
+
 function RoomCodeCard({ match, code, setCode, busy, onSave, onCopy, copied, isHost, isGuest }: {
   match: Match; code: string; setCode: (value: string) => void; busy: boolean;
   onSave: () => void; onCopy: () => void; copied: boolean; isHost: boolean; isGuest: boolean;
@@ -1562,6 +1584,10 @@ function MatchDetailPageV2() {
   const claimText = (winnerId?: string) => winnerId ? winnerId === user?.id ? 'أنا ربحت' : 'الخصم ربح' : 'لم يرسل بعد';
   const canClaim = participant && bothJoined && !!match.room_code && ['PLAYING', 'COMPLETED', 'DISPUTE'].includes(match.status) && match.payout_status !== 'APPROVED';
   const canPlay = participant && match.status === 'PLAYING';
+  // Once a winner is decided the room stops being an active match: hide the
+  // room code and the chat, and show the result instead.
+  const decided = phase === 'WINNER';
+  const iWon = decided && !!user && match.winner_id === user.id;
 
   const phaseDeadline = phase === 'ROOM_SETUP'
     ? (match.room_setup_deadline_at ? new Date(match.room_setup_deadline_at).getTime() : (match.started_at ? new Date(new Date(match.started_at).getTime() + 60000).getTime() : now))
@@ -1621,6 +1647,7 @@ function MatchDetailPageV2() {
     ROOM_READY: { label: 'الغرفة جاهزة', hint: 'انسخ الرمز وادخل الغرفة. يبدأ العدّاد بعد تأكيد الطرفين للنسخ.' },
     PLAYING: { label: 'المباراة جارية', hint: 'الوقت يمضي. عند انتهاء المباراة صرّح بالنتيجة.' },
     REVIEW: { label: 'قيد المراجعة', hint: 'انتهى الوقت. الإدارة تراجع تصريحات الطرفين قبل صرف الجائزة.' },
+    WINNER: { label: 'مبروك للفائز', hint: 'اعتمدت الإدارة النتيجة. تُصرف الجائزة بعد اعتماد الدفع.' },
   };
   const pc = phaseCopy[phase] || phaseCopy.ROOM_SETUP;
 
@@ -1631,27 +1658,27 @@ function MatchDetailPageV2() {
         <div className="ex-room-topbar">
           <Link href="/matches" className="ex-room-back"><ArrowRight className="h-4 w-4" />كل المباريات</Link>
           <div className="ex-room-refs">
-            <span className={`ex-room-state s-${(match.status || '').toLowerCase()}`}>{roomStatusLabel(match.status)}</span>
+            <span className={`ex-room-state s-${(match.status || '').toLowerCase()}`}>{decided ? 'مبروك للفائز' : roomStatusLabel(match.status)}</span>
             <span className="ex-room-id">مرجع #{shortRef}</span>
             <span className="ex-room-id">{match.platform}</span>
           </div>
         </div>
-        <div className={`ex-room-hero ${phase === 'PLAYING' ? 'is-live' : ''}`}>
-          <div className="ex-room-hero-side">
+        <div className={`ex-room-hero ${phase === 'PLAYING' ? 'is-live' : ''} ${decided ? 'is-decided' : ''}`}>
+          <div className={`ex-room-hero-side ${decided && match.winner_id === match.creator_id ? 'is-winner' : ''}`}>
             <UserAvatar username={match.creator_name} />
             <div><strong>{match.creator_name}</strong><small>{match.creator_efootball_id || '—'}</small></div>
-            {isHost && <span className="ex-room-you">أنت</span>}
+            {decided && match.winner_id === match.creator_id ? <span className="ex-room-crown">🏆</span> : isHost && <span className="ex-room-you">أنت</span>}
           </div>
           <div className="ex-room-hero-mid">
             <span className="ex-room-phase"><i />{pc.label}</span>
             {canPlay && <b className="ex-room-clock">{formatCountdown(secondsLeft)}</b>}
             {isOpen && <b className="ex-room-clock ex-room-clock-open">{openSecondsLeft > 0 ? formatCountdown(openSecondsLeft) : '--:--'}</b>}
-            <span className="ex-room-prize"><small>الجائزة</small><strong>{money(match.prize)}</strong></span>
+            <span className="ex-room-prize"><small>{decided ? 'الجائزة' : 'الجائزة'}</small><strong>{money(match.prize)}</strong></span>
           </div>
-          <div className="ex-room-hero-side is-opponent">
+          <div className={`ex-room-hero-side is-opponent ${decided && match.winner_id === match.opponent_id ? 'is-winner' : ''}`}>
             <UserAvatar username={match.opponent_name || 'بانتظار منافس'} />
             <div><strong>{match.opponent_name || 'بانتظار منافس'}</strong><small>{match.opponent_efootball_id || (isOpen ? 'لم ينضم بعد' : '—')}</small></div>
-            {isGuest && <span className="ex-room-you">أنت</span>}
+            {decided && match.winner_id === match.opponent_id ? <span className="ex-room-crown">🏆</span> : isGuest && <span className="ex-room-you">أنت</span>}
           </div>
         </div>
         <p className="ex-room-hero-hint">{pc.hint}</p>
@@ -1660,6 +1687,8 @@ function MatchDetailPageV2() {
 
     <div className="ex-shell ex-room-body">
       {message && <Notice>{message}</Notice>}
+
+      {decided && <WinnerBanner match={match} iWon={iWon} participant={participant} />}
 
       {isOpen && isHost && <WaitingLobby match={match} secondsLeft={openSecondsLeft} completedSteps={steps.filter(([, done]) => done).length} currentStep={currentStep < 0 ? 5 : currentStep} />}
 
@@ -1683,9 +1712,9 @@ function MatchDetailPageV2() {
 
       <div className="ex-room-grid">
         <div className="ex-room-main">
-          {/* ROOM CODE — hidden while the host is in the OPEN waiting state,
-              where it is shown in its own prominent card instead. */}
-          {participant && !(isOpen && isHost) && <div className="ex-room-code ex-hud">
+          {/* ROOM CODE — hidden while the host is in the OPEN waiting state
+              (shown in its own card) and once a winner is decided. */}
+          {participant && !(isOpen && isHost) && !decided && <div className="ex-room-code ex-hud">
             <div className="ex-room-code-top">
               <span className="ex-room-card-title"><Gamepad2 className="h-4 w-4" />رمز غرفة eFootball</span>
               {match.room_code && <span className="ex-room-ok"><CheckCircle2 className="h-3.5 w-3.5" />جاهز</span>}
@@ -1705,7 +1734,7 @@ function MatchDetailPageV2() {
           </div>}
 
           {/* RESULT CLAIMS */}
-          {canClaim && user && <div className="ex-room-card ex-hud">
+          {canClaim && user && !decided && <div className="ex-room-card ex-hud">
             <span className="ex-room-card-title"><CheckCircle2 className="h-4 w-4" />تصريح نتيجة المباراة</span>
             <p className="ex-room-note">اختر النتيجة التي تؤكدها. يجب أن تتفق تصريحات الطرفين ليُعتمد صرف الجائزة تلقائياً، وإلا تراجعها الإدارة.</p>
             <div className="ex-room-claims">
@@ -1718,8 +1747,8 @@ function MatchDetailPageV2() {
             </div>
           </div>}
 
-          {/* CHAT */}
-          <div className="ex-room-chat ex-hud">
+          {/* CHAT — the match is over once a winner is decided, so the chat closes. */}
+          {!decided && <div className="ex-room-chat ex-hud">
             <div className="ex-room-chat-head"><span className="ex-room-card-title"><MessageCircle className="h-4 w-4" />محادثة المباراة</span><small>{match.messages.length} رسالة</small></div>
             <div className="ex-room-chat-body">
               {match.messages.length
@@ -1729,7 +1758,7 @@ function MatchDetailPageV2() {
             {participant
               ? <form className="ex-room-chat-form" onSubmit={submitChat}><input value={chat} onChange={event => setChat(event.target.value)} placeholder="اكتب رسالة للمنافس" aria-label="رسالة" /><button className="ex-btn primary" aria-label="إرسال"><ArrowLeft className="h-4 w-4" /></button></form>
               : <div className="ex-room-chat-locked">انضم إلى المباراة للمشاركة في المحادثة.</div>}
-          </div>
+          </div>}
         </div>
 
         {/* SIDEBAR */}
@@ -1744,7 +1773,7 @@ function MatchDetailPageV2() {
             <span className="ex-room-card-title"><Clock3 className="h-4 w-4" />تفاصيل المباراة</span>
             <div className="ex-room-kv"><small>رقم المرجع</small><b>#{shortRef}</b></div>
             <div className="ex-room-kv"><small>المنصة</small><b>{match.platform}</b></div>
-            <div className="ex-room-kv"><small>الحالة</small><b>{roomStatusLabel(match.status)}</b></div>
+            <div className="ex-room-kv"><small>الحالة</small><b>{decided ? 'حُسمت النتيجة' : roomStatusLabel(match.status)}</b></div>
             <div className="ex-room-kv"><small>تصريح المضيف</small><b>{claimText(match.creator_claim)}</b></div>
             <div className="ex-room-kv"><small>تصريح المنافس</small><b>{claimText(match.opponent_claim)}</b></div>
             {match.winner_name && <div className="ex-room-kv"><small>الفائز</small><b className="green-text">{match.winner_name}</b></div>}
@@ -2419,8 +2448,10 @@ function RateMatchPage() {
   return <div className="shell page-wrap"><PageTitle icon={CheckCircle2} title="تقييم المنافس" subtitle="ساعد اللاعبين على بناء سمعة موثوقة." /><form className="panel-card form-stack" onSubmit={submit}>{feedback && <Notice type={feedback.startsWith('تم') ? 'success' : 'error'}>{feedback}</Notice>}<label className="form-field"><span>التقييم</span><select value={score} onChange={event => setScore(event.target.value)}><option value="5">5 / ممتاز</option><option value="4">4 / جيد جداً</option><option value="3">3 / جيد</option><option value="2">2 / يحتاج تحسين</option><option value="1">1 / سيئ</option></select></label><label className="form-field"><span>تعليق اختياري</span><textarea rows={4} value={comment} onChange={event => setComment(event.target.value)} placeholder="اكتب تعليقاً محترماً عن التجربة" /></label><button className="primary-button">حفظ التقييم</button></form></div>;
 }
 
-type MatchPhase = 'ROOM_SETUP' | 'ROOM_READY' | 'PLAYING' | 'REVIEW';
+type MatchPhase = 'ROOM_SETUP' | 'ROOM_READY' | 'PLAYING' | 'REVIEW' | 'WINNER';
 const matchPhase = (match: Match, now: number): MatchPhase => {
+  // A decided winner turns the room into a result screen, not a review state.
+  if (match.winner_id && ['COMPLETED', 'DISPUTE'].includes(match.status)) return 'WINNER';
   if (['COMPLETED', 'DISPUTE'].includes(match.status)) return 'REVIEW';
   if (match.status !== 'PLAYING') return 'ROOM_SETUP';
   if (!match.room_code) {
