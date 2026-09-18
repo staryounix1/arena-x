@@ -128,7 +128,8 @@ function readSettingJson<T>(settings: Record<string, string>, key: string, fallb
   try { const parsed = JSON.parse(settings[key] || ''); return parsed as T; } catch { return fallback; }
 }
 type HomeArenaButton = { id: string; label: string; href: string; visible: boolean };
-type HomeArenaConfig = { eyebrow: string; title: string; titleAccent: string; subtitle: string; buttons: HomeArenaButton[] };
+type HomeArenaStats = { players: boolean; open: boolean; online: boolean };
+type HomeArenaConfig = { eyebrow: string; title: string; titleAccent: string; subtitle: string; buttons: HomeArenaButton[]; stats: HomeArenaStats; dummyEnabled: boolean; dummyCount: number };
 const DEFAULT_HOME_ARENA: HomeArenaConfig = {
   eyebrow: 'ساحة المباريات الحية',
   title: 'ابدأ مباراة.',
@@ -138,6 +139,9 @@ const DEFAULT_HOME_ARENA: HomeArenaConfig = {
     { id: 'create', label: 'إنشاء مباراة', href: 'create', visible: true },
     { id: 'browse', label: 'تصفح التحديات', href: '/matches', visible: true },
   ],
+  stats: { players: false, open: true, online: true },
+  dummyEnabled: false,
+  dummyCount: 0,
 };
 const homeArenaFrom = (settings: Record<string, string>): HomeArenaConfig => {
   const raw = readSettingJson<Partial<HomeArenaConfig> & { buttons?: Partial<HomeArenaButton>[] }>(settings, 'home_arena', DEFAULT_HOME_ARENA);
@@ -151,8 +155,36 @@ const homeArenaFrom = (settings: Record<string, string>): HomeArenaConfig => {
     titleAccent: String(raw.titleAccent ?? DEFAULT_HOME_ARENA.titleAccent),
     subtitle: String(raw.subtitle ?? DEFAULT_HOME_ARENA.subtitle),
     buttons,
+    stats: {
+      players: raw.stats?.players === true,
+      open: raw.stats?.open !== false,
+      online: raw.stats?.online !== false,
+    },
+    dummyEnabled: raw.dummyEnabled === true,
+    dummyCount: Math.max(0, Math.min(24, Number(raw.dummyCount ?? 0) || 0)),
   };
 };
+
+type DummyMatch = { id: string; creator_name: string; creator_efootball_id: string; platform: string; stake: number; prize: number };
+const DUMMY_NAMES = ['Yassine_DR', 'Mehdi_X', 'Oussama_99', 'Anas_Pro', 'Zakaria_FC', 'Hamza_10', 'Ilyas_King', 'Ayoub_GOAT', 'Reda_Sniper', 'Bilal_PRO', 'Amine_Elite', 'Soufiane_X', 'Karim_99', 'Nabil_FC', 'Youssef_7', 'Adam_Zone', 'Omar_GG', 'Walid_Pro', 'Tarik_10', 'Hicham_FC', 'Mouad_X', 'Salim_AR', 'Rachid_11', 'Khalid_PRO'];
+const DUMMY_PLATFORMS = ['PS5', 'PS4', 'Xbox', 'PC'];
+const DUMMY_STAKES = [20, 50, 75, 100, 150, 200, 300, 500];
+function buildDummyMatches(count: number, seed = 0): DummyMatch[] {
+  if (count <= 0) return [];
+  return Array.from({ length: count }, (_, index) => {
+    const pick = (index * 7 + seed * 13 + 3) % DUMMY_NAMES.length;
+    const platform = DUMMY_PLATFORMS[(index * 5 + seed * 3) % DUMMY_PLATFORMS.length];
+    const stake = DUMMY_STAKES[(index * 3 + seed * 7 + 1) % DUMMY_STAKES.length];
+    return {
+      id: `demo-${seed}-${index}`,
+      creator_name: DUMMY_NAMES[pick],
+      creator_efootball_id: String(100000000 + ((pick * 8765431 + index * 991) % 899999999)),
+      platform,
+      stake,
+      prize: Number((stake * 1.9).toFixed(2)),
+    };
+  });
+}
 
 type RechargeFormConfig = {
   title: string;
@@ -1686,6 +1718,13 @@ function HomePage() {
     || tournaments.find(item => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
   const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
   const hero = homeArenaFrom(settings);
+  const dummyMatches = hero.dummyEnabled ? buildDummyMatches(hero.dummyCount) : [];
+  const displayOpenCount = openMatchCount + dummyMatches.length;
+  const railItems = [
+    ...openMatches.map(match => ({ id: match.id, creator_name: match.creator_name, creator_efootball_id: match.creator_efootball_id, platform: match.platform, stake: Number(match.stake), prize: Number(match.prize), real: true as const, match })),
+    ...dummyMatches.map(item => ({ ...item, real: false as const })),
+  ].slice(0, 6);
+  const displayPrize = openMatches.reduce((sum, match) => sum + Number(match.prize || 0), 0) + dummyMatches.reduce((sum, item) => sum + item.prize, 0);
 
   const enterCreate = () => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation('/verify?returnTo=/matches'); setCreateOpen(true); };
   const join = async (match: Match) => {
@@ -1694,7 +1733,6 @@ function HomePage() {
     if (user.balance < match.stake) return setRechargeOpen(true);
     if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`);
   };
-  const totalPrize = openMatches.reduce((sum, match) => sum + Number(match.prize || 0), 0);
 
   const heroTitle = hero.title.replace(/[.\s]+$/, '');
   const heroAccent = hero.titleAccent.replace(/[.\s]+$/, '');
@@ -1702,6 +1740,20 @@ function HomePage() {
   const marqueeItems = ['جوائز فورية', 'ضمان مالي', 'تصنيف حي', 'بطولات رسمية', 'منصة مغربية', 'لعب نزيه'];
 
   return <div className="ex">
+    {user?.role === 'ADMIN' && <div className="ex-admin-bar">
+      <div className="ex-shell ex-admin-bar-inner">
+        <span className="ex-admin-label"><ShieldCheck className="h-4 w-4" />وضع الإدارة</span>
+        <div className="ex-admin-actions">
+          <Link href="/admin/home-arena" className="ex-admin-btn"><Pencil className="h-3.5 w-3.5" />تعديل الصفحة الرئيسية</Link>
+          <Link href="/admin/home-arena" className="ex-admin-btn ghost"><Plus className="h-3.5 w-3.5" />تحديات وهمية</Link>
+          <Link href="/admin" className="ex-admin-btn ghost"><LayoutDashboard className="h-3.5 w-3.5" />لوحة التحكم</Link>
+        </div>
+        <span className="ex-admin-counts">
+          {hero.dummyEnabled && hero.dummyCount > 0 && <span className="ex-admin-pill is-demo"><Sparkles className="h-3 w-3" />{hero.dummyCount} وهمي</span>}
+          <span className="ex-admin-pill"><Swords className="h-3 w-3" />{openMatchCount} حقيقي</span>
+        </span>
+      </div>
+    </div>}
     {/* ── HERO ─────────────────────────────────────────────────────────── */}
     <section className="ex-hero">
       <div className="ex-shell ex-hero-grid">
@@ -1715,9 +1767,9 @@ function HomePage() {
               : <Link key={item.id} href={item.href || '/matches'} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
           </div>
           <div className="ex-hero-stats">
-            <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>
-            <div><strong>{openMatchCount}</strong><small>تحدٍّ متاح</small></div>
-            <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>
+            {hero.stats.players && <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>}
+            {hero.stats.open && <div><strong>{displayOpenCount}</strong><small>تحدٍّ متاح</small></div>}
+            {hero.stats.online && <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>}
           </div>
         </div>
 
@@ -1764,19 +1816,27 @@ function HomePage() {
         <div>
           <span className="ex-chip"><span className="ex-dot" />ساحة مباشرة</span>
           <h2 className="ex-title">تحديات تنتظر منافساً</h2>
-          <p>{openMatchCount > 0 ? `${openMatchCount} تحدٍّ مفتوح بإجمالي جوائز ${money(totalPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
+          <p>{displayOpenCount > 0 ? `${displayOpenCount} تحدٍّ مفتوح بإجمالي جوائز ${money(displayPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
         </div>
         <Link href="/matches" className="ex-more">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
       </div>
-      {openMatches.length ? <div className="ex-rail">
-        {openMatches.slice(0, 5).map(match => <article className="ex-rail-row" key={match.id}>
+      {railItems.length ? <div className="ex-rail">
+        {railItems.map(item => item.real ? <article className="ex-rail-row" key={item.id}>
           <div className="ex-rail-player">
-            <UserAvatar username={match.creator_name} />
-            <span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id} • {match.platform}</small></span>
+            <UserAvatar username={item.creator_name} />
+            <span><strong>{item.creator_name}</strong><small>{item.creator_efootball_id} • {item.platform}</small></span>
           </div>
-          <div className="ex-metric"><small>الرهان</small><strong>{money(match.stake)}</strong></div>
-          <div className="ex-metric"><small>الجائزة</small><strong className="gold">{money(match.prize)}</strong></div>
-          <button className="ex-join" onClick={() => join(match)}>قبول <ArrowLeft className="h-4 w-4" /></button>
+          <div className="ex-metric"><small>الرهان</small><strong>{money(item.stake)}</strong></div>
+          <div className="ex-metric"><small>الجائزة</small><strong className="gold">{money(item.prize)}</strong></div>
+          <button className="ex-join" onClick={() => join(item.match)}>قبول <ArrowLeft className="h-4 w-4" /></button>
+        </article> : <article className="ex-rail-row is-demo" key={item.id}>
+          <div className="ex-rail-player">
+            <UserAvatar username={item.creator_name} />
+            <span><strong>{item.creator_name}</strong><small>{item.creator_efootball_id} • {item.platform}</small></span>
+          </div>
+          <div className="ex-metric"><small>الرهان</small><strong>{money(item.stake)}</strong></div>
+          <div className="ex-metric"><small>الجائزة</small><strong className="gold">{money(item.prize)}</strong></div>
+          <button className="ex-join is-demo" onClick={enterCreate}>قبول <ArrowLeft className="h-4 w-4" /></button>
         </article>)}
       </div> : <div className="ex-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="ex-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
     </section>
@@ -3083,6 +3143,21 @@ function HomeArenaAdmin() {
           </div>)}
           {config.buttons.length === 0 && <p className="empty-note">لا توجد أزرار. أضف زراً ليظهر تحت النص الرئيسي.</p>}
         </div>
+      </div>
+      <div className="settings-section"><div className="settings-section-heading"><div><h3>مؤشرات الساحة</h3><small>اختر الأرقام التي تظهر أسفل نصوص الصفحة الرئيسية.</small></div></div>
+        <div className="home-stats-toggles">
+          <label className="check-field"><input type="checkbox" checked={config.stats.players} onChange={event => update({ stats: { ...config.stats, players: event.target.checked } })} />إظهار «لاعب مسجل»</label>
+          <label className="check-field"><input type="checkbox" checked={config.stats.open} onChange={event => update({ stats: { ...config.stats, open: event.target.checked } })} />إظهار «تحدٍّ متاح»</label>
+          <label className="check-field"><input type="checkbox" checked={config.stats.online} onChange={event => update({ stats: { ...config.stats, online: event.target.checked } })} />إظهار «متصل الآن»</label>
+        </div>
+      </div>
+      <div className="settings-section"><div className="settings-section-heading"><div><h3>تحديات تجريبية (وهمية)</h3><small>أضف تحديات بعرض تجريبي ليمتلئ القسم قبل انطلاق الحقيقي. تظهر فقط ولا يمكن قبولها فعلياً.</small></div><span className={`whatsapp-status ${config.dummyEnabled ? 'is-on' : 'is-off'}`}>{config.dummyEnabled ? 'مفعّلة' : 'متوقفة'}</span></div>
+        <label className="check-field"><input type="checkbox" checked={config.dummyEnabled} onChange={event => update({ dummyEnabled: event.target.checked })} />تفعيل التحديات الوهمية في الصفحة الرئيسية</label>
+        <div className="form-grid">
+          <Field label="عدد التحديات الوهمية" type="number" value={String(config.dummyCount)} onChange={value => update({ dummyCount: Math.max(0, Math.min(24, Number(value) || 0)) })} />
+          <div className="settings-hint" style={{ alignSelf: 'end' }}>مثال: أدخل 5 → تظهر 5 تحديات بمتسابقين وهميين.</div>
+        </div>
+        {config.dummyEnabled && <div className="dummy-preview">{[...buildDummyMatches(config.dummyCount, 1)].slice(0, 3).map(item => <span key={item.id} className="dummy-chip"><b>{item.creator_name}</b><small>{item.platform} • {money(item.stake)}</small></span>)}{config.dummyCount === 0 && <small>أدخل رقماً أكبر من صفر.</small>}</div>}
       </div>
       <button className="primary-button" type="submit"><Save className="h-4 w-4" />حفظ ساحة المباريات</button>
     </form>
