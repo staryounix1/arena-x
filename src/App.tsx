@@ -2370,11 +2370,15 @@ function MatchDetailPageV2() {
         {steps.map(([label, done], index) => <div key={label} className={`ex-step-pip ${done ? 'is-done' : index === currentStep ? 'is-now' : ''}`}><i>{done ? <Check className="h-3.5 w-3.5" /> : index + 1}</i><small>{label}</small></div>)}
       </div>
 
+      {/* ── LIVE BANNER (once both sides copied the code) ──────────── */}
+      {phase === 'PLAYING' && !decided && <div className="ex-room-live ex-hud"><i className="ex-room-live-dot" /><span><strong>المباراة جارية الآن</strong><small>تأكّد الطرفان من نسخ الرمز وبدأ العدّاد. حُذف رمز الغرفة تلقائياً.</small></span><b className="ex-room-live-clock">{formatCountdown(secondsLeft)}</b></div>}
+
       <div className="ex-room-grid">
         <div className="ex-room-main">
           {/* ROOM CODE — hidden while the host is in the OPEN waiting state
-              (shown in its own card) and once a winner is decided. */}
-          {participant && !(isOpen && isHost) && !decided && <div className="ex-room-code ex-hud">
+              (shown in its own card), once the match is LIVE (both sides copied
+              the code), and once a winner is decided. */}
+          {participant && !(isOpen && isHost) && !decided && phase !== 'PLAYING' && <div className="ex-room-code ex-hud">
             <div className="ex-room-code-top">
               <span className="ex-room-card-title"><Gamepad2 className="h-4 w-4" />رمز غرفة eFootball</span>
               {match.room_code && <span className="ex-room-ok"><CheckCircle2 className="h-3.5 w-3.5" />جاهز</span>}
