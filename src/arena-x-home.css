@@ -1022,3 +1022,6 @@
 .ex-room-body { padding-block: 34px 72px; }
 @media (max-width: 760px) { .ex-room-body { padding-block: 24px 60px; } }
 .ex-room-body .ex-steps-bar { margin-top: 22px; padding-top: 20px; }
+.ex-steps-bar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1040px) { .ex-steps-bar { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .ex-steps-bar { display: flex; overflow-x: auto; } .ex-step-pip { flex: 0 0 auto; min-width: 96px; } }
