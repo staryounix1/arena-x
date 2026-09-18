@@ -376,8 +376,8 @@ const TEAM_OPTIONS = [
   { id: 'other', name: 'فريق آخر', short: 'FC', logo: '', color: '#42e4a5', accent: '#10211d' },
 ];
 type FeaturedMatch = { id: string; title: string; creatorName: string; creatorShort: string; creatorTeam: string; opponentName: string; opponentShort: string; opponentTeam: string; prize: number; note: string; active: boolean };
-const DEFAULT_FEATURED_MATCHES: FeaturedMatch[] = [{ id: 'featured-main', title: 'قمة الأبطال', creatorName: 'Yassine_7', creatorShort: 'YA', creatorTeam: 'real-madrid', opponentName: 'SaraBall', opponentShort: 'SA', opponentTeam: 'barcelona', prize: 180, note: 'ضمان مالي مفعّل', active: true }];
-const newFeaturedMatch = (): FeaturedMatch => ({ id: `featured-${Date.now()}`, title: 'مواجهة جديدة', creatorName: 'لاعب 1', creatorShort: 'P1', creatorTeam: 'real-madrid', opponentName: 'لاعب 2', opponentShort: 'P2', opponentTeam: 'barcelona', prize: 180, note: 'ضمان مالي مفعّل', active: false });
+const DEFAULT_FEATURED_MATCHES: FeaturedMatch[] = [{ id: 'featured-main', title: 'قمة الأبطال', creatorName: 'Yassine_7', creatorShort: 'YA', creatorTeam: 'real-madrid', opponentName: 'SaraBall', opponentShort: 'SA', opponentTeam: 'barcelona', prize: 180, note: 'مفعّل', active: true }];
+const newFeaturedMatch = (): FeaturedMatch => ({ id: `featured-${Date.now()}`, title: 'مواجهة جديدة', creatorName: 'لاعب 1', creatorShort: 'P1', creatorTeam: 'real-madrid', opponentName: 'لاعب 2', opponentShort: 'P2', opponentTeam: 'barcelona', prize: 180, note: 'مفعّل', active: false });
 const readFeaturedMatches = (settings: Record<string, string>): FeaturedMatch[] => {
   if (!settings.featured_matches) return DEFAULT_FEATURED_MATCHES;
   try {
@@ -1819,7 +1819,7 @@ function HomePage() {
             <div className="ex-stage-stats">
               <span className="ex-stage-stat"><small>الرهان</small><strong>{money(featured.prize / 1.9)}</strong></span>
               <span className="ex-stage-stat is-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
-              <span className="ex-stage-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />{featured.note || 'مفعّل'}</strong></span>
+              <span className="ex-stage-stat"><small>الضمان</small><strong className="ok"><ShieldCheck className="h-3.5 w-3.5" />{(featured.note || 'مفعّل').replace(/^ضمان\s*مالي\s*/, '') || 'مفعّل'}</strong></span>
             </div>
             <div className="ex-stage-foot"><span><Clock3 className="h-4 w-4" />مفتوحة الآن للمنافسة</span></div>
           </> : <div className="ex-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
