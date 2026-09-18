@@ -139,7 +139,7 @@ const DEFAULT_HOME_ARENA: HomeArenaConfig = {
     { id: 'create', label: 'إنشاء مباراة', href: 'create', visible: true },
     { id: 'browse', label: 'تصفح التحديات', href: '/matches', visible: true },
   ],
-  stats: { players: false, open: true, online: true },
+  stats: { players: false, open: false, online: false },
   dummyEnabled: false,
   dummyCount: 0,
 };
@@ -157,8 +157,8 @@ const homeArenaFrom = (settings: Record<string, string>): HomeArenaConfig => {
     buttons,
     stats: {
       players: raw.stats?.players === true,
-      open: raw.stats?.open !== false,
-      online: raw.stats?.online !== false,
+      open: raw.stats?.open === true,
+      online: raw.stats?.online === true,
     },
     dummyEnabled: raw.dummyEnabled === true,
     dummyCount: Math.max(0, Math.min(24, Number(raw.dummyCount ?? 0) || 0)),
@@ -1766,11 +1766,11 @@ function HomePage() {
               ? <button key={item.id} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
               : <Link key={item.id} href={item.href || '/matches'} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
           </div>
-          <div className="ex-hero-stats">
+          {(hero.stats.players || hero.stats.open || hero.stats.online) && <div className="ex-hero-stats">
             {hero.stats.players && <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>}
             {hero.stats.open && <div><strong>{displayOpenCount}</strong><small>تحدٍّ متاح</small></div>}
             {hero.stats.online && <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>}
-          </div>
+          </div>}
         </div>
 
         <aside className="ex-stage ex-hud">
