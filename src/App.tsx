@@ -1319,8 +1319,26 @@ function MatchesPage() {
   ];
 
   return <div className="ex">
-    <section className="ex-section ex-shell" style={{ paddingTop: 36, paddingBottom: 0 }}>
+    <section className="ex-section ex-shell ex-matches-section">
       {filtered.length === 0 && <div className="ex-lobby">
+        <section className="ex-quick ex-hud">
+          <div className="ex-quick-head">
+            <span className="ex-quick-eyebrow"><Flame className="h-4 w-4" />اقتراحات سريعة</span>
+            <h3>اختر رهانك وابدأ التحدي</h3>
+            <p>حدّد المبلغ الذي يناسبك، وسنفتح لك نافذة إنشاء المباراة عليه مباشرة — الجائزة تُحسب تلقائياً.</p>
+          </div>
+          <div className="ex-quick-grid">
+            {[5, 10, 20, 50].map((amount, index) => (
+              <button type="button" key={amount} className="ex-quick-card" onClick={() => enterCreate(amount)}>
+                <span className="ex-quick-tier">{['مبتدئ', 'سريع', 'متوسط', 'بطولي'][index]}</span>
+                <span className="ex-quick-stake">{money(amount)}</span>
+                <span className="ex-quick-prize">الجائزة <b>{money(Math.round(amount * 1.8 * 100) / 100)}</b></span>
+                <span className="ex-quick-go"><Plus className="h-4 w-4" />ابدأ</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <div className="ex-lobby-hero ex-hud">
           <span className="ex-lobby-icon"><Swords className="h-9 w-9" /></span>
           <h3>{status === 'OPEN' ? 'الساحة بانتظار أول تحدٍّ' : 'لا توجد نتائج مطابقة'}</h3>
@@ -1333,24 +1351,15 @@ function MatchesPage() {
           </div>
         </div>
 
-        <div className="ex-lobby-side">
-          <article className="ex-lobby-card ex-hud">
-            <span className="ex-lobby-card-title"><Flame className="h-4 w-4" />اقتراحات سريعة</span>
-            <p>ابدأ برهان يناسب ميزانيتك — اختر مبلغاً وسنفتح لك نافذة التحدي عليه مباشرة.</p>
-            <div className="ex-stake-grid">
-              {[5, 10, 20, 50].map(amount => <button type="button" key={amount} className="ex-stake" onClick={() => enterCreate(amount)}><small>رهان</small><b>{money(amount)}</b></button>)}
-            </div>
-          </article>
-          <article className="ex-lobby-card ex-hud">
-            <span className="ex-lobby-card-title"><ShieldCheck className="h-4 w-4" />كيف تعمل الساحة؟</span>
-            <ul className="ex-lobby-list">
-              <li>يُحجز الرهان تلقائياً حتى اعتماد النتيجة.</li>
-              <li>جوائز معلنة قبل الانضمام، بلا مفاجآت.</li>
-              <li>دعم بشري يحل أي نزاع بسرعة.</li>
-            </ul>
-            <Link href="/support" className="ex-more">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link>
-          </article>
-        </div>
+        <article className="ex-lobby-card ex-hud">
+          <span className="ex-lobby-card-title"><ShieldCheck className="h-4 w-4" />كيف تعمل الساحة؟</span>
+          <ul className="ex-lobby-list">
+            <li>يُحجز الرهان تلقائياً حتى اعتماد النتيجة.</li>
+            <li>جوائز معلنة قبل الانضمام، بلا مفاجآت.</li>
+            <li>دعم بشري يحل أي نزاع بسرعة.</li>
+          </ul>
+          <Link href="/support" className="ex-more">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link>
+        </article>
       </div>}
 
       {filtered.length > 0 && <div className="ex-toolbar">
@@ -1364,7 +1373,7 @@ function MatchesPage() {
       </div>}
       {filtered.length > 0 && <div className="ex-match-grid">{filtered.map(match => <MatchCard key={match.id} match={match} user={user} onJoin={() => join(match)} onOpen={() => setLocation(`/matches/${match.id}`)} />)}</div>}
 
-      <div className="ex-trust" style={{ marginTop: 56 }}><div className="ex-shell ex-trust-grid">
+      <div className="ex-trust ex-matches-trust"><div className="ex-shell ex-trust-grid">
         <span className="ex-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
         <span className="ex-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
         <span className="ex-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>

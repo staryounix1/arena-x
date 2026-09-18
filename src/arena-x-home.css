@@ -634,7 +634,8 @@
 .ex-mcard-spots { color: var(--ex-faint); font-size: 10.5px; font-weight: 800; }
 
 /* Lobby / rich empty state */
-.ex-lobby { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 20px; }
+.ex-lobby { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.ex-lobby-hero, .ex-lobby-card { width: 100%; }
 .ex-lobby-hero {
   display: grid; justify-items: center; align-content: center; gap: 16px;
   padding: clamp(38px, 5vw, 62px) 30px;
