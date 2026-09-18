@@ -1,9 +1,9 @@
-import { createContext, type FormEvent, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, Fragment, type FormEvent, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, AlertCircle, AlertTriangle, ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpFromLine,
-  BarChart3, Bell, Check, CheckCircle2, ChevronDown, Clock3, Copy, Gamepad2, ImagePlus, LayoutDashboard, LogIn,
-  LogOut, Menu, MessageCircle, Monitor, MoreVertical, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays,
-  Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet,
+  BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft, CreditCard, Eye, EyeOff, Clock3, Copy, Gamepad2, ImagePlus, LayoutDashboard, LayoutGrid, LogIn,
+  LogOut, Menu, MessageCircle, Monitor, MoreVertical, Percent, Phone, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays,
+  Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet, Wifi,
   X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package,
 } from 'lucide-react';
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
@@ -11,6 +11,7 @@ import { supabase, supabaseEnabled } from './lib/supabase';
 import './home-redesign.css';
 import './store.css';
 import './store-admin.css';
+import './control-centre.css';
 import { DEFAULT_ADMIN_WHATSAPP_LINK, notifyWhatsApp } from './lib/whatsapp';
 import { recordAnalyticsEvent } from './lib/analytics';
 import { startPaymentCheckout } from './lib/payments';
@@ -25,7 +26,7 @@ type TournamentDraft = { id?: string; title: string; prize_pool: number; entry_f
 type Tx = { id: string; type: string; description: string; amount: number; balance_after: number; created_at: string };
 type Recharge = { id: string; username: string; userId: string; amount: number; payment_method: string; whatsapp: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; payment_status?: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; escrow_status?: EscrowStatus; created_at: string; coins?: number; efootballId?: string };
 type Withdrawal = { id: string; username: string; userId: string; amount: number; fee: number; payoutAmount: number; method: string; destination: string; notes: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; created_at: string };
-type PaymentMethod = { id: string; kind: 'RECHARGE' | 'WITHDRAWAL'; name: string; details: string; enabled: boolean; sort_order: number };
+type PaymentMethod = { id: string; kind: 'RECHARGE' | 'WITHDRAWAL'; mode: 'MANUAL' | 'ELECTRONIC'; name: string; details: string; enabled: boolean; sort_order: number; icon_url: string };
 type IdentityVerification = { id: string; userId: string; username: string; whatsapp: string; whatsappCode: string; documentPath: string; documentName: string; documentMime: string; documentUrl?: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; adminNote: string; submittedAt: string; reviewedAt?: string };
 type PlatformEarning = { id: string; sourceType: 'MATCH' | 'TOURNAMENT' | 'WITHDRAWAL'; sourceId: string; userId?: string; matchId?: string; tournamentId?: string; withdrawalId?: string; grossAmount: number; commissionRate: number; commissionAmount: number; netAmount: number; description: string; metadata: Record<string, unknown>; created_at: string };
 type Dispute = { id: string; matchId: string; username: string; userId: string; subject: string; details: string; status: 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'REJECTED'; resolution?: string; evidence?: string[]; created_at: string };
@@ -111,6 +112,32 @@ const DEFAULT_LIVE_SLOTS: LiveSlot[] = [
 function readSettingJson<T>(settings: Record<string, string>, key: string, fallback: T): T {
   try { const parsed = JSON.parse(settings[key] || ''); return parsed as T; } catch { return fallback; }
 }
+type HomeArenaButton = { id: string; label: string; href: string; visible: boolean };
+type HomeArenaConfig = { eyebrow: string; title: string; titleAccent: string; subtitle: string; buttons: HomeArenaButton[] };
+const DEFAULT_HOME_ARENA: HomeArenaConfig = {
+  eyebrow: 'ساحة المباريات الحية',
+  title: 'ابدأ مباراة.',
+  titleAccent: 'أثبت مستواك.',
+  subtitle: 'تحديات حقيقية، جوائز واضحة، وضمان يحمي كل مواجهة.',
+  buttons: [
+    { id: 'create', label: 'إنشاء مباراة', href: 'create', visible: true },
+    { id: 'browse', label: 'تصفح التحديات', href: '/matches', visible: true },
+  ],
+};
+const homeArenaFrom = (settings: Record<string, string>): HomeArenaConfig => {
+  const raw = readSettingJson<Partial<HomeArenaConfig> & { buttons?: Partial<HomeArenaButton>[] }>(settings, 'home_arena', DEFAULT_HOME_ARENA);
+  if (!raw || typeof raw !== 'object') return DEFAULT_HOME_ARENA;
+  const buttons = Array.isArray(raw.buttons) && raw.buttons.length
+    ? raw.buttons.map((item, index) => ({ id: item?.id || `btn-${index}`, label: String(item?.label ?? ''), href: String(item?.href ?? '/matches'), visible: item?.visible !== false }))
+    : DEFAULT_HOME_ARENA.buttons;
+  return {
+    eyebrow: String(raw.eyebrow ?? DEFAULT_HOME_ARENA.eyebrow),
+    title: String(raw.title ?? DEFAULT_HOME_ARENA.title),
+    titleAccent: String(raw.titleAccent ?? DEFAULT_HOME_ARENA.titleAccent),
+    subtitle: String(raw.subtitle ?? DEFAULT_HOME_ARENA.subtitle),
+    buttons,
+  };
+};
 const storeAccountsFrom = (settings: Record<string, string>) => readSettingJson<StoreAccount[]>(settings, 'store_accounts', DEFAULT_STORE_ACCOUNTS);
 const rechargePackagesFrom = (settings: Record<string, string>) => {
   const raw = readSettingJson<Partial<RechargePackage>[]>(settings, 'store_recharge_packages', DEFAULT_RECHARGE_PACKAGES);
@@ -217,7 +244,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useStored<Notification[]>('arenax_notifications', []);
     const [supportTickets, setSupportTickets] = useStored<SupportTicket[]>('arenax_support_tickets', []);
     const [storeOrders, setStoreOrders] = useStored<StoreOrder[]>('arenax_store_orders', []);
-     const [settings, setSettings] = useStored<Record<string, string>>('arenax_settings', { commission_rate: '0.10', whatsapp_mode: 'link', whatsapp_direct_link: DEFAULT_ADMIN_WHATSAPP_LINK, whatsapp_meta_phone_number_id: '', online_count_mode: 'auto', online_count_manual: '25', recharge_amounts: '5,10,20,50,100,200,500', cih_rib: 'YOUR-CIH-RIB', cih_name: 'إدارة ARENA//X', cashplus_name: 'إدارة ARENA//X', cashplus_cin: 'YOUR-CASHPLUS-CIN', featured_matches: JSON.stringify(DEFAULT_FEATURED_MATCHES), store_accounts: JSON.stringify(DEFAULT_STORE_ACCOUNTS), store_recharge_packages: JSON.stringify(DEFAULT_RECHARGE_PACKAGES), store_live_slots: JSON.stringify(DEFAULT_LIVE_SLOTS) });
+     const [settings, setSettings] = useStored<Record<string, string>>('arenax_settings', { commission_rate: '0.10', whatsapp_mode: 'link', whatsapp_direct_link: DEFAULT_ADMIN_WHATSAPP_LINK, whatsapp_meta_phone_number_id: '', online_count_mode: 'auto', online_count_manual: '25', recharge_amounts: '5,10,20,50,100,200,500', cih_rib: 'YOUR-CIH-RIB', cih_name: 'إدارة ARENA//X', cashplus_name: 'إدارة ARENA//X', cashplus_cin: 'YOUR-CASHPLUS-CIN', featured_matches: JSON.stringify(DEFAULT_FEATURED_MATCHES), store_accounts: JSON.stringify(DEFAULT_STORE_ACCOUNTS), store_recharge_packages: JSON.stringify(DEFAULT_RECHARGE_PACKAGES), store_live_slots: JSON.stringify(DEFAULT_LIVE_SLOTS), home_arena: JSON.stringify(DEFAULT_HOME_ARENA), payment_manual_enabled: 'true', payment_electronic_enabled: 'false' });
     const [onlineCount, setOnlineCount] = useState(1);
     const [leaderboardPlayers, setLeaderboardPlayers] = useState<LeaderboardPlayer[]>([]);
 
@@ -283,7 +310,7 @@ function ArenaProvider({ children }: { children: ReactNode }) {
        if (rechargesResult.data) setRecharges(rechargesResult.data.map((row: Record<string, unknown>) => mapRechargeRow(row)));
        if (withdrawalsResult.data) setWithdrawals(withdrawalsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), username: String(row.username), userId: String(row.user_id), amount: Number(row.amount), fee: Number(row.withdrawal_fee || 0), payoutAmount: Number(row.payout_amount || row.amount || 0), method: String(row.method), destination: String(row.destination), notes: String(row.notes || ''), status: row.status as Withdrawal['status'], created_at: String(row.created_at) })));
         if (platformEarningsResult.data) setPlatformEarnings(platformEarningsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), sourceType: row.source_type as PlatformEarning['sourceType'], sourceId: String(row.source_id), userId: row.user_id ? String(row.user_id) : undefined, matchId: row.match_id ? String(row.match_id) : undefined, tournamentId: row.tournament_id ? String(row.tournament_id) : undefined, withdrawalId: row.withdrawal_id ? String(row.withdrawal_id) : undefined, grossAmount: Number(row.gross_amount || 0), commissionRate: Number(row.commission_rate || 0), commissionAmount: Number(row.commission_amount || 0), netAmount: Number(row.net_amount || 0), description: String(row.description), metadata: (row.metadata as Record<string, unknown>) || {}, created_at: String(row.created_at) })));
-        if (paymentMethodsResult.data) setPaymentMethods(paymentMethodsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), kind: row.kind as PaymentMethod['kind'], name: String(row.name), details: String(row.details || ''), enabled: Boolean(row.enabled), sort_order: Number(row.sort_order || 0) })));
+        if (paymentMethodsResult.data) setPaymentMethods(paymentMethodsResult.data.map((row: Record<string, unknown>) => ({ id: String(row.id), kind: row.kind as PaymentMethod['kind'], mode: (row.mode as PaymentMethod['mode']) || 'MANUAL', name: String(row.name), details: String(row.details || ''), enabled: Boolean(row.enabled), sort_order: Number(row.sort_order || 0), icon_url: String(row.icon_url || '') })));
         if (verificationsResult.data) {
           const rows = await Promise.all(verificationsResult.data.map(async (row: Record<string, unknown>) => { const path = String(row.document_path || ''); const signed = path ? await supabase.storage.from('identity-documents').createSignedUrl(path, 3600) : { data: null }; const profile = row.users as Record<string, unknown> | null; return { id: String(row.id), userId: String(row.user_id), username: String(profile?.username || 'لاعب'), whatsapp: String(row.whatsapp), whatsappCode: String(row.whatsapp_code), documentPath: path, documentName: String(row.document_name), documentMime: String(row.document_mime), documentUrl: signed.data?.signedUrl, status: row.status as IdentityVerification['status'], adminNote: String(row.admin_note || ''), submittedAt: String(row.submitted_at), reviewedAt: row.reviewed_at ? String(row.reviewed_at) : undefined }; }));
           setVerifications(rows);
@@ -442,8 +469,8 @@ function ArenaProvider({ children }: { children: ReactNode }) {
     };
     const savePaymentMethod = async (method: Partial<PaymentMethod> & Pick<PaymentMethod, 'kind' | 'name' | 'details'>) => {
       if (!user || user.role !== 'ADMIN' || !method.name.trim()) return false;
-      const next: PaymentMethod = { id: method.id || (supabaseEnabled ? crypto.randomUUID() : `method-${Date.now()}`), kind: method.kind, name: method.name.trim(), details: method.details.trim(), enabled: method.enabled ?? true, sort_order: method.sort_order ?? 0 };
-      if (supabaseEnabled && supabase) { const result = method.id ? await supabase.from('payment_methods').update({ kind: next.kind, name: next.name, details: next.details, enabled: next.enabled, sort_order: next.sort_order, updated_at: new Date().toISOString() }).eq('id', next.id) : await supabase.from('payment_methods').insert(next); if (result.error) return false; }
+      const next: PaymentMethod = { id: method.id || (supabaseEnabled ? crypto.randomUUID() : `method-${Date.now()}`), kind: method.kind, mode: method.mode || 'MANUAL', name: method.name.trim(), details: method.details.trim(), enabled: method.enabled ?? true, sort_order: method.sort_order ?? 0, icon_url: method.icon_url ?? '' };
+      if (supabaseEnabled && supabase) { const result = method.id ? await supabase.from('payment_methods').update({ kind: next.kind, mode: next.mode, name: next.name, details: next.details, enabled: next.enabled, sort_order: next.sort_order, icon_url: next.icon_url, updated_at: new Date().toISOString() }).eq('id', next.id) : await supabase.from('payment_methods').insert(next); if (result.error) return false; }
       setPaymentMethods(old => method.id ? old.map(item => item.id === next.id ? next : item) : [...old, next].sort((a, b) => a.sort_order - b.sort_order)); return true;
     };
     const deletePaymentMethod = async (id: string) => {
@@ -868,11 +895,11 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
  }
 
 const fallbackPaymentMethods = (kind: PaymentMethod['kind'], settings: Record<string, string>): PaymentMethod[] => kind === 'RECHARGE' ? [
-  { id: 'fallback-bank', kind, name: 'التحويل البنكي', details: `اسم المستفيد: ${settings.cih_name || 'إدارة ARENA//X'}\nRIB: ${settings.cih_rib || 'سيتم تحديده من الإدارة'}`, enabled: true, sort_order: 10 },
-  { id: 'fallback-cashplus', kind, name: 'Cash Plus', details: `اسم المستفيد: ${settings.cashplus_name || 'إدارة ARENA//X'}\nرقم التعريف: ${settings.cashplus_cin || 'سيتم تحديده من الإدارة'}`, enabled: true, sort_order: 20 },
+  { id: 'fallback-bank', kind, name: 'التحويل البنكي', details: `اسم المستفيد: ${settings.cih_name || 'إدارة ARENA//X'}\nRIB: ${settings.cih_rib || 'سيتم تحديده من الإدارة'}`, enabled: true, sort_order: 10, mode: 'MANUAL', icon_url: '' },
+  { id: 'fallback-cashplus', kind, name: 'Cash Plus', details: `اسم المستفيد: ${settings.cashplus_name || 'إدارة ARENA//X'}\nرقم التعريف: ${settings.cashplus_cin || 'سيتم تحديده من الإدارة'}`, enabled: true, sort_order: 20, mode: 'MANUAL', icon_url: '' },
 ] : [
-  { id: 'fallback-bank-withdrawal', kind, name: 'التحويل البنكي', details: 'سيتم التحويل إلى الحساب الذي تدخله في طلب السحب.', enabled: true, sort_order: 10 },
-  { id: 'fallback-cashplus-withdrawal', kind, name: 'Cash Plus', details: 'سيتم التحويل إلى رقم الهاتف أو الحساب الذي تدخله في طلب السحب.', enabled: true, sort_order: 20 },
+  { id: 'fallback-bank-withdrawal', kind, name: 'التحويل البنكي', details: 'سيتم التحويل إلى الحساب الذي تدخله في طلب السحب.', enabled: true, sort_order: 10, mode: 'MANUAL', icon_url: '' },
+  { id: 'fallback-cashplus-withdrawal', kind, name: 'Cash Plus', details: 'سيتم التحويل إلى رقم الهاتف أو الحساب الذي تدخله في طلب السحب.', enabled: true, sort_order: 20, mode: 'MANUAL', icon_url: '' },
 ];
 function RechargeModal({ onClose }: { onClose: () => void }) {
   const { user, recharge, settings, recharges, paymentMethods } = useArena(); const methods = paymentMethods.filter(item => item.kind === 'RECHARGE' && item.enabled).sort((a, b) => a.sort_order - b.sort_order); const options = methods.length ? methods : fallbackPaymentMethods('RECHARGE', settings); const [methodId, setMethodId] = useState(options[0]?.id || ''); const [amount, setAmount] = useState('50'); const [whatsapp, setWhatsapp] = useState(user?.whatsapp || ''); const [notes, setNotes] = useState(''); const [sent, setSent] = useState(false); const [error, setError] = useState(''); const selected = options.find(item => item.id === methodId) || options[0]; const quickAmounts = (settings.recharge_amounts || '5,10,20,50,100,200,500').split(',').map(item => Number(item.trim())).filter(item => item > 0); const submit = async (event: FormEvent) => { event.preventDefault(); const value = Number(amount); if (!value || value < 5 || !selected) return setError('اختر طريقة دفع ومبلغاً صحيحاً. الحد الأدنى للشحن هو 5 دولارات.'); if (await recharge(value, selected.name, whatsapp, notes)) setSent(true); else setError('تعذر حفظ طلب الشحن. حاول مرة أخرى.'); };
@@ -901,10 +928,11 @@ function HomePage() {
   const featured = readFeaturedMatches(settings).find(item => item.active) || readFeaturedMatches(settings)[0];
   const tournament = tournaments.find(item => item.featured && item.status !== 'COMPLETED' && item.status !== 'CANCELLED') || tournaments.find(item => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
   const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
+  const hero = homeArenaFrom(settings);
   const enterCreate = () => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation('/verify?returnTo=/matches'); setCreateOpen(true); };
   const join = async (match: Match) => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation(`/verify?returnTo=/matches/${match.id}`); if (user.balance < match.stake) return setRechargeOpen(true); if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`); };
   return <div className="home-redesigned">
-    <section className="home-hero-v2"><div className="shell home-hero-v2-grid"><div className="home-hero-v2-copy"><span className="eyebrow"><span className="pulse-dot" />ساحة المباريات الحية</span><h1>ابدأ مباراة.<br /><em>أثبت مستواك.</em></h1><p>تحديات حقيقية، جوائز واضحة، وضمان يحمي كل مواجهة.</p><div className="home-hero-actions"><button className="primary-button large" onClick={enterCreate}><Swords className="h-5 w-5" />إنشاء مباراة</button><Link href="/matches" className="secondary-button large"><Search className="h-5 w-5" />تصفح التحديات</Link></div><div className="home-live-stats"><span><strong>{players.length}</strong><small>لاعب مسجل</small></span><span><strong>{openMatchCount}</strong><small>مباراة متاحة</small></span><span><strong>{shownOnline}</strong><small>متصل الآن</small></span></div></div><aside className="home-featured-v2"><div className="home-featured-top"><span><span className="live-dot" />مواجهة مميزة</span><span className="home-live-label">مباشرة الآن</span></div>{featured ? <><span className="match-kicker">{featured.title}</span><div className="home-featured-players"><div><UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large /><strong>{featured.creatorName}</strong><small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small></div><b>VS</b><div><UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large /><strong>{featured.opponentName}</strong><small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small></div></div><div className="home-featured-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div><div className="home-featured-foot"><span><ShieldCheck className="h-4 w-4" />{featured.note}</span><span><Clock3 className="h-4 w-4" />مفتوحة الآن</span></div></> : <div className="home-empty-featured"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من الإعدادات.</small></div>}</aside></div></section>
+    <section className="home-hero-v2"><div className="shell home-hero-v2-grid"><div className="home-hero-v2-copy"><span className="eyebrow"><span className="pulse-dot" />{hero.eyebrow}</span><h1>{hero.title}<br /><em>{hero.titleAccent}</em></h1><p>{hero.subtitle}</p><div className="home-hero-actions">{hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create' ? <button key={item.id} className={index === 0 ? 'primary-button large' : 'secondary-button large'} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button> : <Link key={item.id} href={item.href || '/matches'} className={index === 0 ? 'primary-button large' : 'secondary-button large'}><Search className="h-5 w-5" />{item.label}</Link>)}</div><div className="home-live-stats"><span><strong>{players.length}</strong><small>لاعب مسجل</small></span><span><strong>{openMatchCount}</strong><small>مباراة متاحة</small></span><span><strong>{shownOnline}</strong><small>متصل الآن</small></span></div></div><aside className="home-featured-v2"><div className="home-featured-top"><span><span className="live-dot" />مواجهة مميزة</span><span className="home-live-label">مباشرة الآن</span></div>{featured ? <><span className="match-kicker">{featured.title}</span><div className="home-featured-players"><div><UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large /><strong>{featured.creatorName}</strong><small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small></div><b>VS</b><div><UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large /><strong>{featured.opponentName}</strong><small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small></div></div><div className="home-featured-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div><div className="home-featured-foot"><span><ShieldCheck className="h-4 w-4" />{featured.note}</span><span><Clock3 className="h-4 w-4" />مفتوحة الآن</span></div></> : <div className="home-empty-featured"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من الإعدادات.</small></div>}</aside></div></section>
     <section className="shell home-section-v2"><div className="home-section-heading-v2"><div><span className="eyebrow muted">تحديات حقيقية</span><h2>المباريات المفتوحة الآن</h2><p>اختر مباراة مناسبة وانضم خلال ثوانٍ.</p></div><Link href="/matches" className="text-link">عرض كل المباريات <ArrowLeft className="h-4 w-4" /></Link></div>{openMatches.length ? <div className="home-match-list">{openMatches.map(match => <article className="home-match-row" key={match.id}><div className="home-match-player"><UserAvatar username={match.creator_name} /><span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id} • {match.platform}</small></span></div><div className="home-match-stake"><small>الرهان</small><strong>{money(match.stake)}</strong></div><div className="home-match-prize"><small>الجائزة</small><strong>{money(match.prize)}</strong></div><button className="primary-button small" onClick={() => join(match)}>انضمام <ArrowLeft className="h-4 w-4" /></button></article>)}</div> : <div className="home-empty-state"><Swords className="h-7 w-7" /><div><strong>لا توجد مباريات مفتوحة حالياً</strong><p>أنشئ أول تحدٍّ وابدأ مواجهة جديدة.</p></div><button className="secondary-button small" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}</section>
     <section className="shell home-section-v2 home-split-grid"><div><div className="home-section-heading-v2 compact"><div><span className="eyebrow muted">نافس بذكاء</span><h2>كيف تبدأ؟</h2></div></div><div className="home-steps"><article><span>01</span><Swords className="h-5 w-5" /><h3>أنشئ تحديك</h3><p>حدد الرهان والمنصة وانتظر منافساً مناسباً.</p></article><article><span>02</span><ShieldCheck className="h-5 w-5" /><h3>العب بأمان</h3><p>يتم حجز الرهان حتى تأكيد النتيجة.</p></article><article><span>03</span><Trophy className="h-5 w-5" /><h3>اربح بعدل</h3><p>تراجع الإدارة النتيجة ثم تصرف الجائزة.</p></article></div></div><aside className="home-tournament-card">{tournament ? <><div className="home-card-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</div><h2>{tournament.title}</h2><p>{tournament.description || tournament.rules}</p><div className="home-tournament-meta"><span><small>الجائزة</small><strong>{money(tournament.prize_pool)}</strong></span><span><small>المشاركون</small><strong>{tournament.participant_count}/{tournament.max_players}</strong></span></div><Link href="/tournaments" className="secondary-button full">استكشف البطولة <ArrowLeft className="h-4 w-4" /></Link></> : <><div className="home-card-kicker"><Trophy className="h-4 w-4" />البطولات</div><h2>قريباً على الساحة</h2><p>ستظهر البطولات القادمة هنا عند فتح التسجيل.</p><Link href="/tournaments" className="secondary-button full">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link></>}</aside></section>
     <section className="shell home-section-v2"><div className="home-section-heading-v2"><div><span className="eyebrow muted">ترتيب حي</span><h2>أفضل اللاعبين</h2><p>النتائج الحقيقية من حسابات المنصة.</p></div><Link href="/leaderboard" className="text-link">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link></div><div className="home-leaderboard-preview">{rankedPlayers.map((player, index) => <div className="home-leader-row" key={player.id}><span className={`rank rank-${index + 1}`}>{index + 1}</span><UserAvatar username={player.username} teamId={player.favorite_team} /><span><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span><b>{player.win_rate}%</b></div>)}{!rankedPlayers.length && <div className="home-empty-state"><BarChart3 className="h-7 w-7" /><div><strong>لا توجد بيانات ترتيب بعد</strong><p>ستظهر النتائج بعد أولى المباريات المكتملة.</p></div></div>}</div></section>
@@ -1012,7 +1040,6 @@ const adminLinks = [
   { id: 'matches', label: 'مراقبة المباريات', icon: Monitor },
   { id: 'tournaments', label: 'إدارة البطولات', icon: Trophy },
   { id: 'store', label: 'المتجر', icon: ShoppingBag },
-  { id: 'live', label: 'حالات البث', icon: Video },
   { id: 'store-orders', label: 'طلبات المتجر', icon: Package },
   { id: 'activity', label: 'سجل النشاطات', icon: Activity },
   { id: 'recharges', label: 'طلبات الشحن', icon: ArrowDownToLine },
@@ -1031,6 +1058,94 @@ function AdminLayout({ section }: { section: string }) {
           const content = section === 'matches' ? <AdminMatchesPage /> : section === 'tournaments' ? <AdminTournamentsPageV2 tournaments={tournaments} saveTournament={saveTournament} deleteTournament={deleteTournament} /> : section === 'store' ? <StoreAdminPage /> : section === 'live' ? <LiveStateAdminPage /> : section === 'store-orders' ? <StoreOrdersAdminPage /> : section === 'activity' ? <AdminActivityPage /> : section === 'recharges' ? <AdminRechargesPage /> : section === 'withdrawals' ? <AdminWithdrawalsPage /> : section === 'disputes' ? <AdminDisputesPage /> : section === 'users' ? <AdminUsersDetailsPage /> : section === 'verifications' ? <AdminVerificationsPage /> : section === 'payment-methods' ? <AdminPaymentMethodsPage /> : section === 'earnings' ? <AdminEarningsPage /> : section === 'reports' ? <AdminReportsPage /> : section === 'support' ? <AdminSupportPage /> : section === 'settings' ? <><AdminSettingsPage /><FeaturedMatchesSettings /><OnlineCountSettings /></> : <AdminOverview />;
     return <div className="admin-shell shell"><aside className="admin-sidebar"><div className="admin-brand"><span className="brand-mark"><ShieldCheck className="h-5 w-5" /></span><span><strong>مركز الإدارة</strong><small>eFootball ARENA</small></span></div><nav>{adminLinks.map(item => { const Icon = item.icon; const count = item.id === 'matches' ? pendingMatchReview : item.id === 'recharges' ? pendingRecharge : item.id === 'withdrawals' ? pendingWithdrawal : item.id === 'verifications' ? pendingVerification : item.id === 'store-orders' ? pendingStoreOrder : item.id === 'disputes' ? openDisputes : item.id === 'support' ? openTickets : 0; return <Link href={`/admin/${item.id}`} key={item.id} className={section === item.id || (!section && item.id === 'overview') ? 'admin-link active' : 'admin-link'}><Icon className="h-4 w-4" />{item.label}{count > 0 && <span className="nav-count">{count}</span>}</Link>; })}</nav><Link href="/store" className="back-site"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link></aside><main className="admin-content"><div className="admin-topbar"><div><span className="admin-kicker">لوحة الإدارة / {current}</span><h1>{current}</h1></div><span className="admin-session"><span className="online-dot" />مسجّل باسم المدير</span></div>{content}</main></div>;
 }
+
+type ControlIcon = typeof Wallet;
+type ControlNode = { id: string; label: string; hint?: string; icon: ControlIcon; children?: ControlNode[] };
+
+const ADMIN_GROUPS: ControlNode[] = [
+  { id: 'money', label: 'إدارة الأموال', hint: 'الشحن والسحب وطرق الدفع', icon: Wallet, children: [
+    { id: 'money-recharge', label: 'شحن', hint: 'طلبات وباقات الشحن', icon: ArrowDownToLine },
+    { id: 'money-withdraw', label: 'سحب', hint: 'طلبات السحب', icon: ArrowUpFromLine },
+    { id: 'money-methods', label: 'طرق الدفع', hint: 'يدوي وإلكتروني', icon: CreditCard, children: [
+      { id: 'money-methods-manual', label: 'طرق دفع يدوي', hint: 'CIH وCash Plus', icon: CreditCard },
+      { id: 'money-methods-electronic', label: 'طرق دفع إلكتروني', hint: 'بطاقات ومحافظ رقمية', icon: CreditCard },
+    ] },
+  ] },
+  { id: 'home', label: 'تعديل الصفحة الرئيسية', hint: 'ساحة المباريات والمواجهات', icon: LayoutGrid, children: [
+    { id: 'home-arena', label: 'ساحة المباريات الحية', hint: 'الأزرار والمحتوى', icon: Swords },
+    { id: 'home-featured', label: 'مواجهات الصفحة الرئيسية', hint: 'إضافة وتعديل وإخفاء', icon: Sparkles },
+  ] },
+  { id: 'arena', label: 'تعديل ARENA', hint: 'المباريات والبطولات', icon: Swords, children: [
+    { id: 'arena-matches', label: 'تعديل مباريات', icon: Swords },
+    { id: 'arena-tournaments', label: 'تعديل بطولات', icon: Trophy },
+  ] },
+  { id: 'pricing', label: 'الإدارة والتسعير', hint: 'العمولة والحدود والأسعار', icon: Percent },
+  { id: 'live', label: 'بث مباشر', hint: 'خانات البث الثلاث', icon: Video },
+  { id: 'online', label: 'وضع عدّاد المتصلين', hint: 'تلقائي أو يدوي', icon: Wifi },
+  { id: 'whatsapp', label: 'وضع واتساب', hint: 'الرابط أو Meta API', icon: MessageCircle },
+  { id: 'whatsapp-number', label: 'رقم واتساب الإدارة', icon: Phone },
+];
+
+const controlTrail = (nodes: ControlNode[], id: string, trail: ControlNode[] = []): ControlNode[] | null => {
+  for (const node of nodes) { const next = [...trail, node]; if (node.id === id) return next; const hit = node.children ? controlTrail(node.children, id, next) : null; if (hit) return hit; }
+  return null;
+};
+
+function ControlButton({ node, onClick, tone }: { node: ControlNode; onClick: () => void; tone?: 'back' }) {
+  const Icon = node.icon;
+  return <button type="button" className={`control-button ${tone === 'back' ? 'is-back' : ''}`} onClick={onClick}>
+    <span className="control-button-icon"><Icon className="h-5 w-5" /></span>
+    <span className="control-button-copy"><strong>{node.label}</strong>{node.hint && <small>{node.hint}</small>}</span>
+    <ChevronLeft className="h-4 w-4 control-button-arrow" />
+  </button>;
+}
+
+function AdminSettingsPage() {
+  const [path, setPath] = useState<string[]>([]);
+  const trail = path.length ? controlTrail(ADMIN_GROUPS, path[path.length - 1]) : null;
+  const node = trail ? trail[trail.length - 1] : null;
+  const go = (id: string) => setPath(old => [...old, id]);
+  const reset = () => setPath([]);
+  const back = () => setPath(old => old.slice(0, -1));
+  const currentId = path[path.length - 1] || '';
+  const hasChildren = Boolean(node?.children);
+  const siblings = node?.children || ADMIN_GROUPS;
+
+  return <div className="admin-page control-centre">
+    <nav className="control-breadcrumb" aria-label="مسار الإعدادات">
+      <button type="button" onClick={reset} className={!path.length ? 'active' : ''}>إعدادات المنصة</button>
+      {trail?.map(item => <Fragment key={item.id}><ChevronLeft className="h-3.5 w-3.5" /><button type="button" className={item.id === node?.id ? 'active' : ''} onClick={() => setPath(old => { const at = old.indexOf(item.id); return at < 0 ? old : old.slice(0, at + 1); })}>{item.label}</button></Fragment>)}
+    </nav>
+    {hasChildren ? <div className="control-grid">
+      <ControlButton node={{ id: '__back', label: 'رجوع', hint: node?.label || 'إعدادات المنصة', icon: ArrowRight }} tone="back" onClick={path.length > 1 ? back : reset} />
+      {siblings.map(item => <ControlButton key={item.id} node={item} onClick={() => go(item.id)} />)}
+    </div> : <div className="control-leaf">
+      <button type="button" className="secondary-button small control-back" onClick={back}><ArrowRight className="h-4 w-4" />رجوع إلى {(trail && trail.length > 1 ? trail[trail.length - 2].label : 'إعدادات المنصة')}</button>
+      <ControlLeaf id={currentId} />
+    </div>}
+  </div>;
+}
+
+function ControlLeaf({ id }: { id: string }) {
+  const { tournaments, saveTournament, deleteTournament } = useArena();
+  switch (id) {
+    case 'money-recharge': return <AdminRechargesPage />;
+    case 'money-withdraw': return <AdminWithdrawalsPage />;
+    case 'money-methods-manual': return <PaymentMethodsAdmin mode="MANUAL" />;
+    case 'money-methods-electronic': return <PaymentMethodsAdmin mode="ELECTRONIC" />;
+    case 'home-arena': return <HomeArenaAdmin />;
+    case 'home-featured': return <FeaturedMatchesSettings />;
+    case 'arena-matches': return <AdminMatchesPage />;
+    case 'arena-tournaments': return <AdminTournamentsPageV2 tournaments={tournaments} saveTournament={saveTournament} deleteTournament={deleteTournament} />;
+    case 'pricing': return <PricingAdmin />;
+    case 'live': return <LiveStateAdminPage />;
+    case 'online': return <OnlineCountSettings />;
+    case 'whatsapp': return <WhatsAppSettingsPage />;
+    case 'whatsapp-number': return <AdminWhatsAppNumberAdmin />;
+    default: return <p className="empty-note">القسم غير متاح.</p>;
+  }
+}
+
 function AdminStat({ icon: Icon, label, value, detail, tone = 'green' }: { icon: typeof Wallet; label: string; value: string; detail?: string; tone?: string }) { return <div className="admin-stat"><span className={`stat-icon ${tone}`}><Icon className="h-5 w-5" /></span><span><small>{label}</small><strong>{value}</strong>{detail && <em>{detail}</em>}</span></div>; }
 function AdminOverview() {
   const { users, recharges, withdrawals, disputes, activities, matches, tournaments } = useArena(); const pendingRecharge = recharges.filter(item => item.status === 'PENDING').length; const pendingWithdrawal = withdrawals.filter(item => item.status === 'PENDING').length; const openDisputes = disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length;
@@ -1154,7 +1269,197 @@ function AdminUsersPage() {
   const { users, adjustUser } = useArena(); const [query, setQuery] = useState(''); const [amounts, setAmounts] = useState<Record<string, string>>({}); const rows = users.filter(item => !query || `${item.username} ${item.email} ${item.efootball_id}`.toLowerCase().includes(query.toLowerCase())); return <div className="admin-page"><AdminSectionHeader icon={Users} title="إدارة المستخدمين" subtitle="راجع الحسابات وعدّل الأرصدة مع تسجيل كل عملية في السجل." /><div className="admin-filters"><div className="search-box"><Search className="h-4 w-4" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث باسم اللاعب أو بريده" /></div></div>{rows.length ? <div className="user-list">{rows.map(item => <div className="user-admin-row" key={item.id}><span className="avatar">{initials(item.username)}</span><span className="user-admin-main"><strong>{item.username}</strong><small>{item.email} • {item.efootball_id}</small></span><span className="mono green-text">{money(item.balance)}</span><div className="balance-adjust"><input type="number" value={amounts[item.id] || ''} onChange={event => setAmounts(old => ({ ...old, [item.id]: event.target.value }))} placeholder="+ / -" /><button onClick={() => { adjustUser(item.id, Number(amounts[item.id])); setAmounts(old => ({ ...old, [item.id]: '' })); }}><Save className="h-4 w-4" /></button></div></div>)}</div> : <Empty icon={Users} text="لا يوجد مستخدمون مسجلون بعد." />}</div>;
 }
 
-  function AdminSettingsPage() {
+
+type PaymentMode = 'MANUAL' | 'ELECTRONIC';
+
+function PaymentMethodsAdmin({ mode }: { mode: PaymentMode }) {
+  const { paymentMethods, savePaymentMethod, deletePaymentMethod, settings, saveSettings } = useArena();
+  const methods = paymentMethods.filter(item => (item.mode || 'MANUAL') === mode).sort((a, b) => a.sort_order - b.sort_order);
+  const enabledKey = mode === 'MANUAL' ? 'payment_manual_enabled' : 'payment_electronic_enabled';
+  const fallback = mode === 'MANUAL' ? 'true' : 'false';
+  const modeEnabled = (settings[enabledKey] ?? fallback) === 'true';
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [kind, setKind] = useState<PaymentMethod['kind']>('RECHARGE');
+  const [name, setName] = useState('');
+  const [details, setDetails] = useState('');
+  const [icon, setIcon] = useState('');
+  const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const resetForm = () => { setEditingId(null); setKind('RECHARGE'); setName(''); setDetails(''); setIcon(''); setError(''); };
+  const edit = (item: PaymentMethod) => { setEditingId(item.id); setKind(item.kind); setName(item.name); setDetails(item.details); setIcon(item.icon_url); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const pickIcon = async (file?: File) => { if (!file) return; if (file.size > 400_000) return setError('حجم الأيقونة كبير. اختر صورة أصغر من 400KB.'); setIcon(await fileToDataUrl(file)); };
+  const submit = async (event: FormEvent) => {
+    event.preventDefault(); setError('');
+    if (!name.trim()) return setError('اكتب اسم الطريقة.');
+    const ok = await savePaymentMethod({ id: editingId || undefined, kind, mode, name, details, icon_url: icon, enabled: true, sort_order: editingId ? undefined : paymentMethods.filter(item => item.kind === kind).length * 10 + 10 });
+    if (!ok) return setError('تعذّر الحفظ. حاول مرة أخرى.');
+    resetForm(); setFeedback('تم حفظ الطريقة.');
+  };
+  const toggleMode = () => { saveSettings({ [enabledKey]: modeEnabled ? 'false' : 'true' }); setFeedback(modeEnabled ? 'تم تعطيل المجموعة.' : 'تم تفعيل المجموعة.'); };
+
+  return <div className="admin-page money-admin-page">
+    <AdminSectionHeader icon={CreditCard} title={mode === 'MANUAL' ? 'طرق دفع يدوي' : 'طرق دفع إلكتروني'} subtitle={mode === 'MANUAL' ? 'التحويل البنكي وCash Plus وغيرها من الطرق التي تؤكدها الإدارة يدوياً.' : 'بوابات الدفع الإلكتروني. هذه المجموعة معطّلة افتراضياً حتى تُفعّلها.'} />
+    <div className={`money-mode-bar ${modeEnabled ? '' : 'is-off'}`}>
+      <div><strong>{modeEnabled ? 'المجموعة مفعّلة' : 'المجموعة معطّلة'}</strong><small>عند التعطيل لن تظهر أي طريقة من هذه المجموعة للمستخدمين مهما كانت مفعّلة فرادى.</small></div>
+      <button type="button" className={modeEnabled ? 'danger-button small' : 'primary-button small'} onClick={toggleMode}>{modeEnabled ? <><EyeOff className="h-4 w-4" />تعطيل المجموعة</> : <><Eye className="h-4 w-4" />تفعيل المجموعة</>}</button>
+    </div>
+    {feedback && <Notice>{feedback}</Notice>}
+    <div className="money-method-list">
+      {methods.length === 0 && <p className="empty-note">لا توجد طرق بعد. أضف أول طريقة من النموذج أدناه.</p>}
+      {methods.map(item => <div key={item.id} className={`money-method-row ${item.enabled ? '' : 'is-hidden'}`}>
+        <span className="money-method-icon">{item.icon_url ? <img src={item.icon_url} alt="" /> : <CreditCard className="h-5 w-5" />}</span>
+        <span className="money-method-copy"><strong>{item.name}</strong><small>{item.kind === 'RECHARGE' ? 'شحن' : 'سحب'} · {item.enabled ? 'ظاهرة' : 'مخفية'}</small></span>
+        <button type="button" className="icon-button" title={item.enabled ? 'إخفاء' : 'إظهار'} onClick={() => { savePaymentMethod({ ...item, enabled: !item.enabled }); setFeedback(item.enabled ? 'تم إخفاء الطريقة.' : 'تم إظهار الطريقة.'); }}>{item.enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+        <button type="button" className="icon-button" title="تعديل" onClick={() => edit(item)}><Pencil className="h-4 w-4" /></button>
+        <button type="button" className="icon-button" title="حذف" onClick={async () => { if (!window.confirm(`حذف «${item.name}»؟`)) return; if (await deletePaymentMethod(item.id)) { if (editingId === item.id) resetForm(); setFeedback('تم الحذف.'); } }}><Trash2 className="h-4 w-4" /></button>
+      </div>)}
+    </div>
+    <form className="settings-form panel-card" onSubmit={submit}>
+      <div className="settings-section-heading"><div><h3>{editingId ? 'تعديل طريقة' : 'إضافة طريقة جديدة'}</h3><small>الأيقونة والتفاصيل تظهران للمستخدم في صفحة الشحن أو السحب.</small></div>{editingId && <button type="button" className="text-link" onClick={resetForm}>إلغاء التعديل</button>}</div>
+      {error && <Notice type="error">{error}</Notice>}
+      <div className="form-grid">
+        <label className="form-field"><span>نوع العملية</span><select value={kind} onChange={event => setKind(event.target.value as PaymentMethod['kind'])}><option value="RECHARGE">شحن</option><option value="WITHDRAWAL">سحب</option></select></label>
+        <Field label="اسم الطريقة" value={name} onChange={setName} placeholder="مثال: التحويل البنكي" />
+      </div>
+      <label className="form-field"><span>التفاصيل المعروضة للمستخدم</span><textarea rows={4} value={details} onChange={event => setDetails(event.target.value)} placeholder={'اسم المستفيد: ...\nRIB: ...'} /></label>
+      <div className="money-icon-field">
+        <span className="money-icon-preview">{icon ? <img src={icon} alt="" /> : <ImageIcon className="h-6 w-6" />}</span>
+        <div>
+          <strong>أيقونة الطريقة</strong>
+          <small>المقاس الموصى به: 64×64 بكسل، مربّعة، PNG أو SVG بخلفية شفافة، وأقل من 400KB.</small>
+          <div className="money-icon-actions">
+            <button type="button" className="secondary-button small" onClick={() => fileRef.current?.click()}><ImagePlus className="h-4 w-4" />اختيار صورة</button>
+            {icon && <button type="button" className="secondary-button small" onClick={() => setIcon('')}><Trash2 className="h-4 w-4" />إزالة</button>}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={event => pickIcon(event.target.files?.[0])} />
+        </div>
+      </div>
+      <button className="primary-button" type="submit"><Save className="h-4 w-4" />{editingId ? 'حفظ التعديلات' : 'إضافة الطريقة'}</button>
+    </form>
+  </div>;
+}
+
+function PricingAdmin() {
+  const { settings, saveSettings } = useArena();
+  const [form, setForm] = useState({
+    commission_rate: settings.commission_rate || '0.10',
+    recharge_amounts: settings.recharge_amounts || '5,10,20,50,100,200,500',
+    withdrawal_fee: settings.withdrawal_fee || '0',
+    min_recharge: settings.min_recharge || '5',
+    max_recharge: settings.max_recharge || '2000',
+    min_withdrawal: settings.min_withdrawal || '10',
+    max_withdrawal: settings.max_withdrawal || '2000',
+  });
+  const [saved, setSaved] = useState(false);
+  const update = (key: keyof typeof form, value: string) => setForm(old => ({ ...old, [key]: value }));
+  const commission = Number(form.commission_rate);
+  const commissionPct = Number.isFinite(commission) ? (commission <= 1 ? commission * 100 : commission) : 0;
+  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings(form); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  return <div className="admin-page"><AdminSectionHeader icon={Percent} title="الإدارة والتسعير" subtitle="حدّد عمولة المنصة وحدود الشحن والسحب ومبالغ الشحن السريعة." />
+    <form className="settings-form panel-card" onSubmit={submit}>{saved && <Notice>تم حفظ إعدادات التسعير.</Notice>}
+      <div className="settings-section"><h3>عمولة المنصة</h3><div className="form-grid"><Field label="نسبة العمولة" value={form.commission_rate} onChange={value => update('commission_rate', value)} placeholder="0.15" /><div className="pricing-preview"><small>تُطبَّق حالياً</small><strong>{commissionPct.toFixed(1)}%</strong><span>من قيمة كل مباراة وبطولة</span></div></div><small className="settings-hint">اكتب النسبة ككسر (0.15) أو كنسبة مئوية (15). القيمة الحالية تُعرض بجانب الحقل.</small></div>
+      <div className="settings-section"><h3>حدود الشحن</h3><div className="form-grid"><Field label="الحد الأدنى للشحن ($)" value={form.min_recharge} onChange={value => update('min_recharge', value)} type="number" /><Field label="الحد الأقصى للشحن ($)" value={form.max_recharge} onChange={value => update('max_recharge', value)} type="number" /></div></div>
+      <div className="settings-section"><h3>حدود السحب</h3><div className="form-grid"><Field label="الحد الأدنى للسحب ($)" value={form.min_withdrawal} onChange={value => update('min_withdrawal', value)} type="number" /><Field label="الحد الأقصى للسحب ($)" value={form.max_withdrawal} onChange={value => update('max_withdrawal', value)} type="number" /><Field label="رسوم السحب ($)" value={form.withdrawal_fee} onChange={value => update('withdrawal_fee', value)} type="number" /></div></div>
+      <div className="settings-section"><h3>مبالغ الشحن السريعة</h3><div className="form-grid"><Field label="المبالغ الظاهرة للمستخدم" value={form.recharge_amounts} onChange={value => update('recharge_amounts', value)} placeholder="5,10,20,50,100,200,500" /></div><small className="settings-hint">اكتب المبالغ مفصولة بفواصل. تظهر كأزرار سريعة في نافذة الشحن.</small></div>
+      <button className="primary-button" type="submit"><Save className="h-4 w-4" />حفظ إعدادات التسعير</button>
+    </form>
+  </div>;
+}
+
+function WhatsAppSettingsPage() {
+  const { settings, saveSettings, saveWhatsAppMeta } = useArena();
+  const [form, setForm] = useState(settings);
+  const [metaToken, setMetaToken] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const whatsappMode = form.whatsapp_mode || 'link';
+  const update = (key: string, value: string) => setForm(old => ({ ...old, [key]: value }));
+  const toggleMode = (mode: 'link' | 'meta') => update('whatsapp_mode', whatsappMode === mode ? 'off' : mode);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault(); setError('');
+    const patch = { ...form, whatsapp_mode: whatsappMode, whatsapp_direct_link: form.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK };
+    if (whatsappMode === 'meta' && metaToken.trim()) {
+      const okay = await saveWhatsAppMeta(metaToken, form.whatsapp_meta_phone_number_id || '');
+      if (!okay) { setError('تعذر حفظ إعدادات Meta. تأكد من تسجيل دخول الإدارة ورقم Phone Number ID.'); return; }
+      setMetaToken('');
+    }
+    saveSettings(patch); setSaved(true); setTimeout(() => setSaved(false), 1800);
+  };
+  return <div className="admin-page"><AdminSectionHeader icon={MessageCircle} title="وضع واتساب" subtitle="اختر طريقة إشعار واحدة فقط لتجنب تكرار الرسائل." />
+    <form className="settings-form panel-card" onSubmit={submit}>{saved && <Notice>تم حفظ إعدادات واتساب.</Notice>}{error && <Notice type="error">{error}</Notice>}
+      <div className="settings-section whatsapp-settings">
+        <div className="settings-section-heading"><div><h3>ربط الموقع مع WhatsApp</h3><small>اختر طريقة واحدة فقط لتجنب تكرار الإشعارات.</small></div><span className={`whatsapp-status ${whatsappMode === 'off' ? 'is-off' : 'is-on'}`}>{whatsappMode === 'off' ? 'متوقف' : whatsappMode === 'meta' ? 'Meta API' : 'رابط مباشر'}</span></div>
+        <div className="whatsapp-methods">
+          <div className={`whatsapp-method ${whatsappMode === 'link' ? 'is-active' : ''}`}>
+            <div className="whatsapp-method-top"><div><strong>الرابط المباشر</strong><small>يفتح حساب الإدارة برسالة جاهزة، ثم تضغط الإدارة إرسال.</small></div><button type="button" className={whatsappMode === 'link' ? 'danger-button small' : 'primary-button small'} onClick={() => toggleMode('link')}>{whatsappMode === 'link' ? 'إلغاء التفعيل' : 'تفعيل'}</button></div>
+            <Field label="رابط حساب الإدارة" value={form.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK} onChange={value => update('whatsapp_direct_link', value)} placeholder="https://wa.me/212..." />
+          </div>
+          <div className={`whatsapp-method ${whatsappMode === 'meta' ? 'is-active' : ''}`}>
+            <div className="whatsapp-method-top"><div><strong>Meta WhatsApp API</strong><small>إرسال تلقائي من الخادم دون فتح WhatsApp عند المستخدم.</small></div><button type="button" className={whatsappMode === 'meta' ? 'danger-button small' : 'primary-button small'} onClick={() => toggleMode('meta')}>{whatsappMode === 'meta' ? 'إلغاء التفعيل' : 'تفعيل'}</button></div>
+            {whatsappMode === 'meta' && <div className="form-grid"><label className="form-field"><span>Access Token</span><input type="password" value={metaToken} onChange={event => setMetaToken(event.target.value)} placeholder="اتركه فارغاً إذا كان محفوظاً" /></label><Field label="Phone Number ID" value={form.whatsapp_meta_phone_number_id || ''} onChange={value => update('whatsapp_meta_phone_number_id', value)} placeholder="مثال: 1320184641179179" /></div>}
+          </div>
+        </div>
+      </div>
+      <button className="primary-button"><Save className="h-4 w-4" />حفظ التغييرات</button>
+    </form>
+  </div>;
+}
+
+function AdminWhatsAppNumberAdmin() {
+  const { settings, saveSettings } = useArena();
+  const [link, setLink] = useState(settings.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK);
+  const [saved, setSaved] = useState(false);
+  const digits = link.replace(/[^\d]/g, '');
+  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings({ whatsapp_direct_link: link }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  return <div className="admin-page"><AdminSectionHeader icon={Phone} title="رقم واتساب الإدارة" subtitle="الرقم الذي تصل إليه طلبات التحقق والدعم وطلبات المتجر." />
+    <form className="settings-form panel-card" onSubmit={submit}>{saved && <Notice>تم حفظ رقم الإدارة.</Notice>}
+      <div className="settings-section"><div className="form-grid"><Field label="رابط واتساب الإدارة" value={link} onChange={setLink} placeholder="https://wa.me/212600000000" /><div className="pricing-preview"><small>الرقم المكتشف</small><strong className="mono">{digits || '—'}</strong><span>يُستخرج تلقائياً من الرابط</span></div></div><small className="settings-hint">استخدم صيغة wa.me مع رمز الدولة بدون + أو أصفار بادئة.</small></div>
+      <button className="primary-button" type="submit"><Save className="h-4 w-4" />حفظ الرقم</button>
+    </form>
+  </div>;
+}
+
+
+
+function HomeArenaAdmin() {
+  const { settings, saveSettings } = useArena();
+  const [config, setConfig] = useState<HomeArenaConfig>(() => homeArenaFrom(settings));
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setConfig(homeArenaFrom(settings)); }, [settings.home_arena]);
+  const update = (patch: Partial<HomeArenaConfig>) => setConfig(old => ({ ...old, ...patch }));
+  const updateButton = (id: string, patch: Partial<HomeArenaButton>) => setConfig(old => ({ ...old, buttons: old.buttons.map(item => item.id === id ? { ...item, ...patch } : item) }));
+  const addButton = () => setConfig(old => ({ ...old, buttons: [...old.buttons, { id: `btn-${Date.now()}`, label: 'زر جديد', href: '/matches', visible: true }] }));
+  const removeButton = (id: string) => setConfig(old => ({ ...old, buttons: old.buttons.filter(item => item.id !== id) }));
+  const move = (id: string, dir: -1 | 1) => setConfig(old => { const index = old.buttons.findIndex(item => item.id === id); const next = index + dir; if (index < 0 || next < 0 || next >= old.buttons.length) return old; const buttons = [...old.buttons]; [buttons[index], buttons[next]] = [buttons[next], buttons[index]]; return { ...old, buttons }; });
+  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings({ home_arena: JSON.stringify(config) }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  return <div className="admin-page"><AdminSectionHeader icon={Swords} title="ساحة المباريات الحية" subtitle="عدّل نص القسم الرئيسي وأزراره، واختر ما يظهر للزوار." />
+    <form className="settings-form panel-card" onSubmit={submit}>{saved && <Notice>تم حفظ ساحة المباريات.</Notice>}
+      <div className="settings-section"><h3>النص الرئيسي</h3>
+        <div className="form-grid"><Field label="الشريط العلوي" value={config.eyebrow} onChange={value => update({ eyebrow: value })} /><OptionalField label="العنوان (الجزء الأول)" value={config.title} onChange={value => update({ title: value })} /><OptionalField label="العنوان (الجزء المميز)" value={config.titleAccent} onChange={value => update({ titleAccent: value })} /></div>
+        <label className="form-field"><span>النص التوضيحي</span><textarea rows={2} value={config.subtitle} onChange={event => update({ subtitle: event.target.value })} /></label>
+      </div>
+      <div className="settings-section"><div className="settings-section-heading"><div><h3>أزرار الساحة</h3><small>«إنشاء مباراة» يفتح نافذة إنشاء المباراة، وبقية الأزرار روابط داخلية.</small></div><button type="button" className="secondary-button small" onClick={addButton}><Plus className="h-4 w-4" />إضافة زر</button></div>
+        <div className="home-arena-buttons">
+          {config.buttons.map((item, index) => <div key={item.id} className={`home-arena-button-row ${item.visible ? '' : 'is-hidden'}`}>
+            <div className="form-grid"><OptionalField label="نص الزر" value={item.label} onChange={value => updateButton(item.id, { label: value })} /><OptionalField label="الرابط (أو create)" value={item.href} onChange={value => updateButton(item.id, { href: value })} placeholder="create أو /matches" /></div>
+            <div className="home-arena-button-actions">
+              <button type="button" className="icon-button" title={item.visible ? 'إخفاء' : 'إظهار'} onClick={() => updateButton(item.id, { visible: !item.visible })}>{item.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button>
+              <button type="button" className="icon-button" title="أعلى" disabled={index === 0} onClick={() => move(item.id, -1)}><ChevronDown className="h-4 w-4 rotate-180" /></button>
+              <button type="button" className="icon-button" title="أسفل" disabled={index === config.buttons.length - 1} onClick={() => move(item.id, 1)}><ChevronDown className="h-4 w-4" /></button>
+              <button type="button" className="icon-button" title="حذف" onClick={() => removeButton(item.id)}><Trash2 className="h-4 w-4" /></button>
+            </div>
+          </div>)}
+          {config.buttons.length === 0 && <p className="empty-note">لا توجد أزرار. أضف زراً ليظهر تحت النص الرئيسي.</p>}
+        </div>
+      </div>
+      <button className="primary-button" type="submit"><Save className="h-4 w-4" />حفظ ساحة المباريات</button>
+    </form>
+  </div>;
+}
+
+  function LegacySettingsPage() {
    const { settings, saveSettings, saveWhatsAppMeta } = useArena(); const [form, setForm] = useState(settings); const [metaToken, setMetaToken] = useState(''); const [saved, setSaved] = useState(false); const [error, setError] = useState(''); const whatsappMode = form.whatsapp_mode || 'link'; const update = (key: string, value: string) => setForm(old => ({ ...old, [key]: value })); const toggleMode = (mode: 'link' | 'meta') => update('whatsapp_mode', whatsappMode === mode ? 'off' : mode); const submit = async (event: FormEvent) => { event.preventDefault(); setError(''); const patch = { ...form, whatsapp_mode: whatsappMode, whatsapp_direct_link: form.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK }; if (whatsappMode === 'meta' && metaToken.trim()) { const okay = await saveWhatsAppMeta(metaToken, form.whatsapp_meta_phone_number_id || ''); if (!okay) { setError('تعذر حفظ إعدادات Meta. تأكد من تسجيل دخول الإدارة ورقم Phone Number ID.'); return; } setMetaToken(''); } saveSettings(patch); setSaved(true); setTimeout(() => setSaved(false), 1800); }; return <div className="admin-page"><AdminSectionHeader icon={Settings} title="إعدادات المنصة" subtitle="حدّث بيانات الدفع ونسبة العمولة ومعلومات التواصل." /><form className="settings-form panel-card" onSubmit={submit}>{saved && <Notice>تم حفظ الإعدادات بنجاح.</Notice>}{error && <Notice type="error">{error}</Notice>}<div className="settings-section"><h3>بيانات التحويل البنكي</h3><div className="form-grid"><Field label="اسم المستفيد" value={form.cih_name || ''} onChange={value => update('cih_name', value)} /><Field label="رقم الحساب / RIB" value={form.cih_rib || ''} onChange={value => update('cih_rib', value)} /></div></div><div className="settings-section"><h3>بيانات Cash Plus</h3><div className="form-grid"><Field label="اسم المستفيد" value={form.cashplus_name || ''} onChange={value => update('cashplus_name', value)} /><Field label="رقم التعريف" value={form.cashplus_cin || ''} onChange={value => update('cashplus_cin', value)} /></div></div><div className="settings-section"><h3>الإدارة والتسعير</h3><div className="form-grid"><Field label="نسبة العمولة" value={form.commission_rate || '0.10'} onChange={value => update('commission_rate', value)} /><Field label="مبالغ الشحن السريعة" value={form.recharge_amounts || '20,50,100,200,500'} onChange={value => update('recharge_amounts', value)} /></div><small className="settings-hint">اكتب المبالغ مفصولة بفواصل، مثل: 20,50,100,200,500</small></div><div className="settings-section whatsapp-settings"><div className="settings-section-heading"><div><h3>ربط الموقع مع WhatsApp</h3><small>اختر طريقة واحدة فقط لتجنب تكرار الإشعارات.</small></div><span className={`whatsapp-status ${whatsappMode === 'off' ? 'is-off' : 'is-on'}`}>{whatsappMode === 'off' ? 'متوقف' : whatsappMode === 'meta' ? 'Meta API' : 'رابط مباشر'}</span></div><div className="whatsapp-methods"><div className={`whatsapp-method ${whatsappMode === 'link' ? 'is-active' : ''}`}><div className="whatsapp-method-top"><div><strong>الرابط المباشر</strong><small>يفتح حساب الإدارة برسالة جاهزة، ثم تضغط الإدارة إرسال.</small></div><button type="button" className={whatsappMode === 'link' ? 'danger-button small' : 'primary-button small'} onClick={() => toggleMode('link')}>{whatsappMode === 'link' ? 'إلغاء التفعيل' : 'تفعيل'}</button></div><Field label="رابط حساب الإدارة" value={form.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK} onChange={value => update('whatsapp_direct_link', value)} placeholder="https://wa.me/212..." /></div><div className={`whatsapp-method ${whatsappMode === 'meta' ? 'is-active' : ''}`}><div className="whatsapp-method-top"><div><strong>Meta WhatsApp API</strong><small>إرسال تلقائي من الخادم دون فتح WhatsApp عند المستخدم.</small></div><button type="button" className={whatsappMode === 'meta' ? 'danger-button small' : 'primary-button small'} onClick={() => toggleMode('meta')}>{whatsappMode === 'meta' ? 'إلغاء التفعيل' : 'تفعيل'}</button></div>{whatsappMode === 'meta' && <div className="form-grid"><label className="form-field"><span>Access Token</span><input type="password" value={metaToken} onChange={event => setMetaToken(event.target.value)} placeholder="اتركه فارغاً إذا كان محفوظاً" /></label><Field label="Phone Number ID" value={form.whatsapp_meta_phone_number_id || ''} onChange={value => update('whatsapp_meta_phone_number_id', value)} placeholder="مثال: 1320184641179179" /></div>}</div></div></div><button className="primary-button"><Save className="h-4 w-4" />حفظ التغييرات</button></form></div>; }
 
  function FeaturedMatchesSettings() {
