@@ -1018,7 +1018,7 @@ function WithdrawModal({ onClose }: { onClose: () => void }) {
   return <Modal onClose={onClose}><div className="modal-heading"><span className="panel-icon amber"><ArrowUpFromLine className="h-5 w-5" /></span><span><h2>طلب سحب</h2><p>الرصيد المتاح: <b>{money(user?.balance || 0)}</b></p></span></div>{sent ? <div className="success-panel"><CheckCircle2 className="h-12 w-12" /><h3>تم تسجيل طلب السحب</h3><p>سيتم تحويل المبلغ بعد اعتماد الإدارة.</p><button className="primary-button" onClick={onClose}>حسناً</button></div> : <form className="modal-body form-stack" onSubmit={submit}>{error && <Notice type="error">{error}</Notice>}<Field label="المبلغ ($)" type="number" value={amount} onChange={setAmount} test="input-withdraw-amount" />{Number(amount) > 0 && <div className="fee-notice">عمولة السحب 5%: {money(Number(amount) * 0.05)} • الصافي المحوّل: {money(Number(amount) * 0.95)}</div>}<label className="form-field"><span>طريقة الاستلام</span><select value={methodId} onChange={event => setMethodId(event.target.value)}>{options.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><div className="payment-card"><p>معلومات الطريقة</p><span>{selected?.details}</span></div><Field label="رقم الحساب أو الهاتف" value={destination} onChange={setDestination} test="input-withdraw-destination" /><label className="form-field"><span>ملاحظات</span><textarea value={notes} onChange={event => setNotes(event.target.value)} rows={2} /></label><button className="primary-button full">إرسال طلب السحب</button></form>}<div className="modal-history"><strong>آخر طلبات السحب</strong>{withdrawals.filter(item => item.userId === user?.id).slice(0, 3).map(item => <div key={item.id}><span>#{item.id} • {money(item.amount)} • صافي {money(item.payoutAmount)}</span><StatusBadge status={item.status} /></div>)}</div></Modal>;
 }
 
-function CreateMatchModal({ onClose, initialStake }: { onClose: () => void; initialStake?: number }) {
+function CreateMatchModal({ onClose, initialStake, onRecharge }: { onClose: () => void; initialStake?: number; onRecharge?: () => void }) {
   const { user, createMatch, settings } = useArena();
   const [, setLocation] = useLocation();
   const [title, setTitle] = useState('');
@@ -1067,13 +1067,16 @@ function CreateMatchModal({ onClose, initialStake }: { onClose: () => void; init
         <div className="ex-field">
           <span>قيمة الرهان ($)</span>
           <div className="ex-stake-picks">
-            {presets.map(amount => <button type="button" key={amount} className={`ex-pick ${stakeValue === amount ? 'is-on' : ''}`} onClick={() => setStake(String(amount))} disabled={amount > balance}>{money(amount)}</button>)}
+            {presets.map(amount => <button type="button" key={amount} className={`ex-pick ${stakeValue === amount ? 'is-on' : ''}`} onClick={() => setStake(String(amount))}>{money(amount)}</button>)}
           </div>
           <div className="ex-stake-input">
             <input type="number" min="5" step="1" value={stake} onChange={event => setStake(event.target.value)} placeholder="20" />
             <span>$</span>
           </div>
-          {short && <small className="ex-field-warn"><AlertCircle className="h-3.5 w-3.5" />رصيدك {money(balance)} — الحد الأقصى المتاح {money(maxStake)}.</small>}
+          {short && <div className="ex-field-short">
+            <span className="ex-field-short-copy"><AlertCircle className="h-4 w-4" /><span><strong>رصيدك غير كافٍ</strong><small>تحتاج {money(stakeValue - balance)} إضافية — اشحن حسابك ثم أكمل.</small></span></span>
+            {onRecharge && <button type="button" className="ex-btn primary small" onClick={onRecharge}>اشحن حسابك<ArrowLeft className="h-4 w-4" /></button>}
+          </div>}
         </div>
 
         <div className="ex-field">
@@ -1281,7 +1284,7 @@ function HomePage() {
       </div>
     </section>
 
-    {createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}
+    {createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} onRecharge={() => { setCreateOpen(false); setRechargeOpen(true); }} />}
     {rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}
   </div>;
 }
@@ -1379,7 +1382,7 @@ function MatchesPage() {
       </div></div>
     </section>
 
-    {createOpen && <CreateMatchModal onClose={() => { setCreateOpen(false); setPrefillStake(undefined); }} initialStake={prefillStake} />}
+    {createOpen && <CreateMatchModal onClose={() => { setCreateOpen(false); setPrefillStake(undefined); }} initialStake={prefillStake} onRecharge={() => { setCreateOpen(false); setPrefillStake(undefined); setRechargeOpen(true); }} />}
     {rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}
   </div>;
 }

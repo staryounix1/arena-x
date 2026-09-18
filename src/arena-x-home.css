@@ -798,6 +798,34 @@
 .ex-stake-input input { padding-inline-end: 42px; font-weight: 900; }
 .ex-stake-input > span { position: absolute; inset-inline-end: 16px; top: 50%; transform: translateY(-50%); color: var(--ex-faint); font-size: 14px; font-weight: 900; pointer-events: none; }
 .ex-field-warn { display: inline-flex; align-items: center; gap: 6px; color: var(--ex-gold); font-size: 11.5px; font-weight: 800; }
+.ex-field-short {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 203, 69, .32);
+  border-radius: 10px;
+  background: linear-gradient(140deg, rgba(255, 203, 69, .1), rgba(255, 45, 149, .06));
+}
+.ex-field-short-copy { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ex-field-short-copy > svg { flex: 0 0 auto; color: var(--ex-gold); }
+.ex-field-short-copy > span { display: grid; gap: 3px; }
+.ex-field-short-copy strong { color: var(--ex-gold); font-size: 12.5px; font-weight: 900; }
+.ex-field-short-copy small { color: var(--ex-dim); font-size: 11px; line-height: 1.6; }
+.ex-field-short .ex-btn { flex: 0 0 auto; }
+.ex-btn.small {
+  gap: 7px;
+  padding: 10px 16px;
+  font-size: 11.5px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.ex-btn.small svg { width: 14px; height: 14px; }
+@media (max-width: 560px) {
+  .ex-field-short { flex-direction: column; align-items: stretch; }
+  .ex-field-short .ex-btn { width: 100%; justify-content: center; }
+}
 
 .ex-cmodal-summary {
   display: grid;
