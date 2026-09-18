@@ -513,9 +513,9 @@
   padding-top: 30px;
   border-top: 1px solid var(--ex-line);
 }
-.ex-arena-stats > span { display: grid; gap: 7px; align-content: start; }
+.ex-arena-stats > span { display: grid; gap: 7px; align-content: start; min-height: 96px; }
 .ex-arena-stats svg { color: var(--ex-faint); }
-.ex-arena-stats b { font-size: clamp(20px, 2.4vw, 28px); font-weight: 900; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ex-arena-stats b { font-size: clamp(20px, 2.4vw, 28px); font-weight: 900; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ex-arena-stats b.is-live { color: var(--ex-neon); text-shadow: 0 0 22px rgba(0, 255, 179, .5); }
 .ex-arena-stats small { color: var(--ex-faint); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 
