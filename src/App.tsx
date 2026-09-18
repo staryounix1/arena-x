@@ -1263,7 +1263,7 @@ function HomePage() {
 
     {/* ── TRUST ────────────────────────────────────────────────────────── */}
     <section className="ex-trust">
-      <div className="ex-shell ex-trust-grid">
+      <div className="ex-shell ex-trust-grid ex-hud">
         <span className="ex-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
         <span className="ex-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
         <span className="ex-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
@@ -1373,7 +1373,7 @@ function MatchesPage() {
       </div>}
       {filtered.length > 0 && <div className="ex-match-grid">{filtered.map(match => <MatchCard key={match.id} match={match} user={user} onJoin={() => join(match)} onOpen={() => setLocation(`/matches/${match.id}`)} />)}</div>}
 
-      <div className="ex-trust ex-matches-trust"><div className="ex-shell ex-trust-grid">
+      <div className="ex-trust ex-matches-trust"><div className="ex-shell ex-trust-grid ex-hud">
         <span className="ex-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
         <span className="ex-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
         <span className="ex-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
