@@ -1503,6 +1503,28 @@ function WaitingLobby({ match, secondsLeft, completedSteps, currentStep }: { mat
   </section>;
 }
 
+function RoomCodeCard({ match, code, setCode, busy, onSave, onCopy, copied, isHost, isGuest }: {
+  match: Match; code: string; setCode: (value: string) => void; busy: boolean;
+  onSave: () => void; onCopy: () => void; copied: boolean; isHost: boolean; isGuest: boolean;
+}) {
+  return <div className="ex-room-code ex-hud">
+    <div className="ex-room-code-top">
+      <span className="ex-room-card-title"><Gamepad2 className="h-4 w-4" />رمز غرفة eFootball</span>
+      {match.room_code && <span className="ex-room-ok"><CheckCircle2 className="h-3.5 w-3.5" />جاهز</span>}
+    </div>
+    {match.room_code
+      ? <>
+          <div className="ex-room-code-value"><code>{match.room_code}</code><button type="button" className="ex-room-copy" onClick={onCopy}>{copied ? <><Check className="h-4 w-4" />تم النسخ</> : <><Copy className="h-4 w-4" />نسخ الرمز</>}</button></div>
+          <div className="ex-room-copy-track">
+            <span className={match.room_creator_copied_at ? 'is-done' : ''}><Check className="h-3.5 w-3.5" />{isHost ? 'المضيف' : match.creator_name} أكّد النسخ</span>
+            <span className={match.room_opponent_copied_at ? 'is-done' : ''}><Check className="h-3.5 w-3.5" />{isGuest ? 'أنت' : match.opponent_name || 'المنافس'} أكّد النسخ</span>
+          </div>
+        </>
+      : <p className="ex-room-code-empty">{isHost ? 'أنشئ الغرفة في eFootball ثم أدخل الرمز هنا ليراه منافسك.' : 'بانتظار أن يحدّد المضيف رمز الغرفة.'}</p>}
+    {isHost && <div className="ex-room-code-edit"><input value={code} onChange={event => setCode(event.target.value)} placeholder="أدخل رمز الغرفة" aria-label="رمز الغرفة" /><button className="ex-btn primary" disabled={busy || !code.trim()} onClick={onSave}><Save className="h-4 w-4" />حفظ</button></div>}
+  </div>;
+}
+
 function MatchDetailPageV2() {
   const { id } = useParams<{ id: string }>();
   const {
@@ -1641,6 +1663,10 @@ function MatchDetailPageV2() {
 
       {isOpen && isHost && <WaitingLobby match={match} secondsLeft={openSecondsLeft} completedSteps={steps.filter(([, done]) => done).length} currentStep={currentStep < 0 ? 5 : currentStep} />}
 
+      {/* Room code stays high on the page for the waiting host so they can prepare
+          the eFootball room before an opponent arrives. */}
+      {isOpen && isHost && <div className="ex-wait-roomcode"><RoomCodeCard match={match} code={code} setCode={setCode} busy={busy} onSave={() => void doSaveCode()} onCopy={doCopy} copied={copied} isHost={isHost} isGuest={isGuest} /></div>}
+
       {/* ── STAGING ACTIONS ────────────────────────────────────────── */}
       {isOpen && user && !isHost && <div className="ex-room-cta ex-hud">
         <div><span className="ex-room-card-title"><Swords className="h-4 w-4" />مقعد متاح</span><p className="ex-room-note">انضم إلى التحدي الآن — يُحجز {money(match.stake)} من محفظتك، والجائزة {money(match.prize)}.</p></div>
@@ -1657,8 +1683,9 @@ function MatchDetailPageV2() {
 
       <div className="ex-room-grid">
         <div className="ex-room-main">
-          {/* ROOM CODE */}
-          {participant && <div className="ex-room-code ex-hud">
+          {/* ROOM CODE — hidden while the host is in the OPEN waiting state,
+              where it is shown in its own prominent card instead. */}
+          {participant && !(isOpen && isHost) && <div className="ex-room-code ex-hud">
             <div className="ex-room-code-top">
               <span className="ex-room-card-title"><Gamepad2 className="h-4 w-4" />رمز غرفة eFootball</span>
               {match.room_code && <span className="ex-room-ok"><CheckCircle2 className="h-3.5 w-3.5" />جاهز</span>}

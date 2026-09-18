@@ -157,3 +157,16 @@
   .ex-wait-title { font-size: 18px; }
   .ex-wait-money strong { font-size: 15.5px; }
 }
+
+/* ── Room-code card, surfaced inside the OPEN waiting state ─────────────── */
+.ex-wait-roomcode { margin-bottom: 14px; }
+.ex-wait-roomcode .ex-room-code {
+  border-color: rgba(0, 208, 255, .34);
+  background:
+    radial-gradient(120% 130% at 50% -20%, rgba(0, 208, 255, .12), transparent 62%),
+    linear-gradient(170deg, rgba(14, 20, 32, .96), rgba(5, 8, 12, .96));
+}
+@media (max-width: 760px) {
+  .ex-wait-roomcode .ex-room-code-edit { flex-direction: column; }
+  .ex-wait-roomcode .ex-room-code-edit .ex-btn { justify-content: center; }
+}
