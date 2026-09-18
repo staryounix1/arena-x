@@ -1108,7 +1108,7 @@ function AdminSettingsPage() {
   const reset = () => setPath([]);
   const back = () => setPath(old => old.slice(0, -1));
   const currentId = path[path.length - 1] || '';
-  const hasChildren = Boolean(node?.children);
+  const showGrid = !node || Boolean(node.children);
   const siblings = node?.children || ADMIN_GROUPS;
 
   return <div className="admin-page control-centre">
@@ -1116,8 +1116,8 @@ function AdminSettingsPage() {
       <button type="button" onClick={reset} className={!path.length ? 'active' : ''}>إعدادات المنصة</button>
       {trail?.map(item => <Fragment key={item.id}><ChevronLeft className="h-3.5 w-3.5" /><button type="button" className={item.id === node?.id ? 'active' : ''} onClick={() => setPath(old => { const at = old.indexOf(item.id); return at < 0 ? old : old.slice(0, at + 1); })}>{item.label}</button></Fragment>)}
     </nav>
-    {hasChildren ? <div className="control-grid">
-      <ControlButton node={{ id: '__back', label: 'رجوع', hint: node?.label || 'إعدادات المنصة', icon: ArrowRight }} tone="back" onClick={path.length > 1 ? back : reset} />
+    {showGrid ? <div className="control-grid">
+      {path.length > 0 && <ControlButton node={{ id: '__back', label: 'رجوع', hint: node?.label || 'إعدادات المنصة', icon: ArrowRight }} tone="back" onClick={back} />}
       {siblings.map(item => <ControlButton key={item.id} node={item} onClick={() => go(item.id)} />)}
     </div> : <div className="control-leaf">
       <button type="button" className="secondary-button small control-back" onClick={back}><ArrowRight className="h-4 w-4" />رجوع إلى {(trail && trail.length > 1 ? trail[trail.length - 2].label : 'إعدادات المنصة')}</button>
