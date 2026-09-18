@@ -1004,12 +1004,17 @@
 .green-text { color: var(--ex-neon) !important; }
 
 @media (max-width: 760px) {
-  .ex-room-hero { grid-template-columns: 1fr; gap: 16px; }
-  .ex-room-hero-mid { order: -1; padding: 0; }
-  .ex-room-hero-side.is-opponent { flex-direction: row; text-align: right; }
-  .ex-room-hero-mid { grid-template-columns: auto auto; justify-content: center; align-items: baseline; column-gap: 16px; }
-  .ex-room-hero-mid .ex-room-clock { grid-column: 1 / -1; }
-  .ex-room-hero-hint { font-size: 12.5px; }
+  .ex-room-hero { grid-template-columns: 1fr 1fr; grid-template-areas: "mid mid" "host opp"; gap: 14px 10px; padding: 18px 14px; }
+  .ex-room-hero-mid { grid-area: mid; padding: 0 0 4px; border-bottom: 1px dashed var(--ex-line); }
+  .ex-room-hero-side { gap: 10px; }
+  .ex-room-hero-side:not(.is-opponent) { grid-area: host; }
+  .ex-room-hero-side.is-opponent { grid-area: opp; flex-direction: row; text-align: right; }
+  .ex-room-hero-side .avatar { width: 44px; height: 44px; border-radius: 11px; }
+  .ex-room-hero-side strong { font-size: 13.5px; }
+  .ex-room-hero-side small { font-size: 10.5px; }
+  .ex-room-you { display: none; }
+  .ex-room-hero-mid { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px; }
+  .ex-room-hero-hint { font-size: 12.5px; margin-top: 14px; }
   .ex-room-cta { flex-direction: column; align-items: stretch; }
   .ex-room-cta .ex-btn { width: 100%; }
   .ex-room-copy-track { grid-template-columns: 1fr; }
