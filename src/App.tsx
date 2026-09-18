@@ -1242,7 +1242,7 @@ function MatchesPage() {
     ['ALL', 'الكل', matches.length],
   ];
 
-  return <div className="ax">
+  return <div className="ex">
     <section className="ex-section ex-shell" style={{ paddingBottom: 0 }}>
       <div className="ex-arena-head">
         <div>
