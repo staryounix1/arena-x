@@ -1055,7 +1055,7 @@ const adminLinks = [
 ];
 function AdminLayout({ section }: { section: string }) {
   const { matches, tournaments, saveTournament, deleteTournament, recharges, withdrawals, disputes, supportTickets, verifications, storeOrders } = useArena(); const pendingMatchReview = matches.filter(item => item.opponent_id && item.status !== 'OPEN' && item.status !== 'CANCELLED' && item.payout_status !== 'APPROVED').length; const pendingRecharge = recharges.filter(item => item.status === 'PENDING').length; const pendingWithdrawal = withdrawals.filter(item => item.status === 'PENDING').length; const pendingVerification = verifications.filter(item => item.status === 'PENDING').length; const pendingStoreOrder = storeOrders.filter(item => ['NEW', 'UNDER_REVIEW'].includes(item.status)).length; const openDisputes = disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length; const openTickets = supportTickets.filter(item => item.status === 'OPEN' || item.status === 'IN_PROGRESS').length; const current = adminLinks.find(item => item.id === section)?.label || 'نظرة عامة';
-          const content = section === 'matches' ? <AdminMatchesPage /> : section === 'tournaments' ? <AdminTournamentsPageV2 tournaments={tournaments} saveTournament={saveTournament} deleteTournament={deleteTournament} /> : section === 'store' ? <StoreAdminPage /> : section === 'live' ? <LiveStateAdminPage /> : section === 'store-orders' ? <StoreOrdersAdminPage /> : section === 'activity' ? <AdminActivityPage /> : section === 'recharges' ? <AdminRechargesPage /> : section === 'withdrawals' ? <AdminWithdrawalsPage /> : section === 'disputes' ? <AdminDisputesPage /> : section === 'users' ? <AdminUsersDetailsPage /> : section === 'verifications' ? <AdminVerificationsPage /> : section === 'payment-methods' ? <AdminPaymentMethodsPage /> : section === 'earnings' ? <AdminEarningsPage /> : section === 'reports' ? <AdminReportsPage /> : section === 'support' ? <AdminSupportPage /> : section === 'settings' ? <><AdminSettingsPage /><FeaturedMatchesSettings /><OnlineCountSettings /></> : <AdminOverview />;
+          const content = section === 'matches' ? <AdminMatchesPage /> : section === 'tournaments' ? <AdminTournamentsPageV2 tournaments={tournaments} saveTournament={saveTournament} deleteTournament={deleteTournament} /> : section === 'store' ? <StoreAdminPage /> : section === 'live' ? <LiveStateAdminPage /> : section === 'store-orders' ? <StoreOrdersAdminPage /> : section === 'activity' ? <AdminActivityPage /> : section === 'recharges' ? <AdminRechargesPage /> : section === 'withdrawals' ? <AdminWithdrawalsPage /> : section === 'disputes' ? <AdminDisputesPage /> : section === 'users' ? <AdminUsersDetailsPage /> : section === 'verifications' ? <AdminVerificationsPage /> : section === 'payment-methods' ? <AdminPaymentMethodsPage /> : section === 'earnings' ? <AdminEarningsPage /> : section === 'reports' ? <AdminReportsPage /> : section === 'support' ? <AdminSupportPage /> : section === 'settings' ? <AdminSettingsPage /> : <AdminOverview />;
     return <div className="admin-shell shell"><aside className="admin-sidebar"><div className="admin-brand"><span className="brand-mark"><ShieldCheck className="h-5 w-5" /></span><span><strong>مركز الإدارة</strong><small>eFootball ARENA</small></span></div><nav>{adminLinks.map(item => { const Icon = item.icon; const count = item.id === 'matches' ? pendingMatchReview : item.id === 'recharges' ? pendingRecharge : item.id === 'withdrawals' ? pendingWithdrawal : item.id === 'verifications' ? pendingVerification : item.id === 'store-orders' ? pendingStoreOrder : item.id === 'disputes' ? openDisputes : item.id === 'support' ? openTickets : 0; return <Link href={`/admin/${item.id}`} key={item.id} className={section === item.id || (!section && item.id === 'overview') ? 'admin-link active' : 'admin-link'}><Icon className="h-4 w-4" />{item.label}{count > 0 && <span className="nav-count">{count}</span>}</Link>; })}</nav><Link href="/store" className="back-site"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link></aside><main className="admin-content"><div className="admin-topbar"><div><span className="admin-kicker">لوحة الإدارة / {current}</span><h1>{current}</h1></div><span className="admin-session"><span className="online-dot" />مسجّل باسم المدير</span></div>{content}</main></div>;
 }
 
@@ -1071,9 +1071,10 @@ const ADMIN_GROUPS: ControlNode[] = [
       { id: 'money-methods-electronic', label: 'طرق دفع إلكتروني', hint: 'بطاقات ومحافظ رقمية', icon: CreditCard },
     ] },
   ] },
-  { id: 'home', label: 'تعديل الصفحة الرئيسية', hint: 'ساحة المباريات والمواجهات', icon: LayoutGrid, children: [
+  { id: 'home', label: 'تعديل الصفحة الرئيسية', hint: 'ساحة المباريات والمواجهات والعدّاد', icon: LayoutGrid, children: [
     { id: 'home-arena', label: 'ساحة المباريات الحية', hint: 'الأزرار والمحتوى', icon: Swords },
     { id: 'home-featured', label: 'مواجهات الصفحة الرئيسية', hint: 'إضافة وتعديل وإخفاء', icon: Sparkles },
+    { id: 'online', label: 'وضع عدّاد المتصلين', hint: 'تلقائي أو يدوي', icon: Wifi },
   ] },
   { id: 'arena', label: 'تعديل ARENA', hint: 'المباريات والبطولات', icon: Swords, children: [
     { id: 'arena-matches', label: 'تعديل مباريات', icon: Swords },
@@ -1081,7 +1082,6 @@ const ADMIN_GROUPS: ControlNode[] = [
   ] },
   { id: 'pricing', label: 'الإدارة والتسعير', hint: 'العمولة والحدود والأسعار', icon: Percent },
   { id: 'live', label: 'بث مباشر', hint: 'خانات البث الثلاث', icon: Video },
-  { id: 'online', label: 'وضع عدّاد المتصلين', hint: 'تلقائي أو يدوي', icon: Wifi },
   { id: 'whatsapp', label: 'وضع واتساب', hint: 'الرابط أو Meta API', icon: MessageCircle },
   { id: 'whatsapp-number', label: 'رقم واتساب الإدارة', icon: Phone },
 ];
