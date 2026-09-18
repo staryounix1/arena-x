@@ -138,6 +138,76 @@ const homeArenaFrom = (settings: Record<string, string>): HomeArenaConfig => {
     buttons,
   };
 };
+
+type RechargeFormConfig = {
+  title: string;
+  subtitle: string;
+  amountLabel: string;
+  methodLabel: string;
+  detailsTitle: string;
+  quickLabel: string;
+  whatsappLabel: string;
+  notesLabel: string;
+  submitLabel: string;
+  successTitle: string;
+  successText: string;
+  historyTitle: string;
+  defaultAmount: string;
+  showDetails: boolean;
+  showQuickAmounts: boolean;
+  showWhatsapp: boolean;
+  showNotes: boolean;
+  showHistory: boolean;
+};
+const DEFAULT_RECHARGE_FORM: RechargeFormConfig = {
+  title: 'شحن الرصيد',
+  subtitle: 'اختر طريقة الدفع التي أضافتها الإدارة.',
+  amountLabel: 'المبلغ المطلوب ($)',
+  methodLabel: 'طريقة الدفع',
+  detailsTitle: 'بيانات التحويل',
+  quickLabel: 'اختر مبلغاً سريعاً',
+  whatsappLabel: 'رقم واتساب للتأكيد',
+  notesLabel: 'ملاحظات إضافية',
+  submitLabel: 'إرسال طلب الشحن',
+  successTitle: 'تم إرسال الطلب',
+  successText: 'ستراجع الإدارة طلب الشحن يدوياً.',
+  historyTitle: 'آخر طلباتك',
+  defaultAmount: '50',
+  showDetails: true,
+  showQuickAmounts: true,
+  showWhatsapp: true,
+  showNotes: true,
+  showHistory: true,
+};
+const rechargeFormFrom = (settings: Record<string, string>): RechargeFormConfig => {
+  const raw = readSettingJson<Partial<RechargeFormConfig>>(settings, 'recharge_form', DEFAULT_RECHARGE_FORM);
+  if (!raw || typeof raw !== 'object') return DEFAULT_RECHARGE_FORM;
+  const text = (key: keyof RechargeFormConfig, fallback: string) => {
+    const value = raw[key];
+    return typeof value === 'string' && value.trim() ? value : fallback;
+  };
+  return {
+    title: text('title', DEFAULT_RECHARGE_FORM.title),
+    subtitle: text('subtitle', DEFAULT_RECHARGE_FORM.subtitle),
+    amountLabel: text('amountLabel', DEFAULT_RECHARGE_FORM.amountLabel),
+    methodLabel: text('methodLabel', DEFAULT_RECHARGE_FORM.methodLabel),
+    detailsTitle: text('detailsTitle', DEFAULT_RECHARGE_FORM.detailsTitle),
+    quickLabel: text('quickLabel', DEFAULT_RECHARGE_FORM.quickLabel),
+    whatsappLabel: text('whatsappLabel', DEFAULT_RECHARGE_FORM.whatsappLabel),
+    notesLabel: text('notesLabel', DEFAULT_RECHARGE_FORM.notesLabel),
+    submitLabel: text('submitLabel', DEFAULT_RECHARGE_FORM.submitLabel),
+    successTitle: text('successTitle', DEFAULT_RECHARGE_FORM.successTitle),
+    successText: text('successText', DEFAULT_RECHARGE_FORM.successText),
+    historyTitle: text('historyTitle', DEFAULT_RECHARGE_FORM.historyTitle),
+    defaultAmount: text('defaultAmount', DEFAULT_RECHARGE_FORM.defaultAmount),
+    showDetails: raw.showDetails !== false,
+    showQuickAmounts: raw.showQuickAmounts !== false,
+    showWhatsapp: raw.showWhatsapp !== false,
+    showNotes: raw.showNotes !== false,
+    showHistory: raw.showHistory !== false,
+  };
+};
+
 const storeAccountsFrom = (settings: Record<string, string>) => readSettingJson<StoreAccount[]>(settings, 'store_accounts', DEFAULT_STORE_ACCOUNTS);
 const rechargePackagesFrom = (settings: Record<string, string>) => {
   const raw = readSettingJson<Partial<RechargePackage>[]>(settings, 'store_recharge_packages', DEFAULT_RECHARGE_PACKAGES);
@@ -1367,75 +1437,6 @@ function PaymentMethodsAdmin({ mode }: { mode: PaymentMode }) {
     </form>
   </div>;
 }
-
-type RechargeFormConfig = {
-  title: string;
-  subtitle: string;
-  amountLabel: string;
-  methodLabel: string;
-  detailsTitle: string;
-  quickLabel: string;
-  whatsappLabel: string;
-  notesLabel: string;
-  submitLabel: string;
-  successTitle: string;
-  successText: string;
-  historyTitle: string;
-  defaultAmount: string;
-  showDetails: boolean;
-  showQuickAmounts: boolean;
-  showWhatsapp: boolean;
-  showNotes: boolean;
-  showHistory: boolean;
-};
-const DEFAULT_RECHARGE_FORM: RechargeFormConfig = {
-  title: 'شحن الرصيد',
-  subtitle: 'اختر طريقة الدفع التي أضافتها الإدارة.',
-  amountLabel: 'المبلغ المطلوب ($)',
-  methodLabel: 'طريقة الدفع',
-  detailsTitle: 'بيانات التحويل',
-  quickLabel: 'اختر مبلغاً سريعاً',
-  whatsappLabel: 'رقم واتساب للتأكيد',
-  notesLabel: 'ملاحظات إضافية',
-  submitLabel: 'إرسال طلب الشحن',
-  successTitle: 'تم إرسال الطلب',
-  successText: 'ستراجع الإدارة طلب الشحن يدوياً.',
-  historyTitle: 'آخر طلباتك',
-  defaultAmount: '50',
-  showDetails: true,
-  showQuickAmounts: true,
-  showWhatsapp: true,
-  showNotes: true,
-  showHistory: true,
-};
-const rechargeFormFrom = (settings: Record<string, string>): RechargeFormConfig => {
-  const raw = readSettingJson<Partial<RechargeFormConfig>>(settings, 'recharge_form', DEFAULT_RECHARGE_FORM);
-  if (!raw || typeof raw !== 'object') return DEFAULT_RECHARGE_FORM;
-  const text = (key: keyof RechargeFormConfig, fallback: string) => {
-    const value = raw[key];
-    return typeof value === 'string' && value.trim() ? value : fallback;
-  };
-  return {
-    title: text('title', DEFAULT_RECHARGE_FORM.title),
-    subtitle: text('subtitle', DEFAULT_RECHARGE_FORM.subtitle),
-    amountLabel: text('amountLabel', DEFAULT_RECHARGE_FORM.amountLabel),
-    methodLabel: text('methodLabel', DEFAULT_RECHARGE_FORM.methodLabel),
-    detailsTitle: text('detailsTitle', DEFAULT_RECHARGE_FORM.detailsTitle),
-    quickLabel: text('quickLabel', DEFAULT_RECHARGE_FORM.quickLabel),
-    whatsappLabel: text('whatsappLabel', DEFAULT_RECHARGE_FORM.whatsappLabel),
-    notesLabel: text('notesLabel', DEFAULT_RECHARGE_FORM.notesLabel),
-    submitLabel: text('submitLabel', DEFAULT_RECHARGE_FORM.submitLabel),
-    successTitle: text('successTitle', DEFAULT_RECHARGE_FORM.successTitle),
-    successText: text('successText', DEFAULT_RECHARGE_FORM.successText),
-    historyTitle: text('historyTitle', DEFAULT_RECHARGE_FORM.historyTitle),
-    defaultAmount: text('defaultAmount', DEFAULT_RECHARGE_FORM.defaultAmount),
-    showDetails: raw.showDetails !== false,
-    showQuickAmounts: raw.showQuickAmounts !== false,
-    showWhatsapp: raw.showWhatsapp !== false,
-    showNotes: raw.showNotes !== false,
-    showHistory: raw.showHistory !== false,
-  };
-};
 
 function RechargeFormAdmin() {
   const { settings, saveSettings } = useArena();
