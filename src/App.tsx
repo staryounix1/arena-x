@@ -4,7 +4,7 @@ import {
   BarChart3, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft, CreditCard, Eye, EyeOff, Clock3, Copy, Gamepad2, ImagePlus, LayoutDashboard, LayoutGrid, LogIn,
   LogOut, Menu, MessageCircle, Monitor, MoreVertical, Percent, Phone, Plus, RefreshCw, Save, Search, Settings, ShieldAlert, CalendarDays, FileText,
   Radio, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Swords, Trophy, User as UserIcon, UserPlus, Users, Video, Wallet, Wifi,
-  X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package, Flame, Share2, Timer, Hourglass,
+  X, XCircle, Zap, ImageIcon, Pencil, Trash2, UploadCloud, Package, Flame, Share2, Timer, Hourglass, Coins,
   Play, Volume2, VolumeX, Maximize2, PictureInPicture2, ThumbsUp, Heart, Signal, Gauge, Captions, ChevronRight, Sparkle, TrendingUp,
 } from 'lucide-react';
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
@@ -92,18 +92,31 @@ const DEFAULT_STORE_ACCOUNTS: StoreAccount[] = Array.from({ length: 12 }, (_, in
   images: [STORE_IMAGE_SET[index % STORE_IMAGE_SET.length], STORE_IMAGE_SET[(index + 1) % STORE_IMAGE_SET.length]],
   available: true,
 }));
-const DEFAULT_RECHARGE_PACKAGES: RechargePackage[] = [
-  [130, 2, ''], [550, 6, ''], [1040, 12, '+5% هدية'], [2130, 24, ''],
-  [3250, 36, '+5% هدية'], [5700, 60, '+10% هدية'], [12000, 120, '+10% هدية'], [26500, 250, '+15% هدية'],
-  [58000, 500, '+15% هدية'], [120000, 1000, '+20% هدية'], [250000, 2000, '+20% هدية'], [500000, 4000, '+25% هدية'],
-].map(([coins, price, bonus]: [number, number, string], index) => ({
+type RechargePackageDefaults = { coins: number; official: number; tag?: string; popular?: boolean };
+/* Real eFootball coin bundles with Konami's official USD list prices.
+   ARENA//X sells them ~7% below the official list (WEB-EXCLUSIVE rate). */
+const OFFICIAL_COIN_BUNDLES: RechargePackageDefaults[] = [
+  { coins: 137, official: 1.29 },
+  { coins: 315, official: 2.89 },
+  { coins: 578, official: 5.09, popular: true },
+  { coins: 788, official: 6.89 },
+  { coins: 1092, official: 9.79 },
+  { coins: 2237, official: 18.99, popular: true },
+  { coins: 3413, official: 28.49 },
+  { coins: 5985, official: 47.99, popular: true },
+  { coins: 13440, official: 99.99, tag: 'الأفضل قيمة' },
+  { coins: 32200, official: 199.99, tag: 'للمحترفين' },
+];
+const ARENA_COIN_DISCOUNT = 0.07;
+const arenaCoinPrice = (official: number) => Math.max(0.99, Math.round(official * (1 - ARENA_COIN_DISCOUNT) * 100) / 100);
+const DEFAULT_RECHARGE_PACKAGES: RechargePackage[] = OFFICIAL_COIN_BUNDLES.map((bundle, index) => ({
   id: `recharge-${index + 1}`,
-  title: `${coins.toLocaleString('en-US')} كوينز`,
-  coins,
-  price,
-  amount: coins,
-  bonus,
-  description: 'يتم شحن كوينز eFootball إلى معرّفك بعد تأكيد الدفع من فريق ARENA//X.',
+  title: `${bundle.coins.toLocaleString('en-US')} كوينز`,
+  coins: bundle.coins,
+  price: arenaCoinPrice(bundle.official),
+  amount: bundle.coins,
+  bonus: bundle.tag || '',
+  description: `باقة ${bundle.coins.toLocaleString('en-US')} كوينز eFootball — سعر متجر الويب بخصم ${Math.round(ARENA_COIN_DISCOUNT * 100)}% عن السعر الرسمي.`,
   active: true,
 }));
 const DEFAULT_LIVE_SLOTS: LiveSlot[] = [
@@ -778,7 +791,44 @@ function ArenaProvider({ children }: { children: ReactNode }) {
   return <ArenaContext.Provider value={value}>{children}</ArenaContext.Provider>;
 }
 
-const money = (amount: number) => `$${amount.toFixed(2)}`;
+type CurrencyCode = 'USD' | 'MAD' | 'EUR' | 'SAR' | 'AED' | 'EGP' | 'DZD' | 'TND' | 'GBP';
+type CurrencyDef = { code: CurrencyCode; label: string; symbol: string; rate: number; decimals: number };
+/* Rates are indicative display rates against the platform base currency (USD).
+   They only affect how amounts are shown, not the stored balance. */
+const CURRENCIES: CurrencyDef[] = [
+  { code: 'USD', label: 'دولار أمريكي', symbol: '$', rate: 1, decimals: 2 },
+  { code: 'MAD', label: 'درهم مغربي', symbol: 'د.م', rate: 9.85, decimals: 2 },
+  { code: 'EUR', label: 'يورو', symbol: '€', rate: 0.92, decimals: 2 },
+  { code: 'SAR', label: 'ريال سعودي', symbol: 'ر.س', rate: 3.75, decimals: 2 },
+  { code: 'AED', label: 'درهم إماراتي', symbol: 'د.إ', rate: 3.67, decimals: 2 },
+  { code: 'EGP', label: 'جنيه مصري', symbol: 'ج.م', rate: 48.5, decimals: 0 },
+  { code: 'DZD', label: 'دينار جزائري', symbol: 'د.ج', rate: 134, decimals: 0 },
+  { code: 'TND', label: 'دينار تونسي', symbol: 'د.ت', rate: 3.12, decimals: 2 },
+  { code: 'GBP', label: 'جنيه إسترليني', symbol: '£', rate: 0.79, decimals: 2 },
+];
+const CURRENCY_KEY = 'arena_currency';
+let activeCurrency: CurrencyCode = (() => {
+  try { const stored = localStorage.getItem(CURRENCY_KEY) as CurrencyCode | null; return stored && CURRENCIES.some(c => c.code === stored) ? stored : 'USD'; } catch { return 'USD'; }
+})();
+const getCurrency = (): CurrencyDef => CURRENCIES.find(item => item.code === activeCurrency) || CURRENCIES[0];
+const setActiveCurrency = (code: CurrencyCode) => { activeCurrency = CURRENCIES.some(c => c.code === code) ? code : 'USD'; try { localStorage.setItem(CURRENCY_KEY, activeCurrency); } catch { /* ignore */ } };
+const convert = (usd: number, code?: CurrencyCode) => usd * (CURRENCIES.find(c => c.code === (code || activeCurrency))?.rate || 1);
+const money = (amount: number) => {
+  const unit = getCurrency();
+  const value = convert(amount, unit.code);
+  const formatted = unit.decimals === 0
+    ? Math.round(value).toLocaleString('en-US')
+    : value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${unit.symbol} ${formatted}`;
+};
+const moneyCode = (amount: number, code: CurrencyCode) => {
+  const unit = CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
+  const value = convert(amount, unit.code);
+  const formatted = unit.decimals === 0
+    ? Math.round(value).toLocaleString('en-US')
+    : value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${formatted} ${unit.code}`;
+};
 const date = (value: string) => new Intl.DateTimeFormat('ar-MA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 const initials = (value: string) => value.slice(0, 2).toUpperCase();
 const canPlay = (user: User | null) => Boolean(user && (user.role === 'ADMIN' || user.verification_status === 'APPROVED'));
@@ -857,16 +907,112 @@ function Field({ label, value, onChange, type = 'text', test, placeholder }: { l
 function OptionalField({ label, value, onChange, type = 'text', placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) { return <label className="form-field"><span>{label}</span><input type={type} value={value} placeholder={placeholder} onChange={event => onChange(event.target.value)} /></label>; }
 function StoreImage({ src, alt, className = '' }: { src?: string; alt: string; className?: string }) { return src ? <img className={className} src={src} alt={alt} loading="lazy" decoding="async" onError={event => { event.currentTarget.style.display = 'none'; }} /> : <span className={`store-image-fallback ${className}`}><ShoppingBag className="h-8 w-8" /></span>; }
 function StoreTabs({ current }: { current: 'accounts' | 'recharge' }) { const { copy } = useLocale(); return <nav className="store-tabs" aria-label="Store navigation"><Link className={current === 'accounts' ? 'active' : ''} href="/store"><ShoppingBag className="h-4 w-4" />{copy.accounts}</Link><Link className={current === 'recharge' ? 'active' : ''} href="/store/recharge"><Gamepad2 className="h-4 w-4" />{copy.recharge}</Link></nav>; }
-function StoreProductCard({ item }: { item: StoreAccount }) { return <article className="store-product-card"><Link href={`/store/accounts/${item.id}`} className="store-product-media"><StoreImage src={item.images[0]} alt={item.title} /><span className="store-verified-badge"><ShieldCheck className="h-3 w-3" />موثّق</span>{item.tag && <span className="store-product-tag">{item.tag}</span>}<span className="store-product-platform">{item.platform}</span></Link><div className="store-product-body"><Link href={`/store/accounts/${item.id}`}><h3>{item.title}</h3></Link><p>{item.description}</p><div className="store-product-footer"><strong>{money(item.price)}</strong><Link className="secondary-button small" href={`/store/accounts/${item.id}`}>التفاصيل <ArrowLeft className="h-3.5 w-3.5" /></Link></div></div></article>; }
+function StoreHero({ accounts, packages }: { accounts: number; packages: number }) {
+  return <header className="sp-hero ex-hud">
+    <span className="sp-hero-glow g-one" aria-hidden="true" />
+    <span className="sp-hero-glow g-two" aria-hidden="true" />
+    <span className="sp-hero-grid" aria-hidden="true" />
+    <div className="sp-hero-copy">
+      <span className="sp-hero-eyebrow"><i />متجر ARENA//X</span>
+      <h1>متجرك.<br /><em>قوّتك.</em></h1>
+      <p>حسابات مختارة بمراجعة يدوية، وكوينز eFootball بسعر متجر الويب. تسليم منظم وضمان كامل على كل طلب.</p>
+      <div className="sp-hero-actions">
+        <Link className="sp-btn primary large" href="/store#sp-catalog"><ShoppingBag className="h-4 w-4" />تصفّح الحسابات</Link>
+        <Link className="sp-btn ghost large" href="/store/recharge"><Coins className="h-4 w-4" />شحن الكوينز</Link>
+      </div>
+      <div className="sp-hero-stats">
+        <span className="sp-stat"><span className="sp-stat-ico"><ShoppingBag className="h-3.5 w-3.5" /></span><span className="sp-stat-copy"><small>حسابات متاحة</small><strong>{accounts}</strong></span></span>
+        <span className="sp-stat tone-blue"><span className="sp-stat-ico"><Coins className="h-3.5 w-3.5" /></span><span className="sp-stat-copy"><small>باقات كوينز</small><strong>{packages}</strong></span></span>
+        <span className="sp-stat tone-amber"><span className="sp-stat-ico"><Percent className="h-3.5 w-3.5" /></span><span className="sp-stat-copy"><small>خصم الكوينز</small><strong>{Math.round(ARENA_COIN_DISCOUNT * 100)}%</strong></span></span>
+      </div>
+    </div>
+    <div className="sp-hero-art" aria-hidden="true">
+      <span className="sp-orbit o-one" /><span className="sp-orbit o-two" /><span className="sp-orbit o-three" />
+      <div className="sp-art-core"><ShoppingBag className="h-9 w-9" /><strong>ARENA</strong><small>STORE<br />SECURE</small></div>
+      <span className="sp-art-chip"><ShieldCheck className="h-3.5 w-3.5" />تسليم مضمون</span>
+    </div>
+  </header>;
+}
+
+function StoreAccountCard({ item }: { item: StoreAccount }) {
+  return <article className="sp-card">
+    <Link href={`/store/accounts/${item.id}`} className="sp-card-media">
+      <StoreImage src={item.images[0]} alt={item.title} />
+      <span className="sp-card-shade" />
+      <span className="sp-card-badge"><ShieldCheck className="h-3 w-3" />موثّق</span>
+      {item.tag && <span className="sp-card-tag">{item.tag}</span>}
+      <span className="sp-card-platform">{item.platform}</span>
+      <span className="sp-card-quick">عرض التفاصيل<ArrowLeft className="h-3.5 w-3.5" /></span>
+    </Link>
+    <div className="sp-card-body">
+      <h3>{item.title}</h3>
+      <p>{item.description}</p>
+      <div className="sp-card-foot">
+        <span className="sp-card-price">{money(item.price)}</span>
+        <Link className="sp-card-cta" href={`/store/accounts/${item.id}`}>شراء<ArrowLeft className="h-3.5 w-3.5" /></Link>
+      </div>
+    </div>
+  </article>;
+}
+
 function StorePage() {
-  const { settings } = useArena(); const [query, setQuery] = useState(''); const [platform, setPlatform] = useState('الكل'); const [sort, setSort] = useState('curated'); const accounts = storeAccountsFrom(settings).filter(item => item.available); const platforms = ['الكل', ...Array.from(new Set(accounts.map(item => item.platform)))]; const filtered = accounts.filter(item => (platform === 'الكل' || item.platform === platform) && `${item.title} ${item.description} ${item.platform}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === 'price-low' ? a.price - b.price : sort === 'price-high' ? b.price - a.price : 0);
-  return <div className="shell page-wrap store-page"><StoreTabs current="accounts" /><div className="store-hero"><div><span className="eyebrow"><span className="pulse-dot" />متجر ARENA//X</span><h1>اختَر حسابك.<br /><em>ادخل الساحة.</em></h1><p>حسابات مختارة بعناية، تفاصيل واضحة، وتسليم منظم من فريق ARENA//X. لا مفاجآت، فقط بداية أقوى لمباراتك القادمة.</p><div className="store-hero-actions"><Link className="primary-button" href="#catalog">تصفح العروض <ArrowLeft className="h-4 w-4" /></Link><Link className="secondary-button" href="/support">اسأل فريقنا <MessageCircle className="h-4 w-4" /></Link></div></div><div className="store-hero-art"><span className="store-orbit store-orbit-one" /><span className="store-orbit store-orbit-two" /><div className="store-hero-score"><small>الدفعة الثانية / المتجر</small><strong>{accounts.length}</strong><span>حساباً جاهزاً للمنافسة</span></div></div></div><TrustRail className="store-trust-rail" /><div id="catalog" className="store-section-heading"><div><span className="eyebrow muted">الكتالوج / 01</span><h2>حسابات للبيع</h2><p>اضغط على أي عرض لرؤية البيانات والصور كاملة.</p></div><div className="search-box store-search"><Search className="h-4 w-4" /><input aria-label="البحث في الحسابات" value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث عن حساب" /></div></div><div className="store-filter-bar"><div className="filter-list" aria-label="تصفية المنصة">{platforms.map(item => <button type="button" key={item} className={platform === item ? 'filter-active' : ''} onClick={() => setPlatform(item)}>{item}</button>)}</div><label className="store-sort"><span>الترتيب</span><select aria-label="ترتيب العروض" value={sort} onChange={event => setSort(event.target.value)}><option value="curated">مختارة للإدارة</option><option value="price-low">السعر: الأقل أولاً</option><option value="price-high">السعر: الأعلى أولاً</option></select></label></div>{filtered.length ? <div className="store-product-grid">{filtered.map(item => <StoreProductCard item={item} key={item.id} />)}</div> : <Empty icon={ShoppingBag} text="لا توجد عروض مطابقة للبحث." />}<div className="store-callout panel-card"><div><span className="eyebrow"><span className="pulse-dot" />تسليم آمن</span><h2>تحتاج مساعدة في الاختيار؟</h2><p>فريق الإدارة يساعدك في اختيار العرض المناسب للمنصة والميزانية.</p></div><Link className="secondary-button" href="/support">تواصل مع الدعم <ArrowLeft className="h-4 w-4" /></Link></div></div>;
+  const { settings } = useArena();
+  const [query, setQuery] = useState('');
+  const [platform, setPlatform] = useState('الكل');
+  const [sort, setSort] = useState('curated');
+  const [maxPrice, setMaxPrice] = useState(0);
+  const accounts = storeAccountsFrom(settings).filter(item => item.available);
+  const packages = rechargePackagesFrom(settings).filter(item => item.active);
+  const ceiling = Math.max(0, ...accounts.map(item => Math.ceil(item.price)));
+  const platforms = ['الكل', ...Array.from(new Set(accounts.map(item => item.platform)))];
+  const budget = maxPrice > 0 ? maxPrice : ceiling;
+  const filtered = accounts
+    .filter(item => (platform === 'الكل' || item.platform === platform)
+      && (budget >= ceiling || item.price <= budget)
+      && `${item.title} ${item.description} ${item.platform}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .sort((a, b) => sort === 'price-low' ? a.price - b.price : sort === 'price-high' ? b.price - a.price : 0);
+  const resetFilters = () => { setQuery(''); setPlatform('الكل'); setMaxPrice(0); setSort('curated'); };
+
+  return <div className="shell page-wrap store-page sp-page">
+    <StoreTabs current="accounts" />
+    <StoreHero accounts={accounts.length} packages={packages.length} />
+
+    <section className="sp-catalog" id="sp-catalog">
+      <div className="sp-catalog-head">
+        <div><span className="sp-eyebrow">الكتالوج / 01</span><h2>حسابات للبيع</h2><p>{filtered.length} من {accounts.length} عرضاً متاحاً</p></div>
+        <label className="sp-search"><Search className="h-4 w-4" /><input aria-label="البحث في الحسابات" value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث باسم الحساب أو المنصة" /></label>
+      </div>
+
+      <div className="sp-filters">
+        <div className="sp-chips" aria-label="تصفية المنصة">{platforms.map(item => <button type="button" key={item} className={platform === item ? 'is-on' : ''} onClick={() => setPlatform(item)}>{item}</button>)}</div>
+        <div className="sp-filter-row">
+          {ceiling > 0 && <label className="sp-range"><span>السعر حتى <b>{money(budget)}</b></span><input type="range" min={Math.floor(Math.min(...accounts.map(i => i.price)))} max={ceiling} value={budget} onChange={event => setMaxPrice(Number(event.target.value))} /></label>}
+          <label className="sp-select"><span>الترتيب</span><select aria-label="ترتيب العروض" value={sort} onChange={event => setSort(event.target.value)}><option value="curated">مختارة للإدارة</option><option value="price-low">السعر: الأقل أولاً</option><option value="price-high">السعر: الأعلى أولاً</option></select></label>
+          {(query || platform !== 'الكل' || maxPrice > 0 || sort !== 'curated') && <button type="button" className="sp-reset" onClick={resetFilters}><X className="h-3.5 w-3.5" />مسح الفلاتر</button>}
+        </div>
+      </div>
+
+      {filtered.length ? <div className="sp-grid">{filtered.map(item => <StoreAccountCard item={item} key={item.id} />)}</div> : <Empty icon={ShoppingBag} text="لا توجد عروض مطابقة. جرّب توسيع الفلاتر." />}
+
+      <div className="sp-coin-banner ex-hud">
+        <span className="sp-coin-glow" aria-hidden="true" />
+        <div><span className="sp-eyebrow"><Coins className="h-3.5 w-3.5" />كوينز eFootball</span><h3>اشحن كوينزك بسعر متجر الويب</h3><p>باقات رسمية بخصم {Math.round(ARENA_COIN_DISCOUNT * 100)}% عن سعر Konami، تُسلَّم مباشرة إلى معرّفك.</p></div>
+        <Link className="sp-btn primary" href="/store/recharge">تصفّح الباقات<ArrowLeft className="h-4 w-4" /></Link>
+      </div>
+
+      <div className="sp-callout panel-card">
+        <div><span className="sp-eyebrow"><span className="pulse-dot" />تسليم آمن</span><h2>تحتاج مساعدة في الاختيار؟</h2><p>فريق الإدارة يساعدك في انتقاء العرض المناسب لمنصتك وميزانيتك.</p></div>
+        <Link className="sp-btn ghost" href="/support"><MessageCircle className="h-4 w-4" />تواصل مع الدعم</Link>
+      </div>
+    </section>
+  </div>;
 }
 function StoreAccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, settings, requestStoreOrder } = useArena();
   const [, setLocation] = useLocation();
-  const account = storeAccountsFrom(settings).find(item => item.id === id);
+  const allAccounts = storeAccountsFrom(settings).filter(item => item.available);
+  const account = allAccounts.find(item => item.id === id);
   const [activeImage, setActiveImage] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
@@ -874,6 +1020,7 @@ function StoreAccountDetailPage() {
   const contact = (settings.whatsapp_direct_link || DEFAULT_ADMIN_WHATSAPP_LINK).replace(/\/$/, '');
   const message = encodeURIComponent(`مرحباً، أريد الاستفسار عن الحساب: ${account.title} (${account.id})`);
   const images = account.images.length ? account.images : [''];
+  const similar = allAccounts.filter(item => item.id !== account.id && item.platform === account.platform).slice(0, 3);
   const purchase = async () => {
     if (!user) return setLocation(`/login?returnTo=/store/accounts/${account.id}`);
     if (user.balance < account.price) { setFeedback(`رصيدك غير كافٍ. تحتاج ${money(Number((account.price - user.balance).toFixed(2)))} إضافية لشراء هذا العرض.`); return; }
@@ -884,16 +1031,130 @@ function StoreAccountDetailPage() {
     else if (result.reason === 'INSUFFICIENT') setFeedback(`رصيدك غير كافٍ. تحتاج ${money(Number((account.price - user.balance).toFixed(2)))} إضافية لشراء هذا العرض.`);
     else setFeedback('تعذر إنشاء الطلب. حدّث الصفحة وحاول مرة أخرى.');
   };
-  return <div className="shell page-wrap store-page">
+  const shortfall = user ? Math.max(0, Number((account.price - user.balance).toFixed(2))) : 0;
+
+  return <div className="shell page-wrap store-page sp-page">
     <Link href="/store" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المتجر</Link>
     <StoreTabs current="accounts" />
-    <div className="store-detail-grid">
-      <section className="store-gallery"><div className="store-detail-main"><StoreImage src={images[activeImage]} alt={account.title} /></div><div className="store-thumbnails">{images.map((image, index) => <button className={index === activeImage ? 'active' : ''} key={`${image}-${index}`} onClick={() => setActiveImage(index)}><StoreImage src={image} alt={`${account.title} ${index + 1}`} /></button>)}</div></section>
-      <section className="store-detail-copy"><span className="eyebrow"><span className="pulse-dot" />حساب متاح الآن</span><h1>{account.title}</h1><div className="store-detail-meta"><span><small>المنصة</small><b>{account.platform}</b></span><span><small>الحالة</small><b className="green-text">متاح للتسليم</b></span></div><div className="store-detail-description"><h3>عن الحساب</h3><p>{account.description}</p><p>نراجع كل عرض قبل نشره، وتظهر الصور الرئيسية والتفاصيل كما أضافها فريق الإدارة. اسأل الدعم عن أي معلومة إضافية قبل إتمام الطلب.</p></div><div className="store-detail-price"><span>السعر</span><strong>{money(account.price)}</strong></div><div className="purchase-confidence"><span><ShieldCheck className="h-4 w-4" /><b>فحص الإدارة</b><small>بيانات العرض مراجعة</small></span><span><Package className="h-4 w-4" /><b>تسليم منظم</b><small>إيصال وخطوات واضحة</small></span><span><MessageCircle className="h-4 w-4" /><b>دعم مباشر</b><small>قبل وبعد الطلب</small></span></div>{feedback && <Notice type={feedback.startsWith('تم') ? 'success' : 'error'}>{feedback}</Notice>}{user ? <button className="primary-button large full" disabled={busy} onClick={() => void purchase()}><ShoppingBag className="h-4 w-4" />{busy ? 'جارٍ إرسال الطلب...' : `إرسال طلب شراء · ${money(account.price)}`}</button> : <button className="primary-button large full" onClick={() => void purchase()}><LogIn className="h-4 w-4" />سجّل الدخول للطلب</button>}<p className="store-safe-note"><ShieldCheck className="h-3.5 w-3.5" />يُحجز المبلغ من محفظتك فور الطلب، ويُعاد تلقائياً إذا ألغيت الطلب أو رفضته الإدارة.</p><a className="store-safe-note" href={`${contact}?text=${message}`} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" />اسأل الإدارة قبل الطلب</a><div className="purchase-steps"><span><b>01</b> إرسال الطلب</span><span><b>02</b> مراجعة الإدارة</span><span><b>03</b> التسليم الآمن</span></div></section>
+
+    <div className="sp-detail">
+      <section className="sp-gallery ex-hud">
+        <div className="sp-gallery-main"><StoreImage src={images[activeImage]} alt={account.title} /></div>
+        {images.length > 1 && <div className="sp-thumbs">{images.map((image, index) => <button type="button" className={index === activeImage ? 'is-on' : ''} key={`${image}-${index}`} onClick={() => setActiveImage(index)}><StoreImage src={image} alt={`${account.title} ${index + 1}`} /></button>)}</div>}
+      </section>
+
+      <section className="sp-buy">
+        <div className="sp-buy-badges">
+          <span className="sp-buy-badge is-live"><i />متاح للتسليم</span>
+          <span className="sp-buy-badge"><ShieldCheck className="h-3 w-3" />مراجعة يدوية</span>
+        </div>
+        <h1>{account.title}</h1>
+        <div className="sp-buy-meta">
+          <span><small>المنصة</small><b>{account.platform}</b></span>
+          {account.tag && <span><small>الشارة</small><b className="sp-gold">{account.tag}</b></span>}
+        </div>
+        <p className="sp-buy-desc">{account.description}</p>
+
+        <div className="sp-price-box">
+          <div><small>السعر النهائي</small><strong>{money(account.price)}</strong></div>
+          {user && <div className="sp-balance"><small>رصيد محفظتك</small><strong className={shortfall > 0 ? 'is-short' : ''}>{money(user.balance)}</strong></div>}
+        </div>
+
+        <div className="sp-confidence">
+          <span><ShieldCheck className="h-4 w-4" /><b>فحص الإدارة</b><small>بيانات العرض مراجعة</small></span>
+          <span><Package className="h-4 w-4" /><b>تسليم منظم</b><small>إيصال وخطوات واضحة</small></span>
+          <span><MessageCircle className="h-4 w-4" /><b>دعم مباشر</b><small>قبل وبعد الطلب</small></span>
+        </div>
+
+        {feedback && <Notice type={feedback.startsWith('تم') ? 'success' : 'error'}>{feedback}</Notice>}
+        {feedback && shortfall > 0 && <button type="button" className="sp-btn primary full" onClick={() => setLocation('/profile')}><ArrowDownToLine className="h-4 w-4" />اشحن محفظتك بـ {money(shortfall)}</button>}
+        {!feedback && (user
+          ? <button type="button" className="sp-btn primary large full" disabled={busy} onClick={() => void purchase()}><ShoppingBag className="h-4 w-4" />{busy ? 'جارٍ إرسال الطلب...' : `إرسال طلب شراء · ${money(account.price)}`}</button>
+          : <button type="button" className="sp-btn primary large full" onClick={() => void purchase()}><LogIn className="h-4 w-4" />سجّل الدخول للطلب</button>)}
+
+        <p className="sp-safe"><ShieldCheck className="h-3.5 w-3.5" />يُحجز المبلغ من محفظتك فور الطلب، ويُعاد تلقائياً إذا ألغيت الطلب أو رفضته الإدارة.</p>
+        <a className="sp-safe" href={`${contact}?text=${message}`} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" />اسأل الإدارة قبل الطلب</a>
+
+        <div className="sp-steps"><span><b>01</b>إرسال الطلب</span><span><b>02</b>مراجعة الإدارة</span><span><b>03</b>التسليم الآمن</span></div>
+      </section>
     </div>
+
+    {similar.length > 0 && <section className="sp-similar">
+      <div className="sp-catalog-head"><div><span className="sp-eyebrow">عروض مشابهة</span><h2>حسابات أخرى على {account.platform}</h2></div></div>
+      <div className="sp-grid">{similar.map(item => <StoreAccountCard item={item} key={item.id} />)}</div>
+    </section>}
   </div>;
 }
-function StoreRechargePage() { const { settings, user } = useArena(); const [, setLocation] = useLocation(); const packages = rechargePackagesFrom(settings).filter(item => item.active); const [selectedPackage, setSelectedPackage] = useState<RechargePackage | null>(null); const openRecharge = (pack: RechargePackage) => user ? setSelectedPackage(pack) : setLocation('/login?returnTo=/store/recharge'); return <div className="shell page-wrap store-page"><PageTitle icon={Gamepad2} title="شحن كوينز eFootball" subtitle="اختر عدد الكوينز، ادفع بالدولار، وأرسل الطلب إلى حسابك في eFootball." /><StoreTabs current="recharge" /><div className="store-section-heading"><div><span className="eyebrow muted">الكوينز / الباقات</span><h2>باقات كوينز eFootball</h2><p>السعر بالدولار وعدد الكوينز قابلان للتعديل من لوحة تحكم المتجر.</p></div></div><div className="recharge-grid">{packages.map(item => <article className="recharge-card" key={item.id}><span className="recharge-icon"><Gamepad2 className="h-5 w-5" /></span><small>{item.title}</small><strong>{money(item.price)}</strong><span className="recharge-coins">{item.coins.toLocaleString('en-US')} كوينز eFootball</span>{item.bonus && <span className="recharge-bonus">{item.bonus}</span>}<p>{item.description}</p><button className="primary-button full" onClick={() => openRecharge(item)}>طلب شحن الكوينز <ArrowLeft className="h-4 w-4" /></button></article>)}</div>{selectedPackage && user && <CoinRechargeModal pack={selectedPackage} onClose={() => setSelectedPackage(null)} />}</div>; }
+
+function StoreRechargePage() {
+  const { settings, user } = useArena();
+  const [, setLocation] = useLocation();
+  const packages = rechargePackagesFrom(settings).filter(item => item.active);
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<RechargePackage | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const best = packages.reduce((acc, item) => (item.coins > (acc?.coins || 0) ? item : acc), packages[0]);
+  const cheapestPerCoin = packages.reduce((acc, item) => (item.price / item.coins < (acc ? acc.price / acc.coins : Infinity) ? item : acc), null as RechargePackage | null);
+  const filtered = packages.filter(item => String(item.coins).includes(query.trim()) || item.title.includes(query.trim()) || (item.bonus || '').includes(query.trim()));
+  const open = (pack: RechargePackage) => { if (!user) return setLocation('/login?returnTo=/store/recharge'); setSelected(pack); setModalOpen(true); };
+  const perCoin = (pack: RechargePackage) => ((pack.price / pack.coins) * 100).toFixed(3);
+
+  return <div className="shell page-wrap store-page sp-page">
+    <StoreTabs current="recharge" />
+
+    <header className="sp-coin-hero ex-hud">
+      <span className="sp-hero-glow g-one" aria-hidden="true" />
+      <span className="sp-hero-grid" aria-hidden="true" />
+      <div className="sp-coin-hero-copy">
+        <span className="sp-hero-eyebrow"><i />كوينز eFootball</span>
+        <h1>اشحن كوينزك<br /><em>بسعر الويب.</em></h1>
+        <p>باقات رسمية بخصم {Math.round(ARENA_COIN_DISCOUNT * 100)}% عن سعر Konami الرسمي. تُسلَّم مباشرة إلى معرّف eFootball الخاص بك بعد تأكيد الإدارة.</p>
+        <div className="sp-coin-facts">
+          <span><Percent className="h-4 w-4" />توفير {Math.round(ARENA_COIN_DISCOUNT * 100)}% على كل باقة</span>
+          <span><Package className="h-4 w-4" />تسليم مباشر بالمعرّف</span>
+          <span><ShieldCheck className="h-4 w-4" />استعادة تلقائية عند الرفض</span>
+        </div>
+      </div>
+      <div className="sp-coin-art" aria-hidden="true">
+        <span className="sp-orbit o-one" /><span className="sp-orbit o-two" />
+        <div className="sp-art-core is-coin"><Coins className="h-9 w-9" /><strong>COINS</strong><small>WEB<br />RATE</small></div>
+      </div>
+    </header>
+
+    <div className="sp-coin-toolbar">
+      <div className="sp-catalog-head"><div><span className="sp-eyebrow">الباقات / {packages.length}</span><h2>باقات كوينز eFootball</h2><p>الأسعار تشمل خصم متجر الويب — اختر الباقة ثم أدخل معرّفك.</p></div></div>
+      <label className="sp-search"><Search className="h-4 w-4" /><input aria-label="البحث في الباقات" value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث بعدد الكوينز" /></label>
+    </div>
+
+    {filtered.length ? <div className="sp-packs-grid">{filtered.map(item => {
+      const popular = item.id === best?.id;
+      const bestValue = item.id === cheapestPerCoin?.id;
+      return <article className={`sp-pack ${popular ? 'is-popular' : ''}`} key={item.id}>
+        {popular && <span className="sp-pack-ribbon">الأكثر طلباً</span>}
+        {bestValue && !popular && <span className="sp-pack-ribbon is-alt">الأفضل قيمة</span>}
+        <span className="sp-pack-icon"><Coins className="h-5 w-5" /></span>
+        <strong className="sp-pack-coins">{item.coins.toLocaleString('en-US')}</strong>
+        <span className="sp-pack-label">كوينز eFootball</span>
+        <div className="sp-pack-price">{money(item.price)}</div>
+        <span className="sp-pack-rate">{perCoin(item)} سنت / كوين</span>
+        {item.bonus && <span className="sp-pack-bonus">{item.bonus}</span>}
+        <button type="button" className="sp-pack-btn" onClick={() => open(item)}>اختيار الباقة<ArrowLeft className="h-4 w-4" /></button>
+      </article>;
+    })}</div> : <Empty icon={Coins} text="لا توجد باقات مطابقة للبحث." />}
+
+    <div className="sp-coin-note panel-card">
+      <span className="sp-eyebrow"><ShieldCheck className="h-3.5 w-3.5" />كيف يعمل الشحن؟</span>
+      <div className="sp-coin-steps">
+        <span><b>01</b><strong>اختر الباقة</strong><small>حدّد عدد الكوينز المناسب لك.</small></span>
+        <span><b>02</b><strong>أدخل معرّفك</strong><small>معرّف eFootball الظاهر في اللعبة.</small></span>
+        <span><b>03</b><strong>الدفع من المحفظة</strong><small>يُخصم المبلغ ويُحجز في الضمان.</small></span>
+        <span><b>04</b><strong>تصل الكوينز</strong><small>بعد تأكيد الإدارة مباشرة.</small></span>
+      </div>
+    </div>
+
+    {modalOpen && selected && user && <CoinRechargeModal pack={selected} onClose={() => { setModalOpen(false); setSelected(null); }} />}
+  </div>;
+}
 function PayStoreOrderButton({ item }: { item: StoreOrder }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -2116,12 +2377,23 @@ function LegacyProfilePage() {
 }
 
 function ProfilePage() {
-  const { user, transactions, saveProfile } = useArena(); const [rechargeOpen, setRechargeOpen] = useState(false); const [withdrawOpen, setWithdrawOpen] = useState(false); const [whatsapp, setWhatsapp] = useState(''); const [team, setTeam] = useState(''); const [saved, setSaved] = useState(false); const [error, setError] = useState('');
+  const { user, transactions, saveProfile } = useArena(); const [rechargeOpen, setRechargeOpen] = useState(false); const [withdrawOpen, setWithdrawOpen] = useState(false); const [whatsapp, setWhatsapp] = useState(''); const [team, setTeam] = useState(''); const [preferredCurrency, setPreferredCurrency] = useState<CurrencyCode>(activeCurrency); const [saved, setSaved] = useState(false); const [error, setError] = useState('');
   useEffect(() => { setWhatsapp(user?.whatsapp || ''); setTeam(user?.favorite_team || ''); }, [user?.id, user?.whatsapp, user?.favorite_team]);
   if (!user) return <div className="shell page-wrap"><Empty icon={UserIcon} text="سجّل الدخول لعرض ملفك الشخصي." /><Link href="/login" className="primary-button">تسجيل الدخول</Link></div>;
   const selectedTeam = teamById(team); const verificationText = user.verification_status === 'APPROVED' ? 'حساب موثّق' : user.verification_status === 'PENDING' ? 'التحقق قيد المراجعة' : user.verification_status === 'REJECTED' ? 'يلزم إعادة التحقق' : 'الحساب غير مفعّل للمباريات';
-   const submit = async (event: FormEvent) => { event.preventDefault(); setError(''); const okay = await saveProfile({ whatsapp: whatsapp.trim(), favorite_team: team, favorite_team_logo: selectedTeam?.logo || '' }); if (!okay) return setError('تعذر حفظ بيانات الملف الشخصي.'); setSaved(true); setTimeout(() => setSaved(false), 1800); };
-  return <div className="shell page-wrap"><div className="profile-grid"><section className="profile-card"><div className="profile-head"><TeamLogo teamId={selectedTeam?.id} large /><span><h1>{user.username}</h1><p>{user.email}</p><StatusBadge status={user.verification_status === 'APPROVED' ? 'APPROVED' : user.verification_status === 'PENDING' ? 'PENDING' : 'OPEN_MATCH'} /></span></div><div className="profile-details"><span><small>الفريق المفضل</small><strong>{selectedTeam?.name || 'لم يختر بعد'}</strong></span><span><small>معرّف eFootball</small><strong className="mono">{user.efootball_id}</strong></span><span><small>النتائج</small><strong><i className="green-text">{user.wins} فوز</i> / <i className="red-text">{user.losses} خسارة</i></strong></span></div></section><section className="wallet-card"><div className="split-row"><span className="wallet-label"><Wallet className="h-4 w-4" />المحفظة</span><span className="active-label">نشطة</span></div><small>الرصيد المتاح</small><strong className="wallet-amount">{money(user.balance)}</strong><div className="wallet-actions"><button className="primary-button" onClick={() => setRechargeOpen(true)}><ArrowDownToLine className="h-4 w-4" />شحن</button><button className="secondary-button" onClick={() => setWithdrawOpen(true)}><ArrowUpFromLine className="h-4 w-4" />سحب</button></div></section></div><form className="panel-card profile-editor" onSubmit={submit}>{saved && <Notice>تم حفظ الملف الشخصي.</Notice>}{error && <Notice type="error">{error}</Notice>}<div className="panel-heading"><span><UserIcon className="h-4 w-4" />تخصيص الملف الشخصي</span><small>يظهر شعار الفريق كصورتك</small></div><div className="form-grid"><Field label="رقم واتساب" value={whatsapp} onChange={setWhatsapp} /><label className="form-field"><span>الفريق المفضل</span><select value={team} onChange={event => setTeam(event.target.value)}><option value="">اختر فريقاً</option>{TEAM_OPTIONS.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label></div><button className="primary-button small"><Save className="h-4 w-4" />حفظ التغييرات</button></form><section className={`panel-card verification-status-card ${user.verification_status === 'APPROVED' ? 'approved' : ''}`}><div className="panel-heading"><span><ShieldCheck className="h-4 w-4" />تفعيل الحساب</span><StatusBadge status={user.verification_status === 'APPROVED' ? 'APPROVED' : user.verification_status === 'PENDING' ? 'PENDING' : user.verification_status === 'REJECTED' ? 'REJECTED' : 'OPEN_MATCH'} /></div><p>{verificationText}. يلزم التفعيل قبل إنشاء أو قبول مباراة.</p>{user.verification_status !== 'APPROVED' && <Link href="/verify?returnTo=/profile" className="primary-button small">فتح صفحة التفعيل <ArrowLeft className="h-4 w-4" /></Link>}</section><section className="panel-card"><div className="panel-heading"><span><Activity className="h-4 w-4" />سجل المعاملات</span></div>{transactions.length ? <div className="transaction-list">{transactions.slice(0, 8).map(item => <div className="transaction-row" key={item.id}><span className={`transaction-icon ${item.amount > 0 ? 'green' : 'blue'}`}>{item.amount > 0 ? <ArrowDownToLine className="h-4 w-4" /> : <ArrowUpFromLine className="h-4 w-4" />}</span><span><strong>{item.description}</strong><small>{date(item.created_at)}</small></span><b className={item.amount > 0 ? 'green-text' : 'red-text'}>{item.amount > 0 ? '+' : ''}{money(item.amount)}</b></div>)}</div> : <Empty text="لا توجد معاملات بعد." />}</section>{rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}{withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}</div>;
+   const submit = async (event: FormEvent) => { event.preventDefault(); setError(''); setActiveCurrency(preferredCurrency); const okay = await saveProfile({ whatsapp: whatsapp.trim(), favorite_team: team, favorite_team_logo: selectedTeam?.logo || '' }); if (!okay) return setError('تعذر حفظ بيانات الملف الشخصي.'); window.dispatchEvent(new Event('arena:currency')); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  return <div className="shell page-wrap"><div className="profile-grid"><section className="profile-card"><div className="profile-head"><TeamLogo teamId={selectedTeam?.id} large /><span><h1>{user.username}</h1><p>{user.email}</p><StatusBadge status={user.verification_status === 'APPROVED' ? 'APPROVED' : user.verification_status === 'PENDING' ? 'PENDING' : 'OPEN_MATCH'} /></span></div><div className="profile-details"><span><small>الفريق المفضل</small><strong>{selectedTeam?.name || 'لم يختر بعد'}</strong></span><span><small>معرّف eFootball</small><strong className="mono">{user.efootball_id}</strong></span><span><small>النتائج</small><strong><i className="green-text">{user.wins} فوز</i> / <i className="red-text">{user.losses} خسارة</i></strong></span></div></section><section className="wallet-card"><div className="split-row"><span className="wallet-label"><Wallet className="h-4 w-4" />المحفظة</span><span className="active-label">نشطة</span></div><small>الرصيد المتاح</small><strong className="wallet-amount">{money(user.balance)}</strong><div className="wallet-actions"><button className="primary-button" onClick={() => setRechargeOpen(true)}><ArrowDownToLine className="h-4 w-4" />شحن</button><button className="secondary-button" onClick={() => setWithdrawOpen(true)}><ArrowUpFromLine className="h-4 w-4" />سحب</button></div></section></div><form className="panel-card profile-editor" onSubmit={submit}>{saved && <Notice>تم حفظ الملف الشخصي.</Notice>}{error && <Notice type="error">{error}</Notice>}<div className="panel-heading"><span><UserIcon className="h-4 w-4" />تخصيص الملف الشخصي</span><small>يظهر شعار الفريق كصورتك</small></div><Field label="رقم واتساب" value={whatsapp} onChange={setWhatsapp} />
+        <div className="currency-field">
+          <div className="currency-field-head"><span><Coins className="h-4 w-4" />عملة العرض</span><small>اختر العملة التي تُعرض بها كل الأسعار والأرصدة في الموقع.</small></div>
+          <div className="currency-grid" role="radiogroup" aria-label="اختيار عملة العرض">
+            {CURRENCIES.map(item => <button type="button" role="radio" aria-checked={preferredCurrency === item.code} key={item.code} className={`currency-option ${preferredCurrency === item.code ? 'is-on' : ''}`} onClick={() => setPreferredCurrency(item.code)}>
+              <span className="currency-symbol">{item.symbol}</span>
+              <span className="currency-copy"><strong>{item.label}</strong><small>{item.code}{item.code === 'USD' ? ' · العملة الأساسية' : ''}</small></span>
+              {preferredCurrency === item.code && <Check className="h-4 w-4" />}
+            </button>)}
+          </div>
+        </div>
+        <div className="form-grid"><label className="form-field"><span>الفريق المفضل</span><select value={team} onChange={event => setTeam(event.target.value)}><option value="">اختر فريقاً</option>{TEAM_OPTIONS.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label className="form-field"><span>معاينة العملة</span><div className="currency-preview"><strong>{money(50)}</strong><small>مثال على عرض أسعار المتجر</small></div></label></div><button className="primary-button small"><Save className="h-4 w-4" />حفظ التغييرات</button></form><section className={`panel-card verification-status-card ${user.verification_status === 'APPROVED' ? 'approved' : ''}`}><div className="panel-heading"><span><ShieldCheck className="h-4 w-4" />تفعيل الحساب</span><StatusBadge status={user.verification_status === 'APPROVED' ? 'APPROVED' : user.verification_status === 'PENDING' ? 'PENDING' : user.verification_status === 'REJECTED' ? 'REJECTED' : 'OPEN_MATCH'} /></div><p>{verificationText}. يلزم التفعيل قبل إنشاء أو قبول مباراة.</p>{user.verification_status !== 'APPROVED' && <Link href="/verify?returnTo=/profile" className="primary-button small">فتح صفحة التفعيل <ArrowLeft className="h-4 w-4" /></Link>}</section><section className="panel-card"><div className="panel-heading"><span><Activity className="h-4 w-4" />سجل المعاملات</span></div>{transactions.length ? <div className="transaction-list">{transactions.slice(0, 8).map(item => <div className="transaction-row" key={item.id}><span className={`transaction-icon ${item.amount > 0 ? 'green' : 'blue'}`}>{item.amount > 0 ? <ArrowDownToLine className="h-4 w-4" /> : <ArrowUpFromLine className="h-4 w-4" />}</span><span><strong>{item.description}</strong><small>{date(item.created_at)}</small></span><b className={item.amount > 0 ? 'green-text' : 'red-text'}>{item.amount > 0 ? '+' : ''}{money(item.amount)}</b></div>)}</div> : <Empty text="لا توجد معاملات بعد." />}</section>{rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}{withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}</div>;
 }
 
  function AccountVerificationPage() {
@@ -2857,5 +3129,8 @@ function MatchDetailRoute() {
 }
 
 function NotFound() { return <div className="shell page-wrap"><Empty icon={AlertCircle} text="الصفحة التي تبحث عنها غير موجودة." /><Link href="/store" className="primary-button">العودة إلى المتجر</Link></div>; }
-  function AppShell() { return <ArenaProvider><SiteMeta /><a className="skip-link" href="#main-content">تخطي إلى المحتوى</a><PublicNavbar /><main id="main-content" className="main-content"><Switch><Route path="/" component={HomePage} /><Route path="/store/accounts/:id" component={StoreAccountDetailPage} /><Route path="/store/recharge" component={StoreRechargePage} /><Route path="/live" component={StoreLivePage} /><Route path="/store" component={StorePage} /><Route path="/arena" component={HomePage} /><Route path="/matches/:id" component={MatchDetailRoute} /><Route path="/matches" component={MatchesPage} /><Route path="/tournaments" component={TournamentsPage} /><Route path="/leaderboard" component={LeaderboardPage} /><Route path="/momentum" component={MomentumPage} /><Route path="/orders" component={StoreOrdersPage} /><Route path="/notifications" component={NotificationsPage} /><Route path="/support" component={SupportPage} /><Route path="/rate/:id" component={RateMatchPage} /><Route path="/terms"><LegalPage kind="terms" /></Route><Route path="/privacy"><LegalPage kind="privacy" /></Route><Route path="/rules"><LegalPage kind="rules" /></Route><Route path="/profile" component={ProfilePage} /><Route path="/verify" component={AccountVerificationPage} /><Route path="/login"><AuthPage mode="login" /></Route><Route path="/register"><AuthPage mode="register" /></Route><Route path="/admin/:section" component={AdminPage} /><Route path="/admin" component={AdminPage} /><Route component={NotFound} /></Switch></main></ArenaProvider>; }
+  function AppShell() {
+  const [, forceCurrency] = useState(0);
+  useEffect(() => { const onChange = () => forceCurrency(n => n + 1); window.addEventListener('arena:currency', onChange); return () => window.removeEventListener('arena:currency', onChange); }, []);
+  return <ArenaProvider><SiteMeta /><a className="skip-link" href="#main-content">تخطي إلى المحتوى</a><PublicNavbar /><main id="main-content" className="main-content"><Switch><Route path="/" component={HomePage} /><Route path="/store/accounts/:id" component={StoreAccountDetailPage} /><Route path="/store/recharge" component={StoreRechargePage} /><Route path="/live" component={StoreLivePage} /><Route path="/store" component={StorePage} /><Route path="/arena" component={HomePage} /><Route path="/matches/:id" component={MatchDetailRoute} /><Route path="/matches" component={MatchesPage} /><Route path="/tournaments" component={TournamentsPage} /><Route path="/leaderboard" component={LeaderboardPage} /><Route path="/momentum" component={MomentumPage} /><Route path="/orders" component={StoreOrdersPage} /><Route path="/notifications" component={NotificationsPage} /><Route path="/support" component={SupportPage} /><Route path="/rate/:id" component={RateMatchPage} /><Route path="/terms"><LegalPage kind="terms" /></Route><Route path="/privacy"><LegalPage kind="privacy" /></Route><Route path="/rules"><LegalPage kind="rules" /></Route><Route path="/profile" component={ProfilePage} /><Route path="/verify" component={AccountVerificationPage} /><Route path="/login"><AuthPage mode="login" /></Route><Route path="/register"><AuthPage mode="register" /></Route><Route path="/admin/:section" component={AdminPage} /><Route path="/admin" component={AdminPage} /><Route component={NotFound} /></Switch></main></ArenaProvider>; }
 export default AppShell;
