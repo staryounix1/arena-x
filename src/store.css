@@ -726,3 +726,65 @@
   .sp-confidence small{grid-column:2}
   .sp-steps span{flex:1;justify-content:center}
 }
+
+/* Store ownership states: reserved / pending payment / sold-to-user */
+.sp-card.is-owned.tone-reserved{border-color:rgba(245,184,75,.4);background:linear-gradient(145deg,rgba(38,31,12,.92),rgba(10,15,22,.98))}
+.sp-card.is-owned.tone-pending_pay{border-color:rgba(99,179,255,.42);background:linear-gradient(145deg,rgba(16,32,48,.92),rgba(10,15,22,.98))}
+.sp-card.is-owned.tone-sold{border-color:rgba(66,228,165,.5);background:linear-gradient(145deg,rgba(14,44,38,.92),rgba(10,15,22,.98))}
+.sp-card-own{position:absolute;z-index:2;top:13px;left:13px;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:999px;font-size:9px;font-weight:900;box-shadow:0 10px 22px rgba(0,0,0,.32)}
+.sp-card-own.is-reserved{color:#241c07;background:linear-gradient(135deg,#ffd27a,#f5b84b)}
+.sp-card-own.is-pending_pay{color:#eaf4ff;background:rgba(99,179,255,.9)}
+.sp-card-own.is-sold{color:#04120d;background:linear-gradient(135deg,#5cf0b6,#2fc9a5)}
+.sp-card-cta.is-reserved{color:#241c07;background:linear-gradient(135deg,#ffd27a,#f5b84b)}
+.sp-card-cta.is-pay{color:#eaf4ff;background:rgba(99,179,255,.9)}
+.sp-card-cta.is-owned{color:#04120d;background:linear-gradient(135deg,#5cf0b6,#2fc9a5)}
+
+.sp-mine{position:relative;margin:0 0 30px;padding:24px 26px;border:1px solid rgba(66,228,165,.26);border-radius:24px;background:radial-gradient(circle at 92% 10%,rgba(66,228,165,.14),transparent 42%),linear-gradient(120deg,rgba(14,42,40,.9),rgba(10,15,22,.96))}
+.sp-mine-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.sp-mine-link{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-size:10px;font-weight:800}
+.sp-mine-link:hover{text-decoration:underline}
+.sp-mine-stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.sp-mine-stat{display:flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid var(--line);border-radius:14px;background:rgba(6,13,18,.5)}
+.sp-mine-stat>span{display:grid;gap:1px}
+.sp-mine-stat b{font-family:var(--app-font-mono);font-size:17px;direction:ltr;line-height:1}
+.sp-mine-stat small{color:var(--muted);font-size:9px}
+.sp-mine-stat.tone-reserved{border-color:rgba(245,184,75,.32);color:var(--amber)}
+.sp-mine-stat.tone-pending{border-color:rgba(99,179,255,.32);color:#7cc4ff}
+.sp-mine-stat.tone-sold{border-color:rgba(66,228,165,.36);color:var(--green)}
+.sp-mine-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sp-mine-item{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 13px;border:1px solid var(--line);border-radius:15px;background:rgba(8,13,18,.6);transition:.2s}
+.sp-mine-item:hover{border-color:rgba(66,228,165,.45);transform:translateX(-3px)}
+.sp-mine-thumb{display:block;width:52px;height:42px;overflow:hidden;border-radius:10px;background:#081219}
+.sp-mine-thumb img{width:100%;height:100%;object-fit:cover}
+.sp-mine-copy{display:grid;gap:2px;min-width:0}
+.sp-mine-copy strong{overflow:hidden;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.sp-mine-copy small{color:var(--muted);font-size:9px;direction:ltr}
+.sp-mine-tag{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;font-size:9px;font-weight:900;white-space:nowrap}
+.sp-mine-tag.is-reserved{color:#241c07;background:linear-gradient(135deg,#ffd27a,#f5b84b)}
+.sp-mine-tag.is-pending_pay{color:#eaf4ff;background:rgba(99,179,255,.9)}
+.sp-mine-tag.is-sold{color:#04120d;background:linear-gradient(135deg,#5cf0b6,#2fc9a5)}
+
+.sp-buy-badge.is-sold{color:var(--green);border-color:rgba(66,228,165,.4);background:rgba(66,228,165,.1)}
+.sp-buy-badge.is-reserved{color:var(--amber);border-color:rgba(245,184,75,.36);background:rgba(245,184,75,.09)}
+.sp-buy-badge.is-pending{color:#7cc4ff;border-color:rgba(99,179,255,.36);background:rgba(99,179,255,.1)}
+.sp-own-banner{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px;margin:20px 0 0;padding:15px 17px;border:1px solid var(--line);border-radius:16px;background:rgba(11,17,24,.72)}
+.sp-own-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px}
+.sp-own-banner>span:nth-child(2){display:grid;gap:3px}
+.sp-own-banner strong{font-size:13px}
+.sp-own-banner small{color:var(--muted);font-size:10px;line-height:1.7}
+.sp-own-link{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border:1px solid var(--line-strong);border-radius:10px;color:var(--text);font-size:10px;font-weight:800;white-space:nowrap}
+.sp-own-link:hover{border-color:rgba(66,228,165,.45);color:var(--green)}
+.sp-own-banner.tone-reserved{border-color:rgba(245,184,75,.32)}
+.sp-own-banner.tone-reserved .sp-own-icon{color:var(--amber);background:rgba(245,184,75,.12)}
+.sp-own-banner.tone-pending_pay{border-color:rgba(99,179,255,.32)}
+.sp-own-banner.tone-pending_pay .sp-own-icon{color:#7cc4ff;background:rgba(99,179,255,.12)}
+.sp-own-banner.tone-sold{border-color:rgba(66,228,165,.36)}
+.sp-own-banner.tone-sold .sp-own-icon{color:var(--green);background:rgba(66,228,165,.12)}
+
+@media (max-width:900px){.sp-mine-list{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .sp-mine{padding:20px 17px;border-radius:20px}
+  .sp-mine-stats{display:grid;grid-template-columns:1fr;gap:8px}
+  .sp-own-banner{grid-template-columns:auto 1fr;row-gap:10px}
+  .sp-own-link{grid-column:1/-1;justify-content:center}
+}
