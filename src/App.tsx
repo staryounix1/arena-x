@@ -1434,13 +1434,170 @@ function MatchCard({ match, user, onJoin, onOpen }: { match: Match; user: User |
 }
 
 function MatchDetailPageV2() {
-  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]); const { id } = useParams<{ id: string }>(); const { matches, user, setMatchRoom, addMessage, openDispute, joinMatch, submitMatchResultClaim } = useArena(); const [, setLocation] = useLocation(); const match = matches.find(item => item.id === id); const [chat, setChat] = useState(''); const [code, setCode] = useState(match?.room_code || ''); const [disputeOpen, setDisputeOpen] = useState(false); const [subject, setSubject] = useState(''); const [details, setDetails] = useState(''); const [message, setMessage] = useState('');
-  if (!match) return <div className="shell page-wrap"><Empty text="المباراة غير موجودة." /><Link href="/matches" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المباريات</Link></div>;
-  const participant = !!user && (user.id === match.creator_id || user.id === match.opponent_id); const canClaim = participant && !!match.opponent_id && !!match.room_code && ['PLAYING', 'COMPLETED', 'DISPUTE'].includes(match.status) && match.payout_status !== 'APPROVED'; const ownClaim = user?.id === match.creator_id ? match.creator_claim : match.opponent_claim; const rivalClaim = user?.id === match.creator_id ? match.opponent_claim : match.creator_claim; const claimText = (winnerId?: string) => winnerId ? winnerId === user?.id ? 'أنا ربحت' : 'الخصم ربح' : 'لم يرسل بعد';
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const { id } = useParams<{ id: string }>();
+  const { matches, user, setMatchRoom, addMessage, openDispute, joinMatch, submitMatchResultClaim } = useArena();
+  const [, setLocation] = useLocation();
+  const match = matches.find(item => item.id === id);
+  const [chat, setChat] = useState('');
+  const [code, setCode] = useState(match?.room_code || '');
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [details, setDetails] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  if (!match) return <div className="ex"><div className="ex-shell ex-section"><div className="ex-empty"><Swords className="h-7 w-7" /><div><strong>المباراة غير موجودة</strong><p>قد تكون أُلغيت أو حُذفت. عد إلى قائمة المباريات.</p></div><Link href="/matches" className="ex-btn ghost">كل المباريات</Link></div></div></div>;
+
+  const participant = !!user && (user.id === match.creator_id || user.id === match.opponent_id);
+  const canClaim = participant && !!match.opponent_id && !!match.room_code && ['PLAYING', 'COMPLETED', 'DISPUTE'].includes(match.status) && match.payout_status !== 'APPROVED';
+  const ownClaim = user?.id === match.creator_id ? match.creator_claim : match.opponent_claim;
+  const rivalClaim = user?.id === match.creator_id ? match.opponent_claim : match.creator_claim;
+  const claimText = (winnerId?: string) => winnerId ? winnerId === user?.id ? 'أنا ربحت' : 'الخصم ربح' : 'لم يرسل بعد';
+  const isHost = user?.id === match.creator_id;
+  const isOpen = match.status === 'OPEN';
+  const shortRef = String(match.id).slice(0, 8).toUpperCase();
+
+  const steps: [string, boolean][] = [
+    ['إنشاء المباراة', true],
+    ['انضمام المنافس', !!match.opponent_id],
+    ['تحديد رمز الغرفة', !!match.room_code],
+    ['تصريح النتيجة', !!match.creator_claim && !!match.opponent_claim],
+    ['اعتماد الجائزة', match.payout_status === 'APPROVED'],
+  ];
+  const currentStep = steps.findIndex(([, done]) => !done);
+
   const submitChat = (event: FormEvent) => { event.preventDefault(); if (!chat.trim()) return; addMessage(match.id, chat); setChat(''); };
-  const submitClaim = async (winnerId: string) => { const ok = await submitMatchResultClaim(match.id, winnerId); setMessage(ok ? 'تم إرسال تصريحك بالنتيجة. ستراجع الإدارة تصريحات اللاعبين قبل صرف الجائزة.' : 'تعذر إرسال التصريح. تأكد أن المباراة ما زالت قيد المراجعة.'); };
+  const submitClaim = async (winnerId: string) => { setBusy(true); const ok = await submitMatchResultClaim(match.id, winnerId); setBusy(false); setMessage(ok ? 'تم إرسال تصريحك بالنتيجة. ستراجع الإدارة تصريحات اللاعبين قبل صرف الجائزة.' : 'تعذر إرسال التصريح. تأكد أن المباراة ما زالت قيد المراجعة.'); };
   const submitDispute = (event: FormEvent) => { event.preventDefault(); openDispute(match.id, subject, details, evidenceFiles); setEvidenceFiles([]); setDisputeOpen(false); setMessage('تم فتح النزاع وسيظهر في لوحة الإدارة.'); };
-  return <div className="shell page-wrap"><Link href="/matches" className="back-link"><ArrowRight className="h-4 w-4" />العودة إلى المباريات</Link>{message && <Notice>{message}</Notice>}<div className="detail-card"><div className="detail-head"><span className="mono">#{match.id} • {match.platform}</span><StatusBadge status={match.status} /></div><div className="detail-versus"><div className="detail-player"><b>{initials(match.creator_name)}</b><strong>{match.creator_name}</strong><small>{match.creator_efootball_id}</small></div><div className="detail-prize"><span>الجائزة</span><strong>{money(match.prize)}</strong><small>الرهان: {money(match.stake)} لكل لاعب</small></div><div className="detail-player"><b>{initials(match.opponent_name || '؟')}</b><strong>{match.opponent_name || 'بانتظار منافس'}</strong><small>{match.opponent_efootball_id || 'لم ينضم بعد'}</small></div></div>{match.status === 'OPEN' && user && user.id !== match.creator_id && <button className="primary-button" onClick={() => void joinMatch(match.id).then(ok => setMessage(ok ? 'تم الانضمام إلى المباراة بنجاح.' : 'تعذر الانضمام إلى المباراة.'))}>قبول التحدي</button>}{participant && <div className="room-code"><span>رمز الغرفة</span><strong>{code || 'لم يحدده المضيف بعد'}</strong><button onClick={() => navigator.clipboard?.writeText(code)} aria-label="نسخ"><Copy className="h-4 w-4" /></button>{user && user.id === match.creator_id && <div className="inline-edit"><input value={code} onChange={event => setCode(event.target.value)} placeholder="أدخل رمز الغرفة" /><button onClick={() => void setMatchRoom(match.id, code).then(ok => setMessage(ok ? 'تم حفظ رمز الغرفة.' : 'تعذر حفظ رمز الغرفة.'))}><Save className="h-4 w-4" />حفظ</button></div>}</div>}{canClaim && user && <div className="result-claim-panel"><div className="panel-heading"><span><CheckCircle2 className="h-4 w-4" />تصريح نتيجة المباراة</span><small>اختر بعد انتهاء المواجهة</small></div><p>اختر النتيجة التي تؤكدها. ستظهر تصريحات الطرفين للإدارة قبل اعتماد الجائزة.</p><div className="claim-actions"><button className="primary-button" onClick={() => submitClaim(user.id)}>أنا ربحت</button><button className="secondary-button" onClick={() => submitClaim(user.id === match.creator_id ? match.opponent_id! : match.creator_id)}>الخصم ربح</button></div><div className="claim-summary"><span><small>تصريحك</small><b>{claimText(ownClaim)}</b></span><span><small>تصريح الخصم</small><b>{claimText(rivalClaim)}</b></span></div></div>}<div className="detail-columns"><div className="chat-panel"><div className="panel-heading"><span><MessageCircle className="h-4 w-4" />محادثة المباراة</span><small>{match.messages.length} رسائل</small></div><div className="chat-messages">{match.messages.length ? match.messages.map(item => <div className={item.user_id === user?.id ? 'chat-message own' : 'chat-message'} key={item.id}><b>{item.username}</b><span>{item.message}</span></div>) : <Empty icon={MessageCircle} text="لا توجد رسائل بعد." />}</div>{participant && <form className="chat-form" onSubmit={submitChat}><input value={chat} onChange={event => setChat(event.target.value)} placeholder="اكتب رسالة للمنافس" /><button className="primary-button small" aria-label="إرسال"><ArrowLeft className="h-4 w-4" /></button></form>}</div><aside className="detail-side"><div className="panel-heading"><span><ShieldCheck className="h-4 w-4" />حماية المباراة</span></div><p>لا يتم صرف الجائزة إلا بعد مراجعة النتيجة من الإدارة.</p>{participant && <button className="danger-button full" onClick={() => setDisputeOpen(true)}><AlertTriangle className="h-4 w-4" />فتح نزاع</button>}</aside></div></div>{disputeOpen && <Modal onClose={() => setDisputeOpen(false)} wide><div className="modal-heading"><span className="panel-icon red"><AlertTriangle className="h-5 w-5" /></span><span><h2>فتح نزاع على المباراة</h2><p>أرسل تفاصيل واضحة وأرفق الأدلة إن وجدت.</p></span></div><form className="modal-body form-stack" onSubmit={submitDispute}><Field label="موضوع النزاع" value={subject} onChange={setSubject} placeholder="مثال: النتيجة غير صحيحة" /><label className="form-field"><span>التفاصيل</span><textarea value={details} onChange={event => setDetails(event.target.value)} rows={5} required /></label><label className="form-field"><span>الأدلة</span><input type="file" multiple onChange={event => setEvidenceFiles(Array.from(event.target.files || []))} /></label><button className="primary-button full">إرسال النزاع</button></form></Modal>}</div>;
+  const doJoin = async () => {
+    if (!user) return setLocation('/login');
+    setBusy(true);
+    const ok = await joinMatch(match.id);
+    setBusy(false);
+    setMessage(ok ? 'تم الانضمام إلى المباراة بنجاح.' : 'تعذر الانضمام إلى المباراة.');
+  };
+  const copyCode = () => { if (!code) return; navigator.clipboard?.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1800); };
+
+  return <div className="ex">
+    <div className="ex-shell ex-section" style={{ paddingBottom: 0 }}>
+      <Link href="/matches" className="ex-more" style={{ marginBottom: 18, display: 'inline-flex' }}><ArrowRight className="h-4 w-4" />العودة إلى المباريات</Link>
+      {message && <Notice>{message}</Notice>}
+
+      <div className="ex-room-head">
+        <div className="ex-room-ref">
+          <span className={`ex-room-state s-${(match.status || '').toLowerCase()}`}>{roomStatusLabel(match.status)}</span>
+          <span className="ex-room-id">مرجع #{shortRef} • {match.platform}</span>
+        </div>
+        <div className="ex-room-title">
+          <h1 className="ex-title" style={{ fontSize: 'clamp(24px, 4vw, 40px)', margin: 0 }}>{match.title}</h1>
+          <p className="ex-sub" style={{ marginTop: 8 }}>{roomHint(match, participant)}</p>
+        </div>
+        {isOpen && user && !isHost && <button className="ex-btn primary" disabled={busy} onClick={doJoin}>{busy ? 'جارٍ الانضمام…' : 'قبول التحدي'}<ArrowLeft className="h-4 w-4" /></button>}
+      </div>
+
+      <div className="ex-steps-bar">
+        {steps.map(([label, done], index) => <div key={label} className={`ex-step-pip ${done ? 'is-done' : index === currentStep ? 'is-now' : ''}`}><i>{done ? <Check className="h-3.5 w-3.5" /> : index + 1}</i><small>{label}</small></div>)}
+      </div>
+    </div>
+
+    <div className="ex-shell ex-section" style={{ paddingTop: 30 }}>
+      <div className={`ex-room-versus ${isOpen ? 'is-open' : ''}`}>
+        <div className="ex-room-side">
+          <UserAvatar username={match.creator_name} />
+          <strong>{match.creator_name}</strong>
+          <small>{match.creator_efootball_id || '—'}</small>
+          {isHost && <span className="ex-room-you">أنت</span>}
+        </div>
+        <div className="ex-room-mid">
+          <small>الجائزة المضمونة</small>
+          <b>{money(match.prize)}</b>
+          <span>الرهان {money(match.stake)} لكل لاعب</span>
+          <i className="ex-room-vs">ضد</i>
+        </div>
+        <div className="ex-room-side is-opponent">
+          <UserAvatar username={match.opponent_name || 'بانتظار منافس'} />
+          <strong>{match.opponent_name || 'بانتظار منافس'}</strong>
+          <small>{match.opponent_efootball_id || (isOpen ? 'لم ينضم بعد' : '—')}</small>
+        </div>
+      </div>
+
+      <div className="ex-room-grid">
+        <div className="ex-room-main">
+          {participant && <div className="ex-room-code ex-hud">
+            <div className="ex-room-code-top"><span className="ex-room-card-title"><Gamepad2 className="h-4 w-4" />رمز الغرفة</span>{match.room_code && <span className="ex-room-ok"><CheckCircle2 className="h-3.5 w-3.5" />جاهز</span>}</div>
+            {match.room_code
+              ? <div className="ex-room-code-value"><code>{match.room_code}</code><button type="button" className="ex-room-copy" onClick={copyCode}>{copied ? <><Check className="h-4 w-4" />تم النسخ</> : <><Copy className="h-4 w-4" />نسخ</>}</button></div>
+              : <p className="ex-room-code-empty">{isHost ? 'أنشئ الغرفة في eFootball ثم أدخل الرمز هنا ليراه منافسك.' : 'بانتظار أن يحدّد المضيف رمز الغرفة.'}</p>}
+            {isHost && <div className="ex-room-code-edit"><input value={code} onChange={event => setCode(event.target.value)} placeholder="أدخل رمز الغرفة" aria-label="رمز الغرفة" /><button className="ex-btn primary" onClick={() => void setMatchRoom(match.id, code).then(ok => setMessage(ok ? 'تم حفظ رمز الغرفة.' : 'تعذر حفظ رمز الغرفة.'))}><Save className="h-4 w-4" />حفظ</button></div>}
+          </div>}
+
+          {canClaim && user && <div className="ex-room-card ex-hud">
+            <span className="ex-room-card-title"><CheckCircle2 className="h-4 w-4" />تصريح نتيجة المباراة</span>
+            <p className="ex-room-note">اختر النتيجة التي تؤكدها. ستظهر تصريحات الطرفين للإدارة قبل اعتماد الجائزة.</p>
+            <div className="ex-room-claims">
+              <button className="ex-btn primary" disabled={busy || !!ownClaim} onClick={() => submitClaim(user.id)}>{ownClaim ? 'تم إرسال تصريحك' : 'أنا ربحت'}</button>
+              <button className="ex-btn ghost" disabled={busy || !!ownClaim} onClick={() => submitClaim(user.id === match.creator_id ? match.opponent_id! : match.creator_id)}>الخصم ربح</button>
+            </div>
+            <div className="ex-room-claim-summary">
+              <span><small>تصريحك</small><b>{claimText(ownClaim)}</b></span>
+              <span><small>تصريح الخصم</small><b>{claimText(rivalClaim)}</b></span>
+            </div>
+          </div>}
+
+          <div className="ex-room-chat ex-hud">
+            <div className="ex-room-chat-head"><span className="ex-room-card-title"><MessageCircle className="h-4 w-4" />محادثة المباراة</span><small>{match.messages.length} رسالة</small></div>
+            <div className="ex-room-chat-body">
+              {match.messages.length
+                ? match.messages.map(item => <div className={item.user_id === user?.id ? 'ex-msg own' : 'ex-msg'} key={item.id}><b>{item.username}</b><span>{item.message}</span></div>)
+                : <div className="ex-room-chat-empty"><MessageCircle className="h-7 w-7" /><p>لا توجد رسائل بعد.</p><small>اتفق مع منافسك على رمز الغرفة ووقت البدء.</small></div>}
+            </div>
+            {participant
+              ? <form className="ex-room-chat-form" onSubmit={submitChat}><input value={chat} onChange={event => setChat(event.target.value)} placeholder="اكتب رسالة للمنافس" aria-label="رسالة" /><button className="ex-btn primary" aria-label="إرسال"><ArrowLeft className="h-4 w-4" /></button></form>
+              : <div className="ex-room-chat-locked">انضم إلى المباراة للمشاركة في المحادثة.</div>}
+          </div>
+        </div>
+
+        <aside className="ex-room-side-col">
+          <div className="ex-room-card ex-hud">
+            <span className="ex-room-card-title"><ShieldCheck className="h-4 w-4" />حماية المباراة</span>
+            <ul className="ex-lobby-list">
+              <li>الرهان محجوز داخل الضمان حتى اعتماد النتيجة.</li>
+              <li>لا تُصرف الجائزة إلا بعد مراجعة الإدارة.</li>
+              <li>في حال اختلاف النتيجة، افتح نزاعاً وأرفق الأدلة.</li>
+            </ul>
+          </div>
+          <div className="ex-room-card ex-hud">
+            <span className="ex-room-card-title"><Clock3 className="h-4 w-4" />تفاصيل المباراة</span>
+            <div className="ex-room-kv"><small>رقم المرجع</small><b>#{shortRef}</b></div>
+            <div className="ex-room-kv"><small>المنصة</small><b>{match.platform}</b></div>
+            <div className="ex-room-kv"><small>الحالة</small><b>{roomStatusLabel(match.status)}</b></div>
+            <div className="ex-room-kv"><small>تصريح المضيف</small><b>{claimText(match.creator_claim)}</b></div>
+            <div className="ex-room-kv"><small>تصريح المنافس</small><b>{claimText(match.opponent_claim)}</b></div>
+          </div>
+          {participant && <div className="ex-room-card ex-hud">
+            <span className="ex-room-card-title"><AlertTriangle className="h-4 w-4" />خلاف على النتيجة؟</span>
+            <p className="ex-room-note">أرسل التفاصيل والأدلة وسيتدخل فريق الدعم لحل الأمر.</p>
+            <button className="ex-btn ghost full" onClick={() => setDisputeOpen(true)}><AlertTriangle className="h-4 w-4" />فتح نزاع</button>
+          </div>}
+        </aside>
+      </div>
+    </div>
+
+    {disputeOpen && <Modal onClose={() => setDisputeOpen(false)} wide><div className="ex-cmodal"><div className="ex-cmodal-bar"><span className="ex-cmodal-ico"><AlertTriangle className="h-5 w-5" /></span><span><h2>فتح نزاع على المباراة</h2><p>أرسل تفاصيل واضحة وأرفق الأدلة إن وجدت.</p></span></div><form className="ex-cmodal-body" onSubmit={submitDispute}><label className="ex-field"><span>موضوع النزاع</span><input value={subject} onChange={event => setSubject(event.target.value)} placeholder="مثال: النتيجة غير صحيحة" required /></label><label className="ex-field"><span>التفاصيل</span><textarea value={details} onChange={event => setDetails(event.target.value)} rows={5} required /></label><label className="ex-field"><span>الأدلة</span><span className="ex-room-file"><input type="file" multiple onChange={event => setEvidenceFiles(Array.from(event.target.files || []))} />{evidenceFiles.length ? `${evidenceFiles.length} ملف مرفق` : 'اختر صوراً أو مقاطع'}</span></label><div className="ex-cmodal-actions"><button type="button" className="ex-btn ghost" onClick={() => setDisputeOpen(false)}>إلغاء</button><button className="ex-btn primary" type="submit">إرسال النزاع<ArrowLeft className="h-4 w-4" /></button></div></form></div></Modal>}
+  </div>;
+}
+
+function roomStatusLabel(status: string) {
+  return ({ OPEN: 'مفتوحة', PLAYING: 'قيد اللعب', COMPLETED: 'مكتملة', CANCELLED: 'ملغاة', DISPUTE: 'نزاع' } as Record<string, string>)[status] || status;
+}
+function roomHint(match: Match, participant: boolean) {
+  if (match.status === 'OPEN') return match.opponent_id ? 'اكتمل الطرفان. حدّد رمز الغرفة وابدأ المواجهة.' : 'بانتظار منافس. شارك التحدي أو انتظر انضمام لاعب.';
+  if (match.status === 'PLAYING') return match.room_code ? 'الغرفة جاهزة. العب المباراة ثم صرّح بالنتيجة.' : 'قيد اللعب — تأكد من تحديد رمز الغرفة.';
+  if (match.status === 'COMPLETED') return 'المباراة مكتملة. تظهر الجائزة بعد اعتماد النتيجة.';
+  if (match.status === 'DISPUTE') return 'هناك نزاع مفتوح. سيتواصل فريق الدعم لحله.';
+  return participant ? 'تابع تفاصيل المباراة أدناه.' : 'اطّلع على تفاصيل المواجهة.';
 }
 
 function CancelMatchControl({ match }: { match: Match }) {
