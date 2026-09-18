@@ -49,7 +49,7 @@ BEGIN
       'whatsapp_mode', 'whatsapp_direct_link', 'online_count_mode', 'online_count_manual',
       'recharge_amounts', 'cih_name', 'cih_rib', 'cashplus_name', 'cashplus_cin',
       'featured_matches', 'store_accounts', 'store_recharge_packages', 'store_live_slots',
-      'commission_rate', 'payment_manual_enabled', 'payment_electronic_enabled', 'home_arena'
+      'commission_rate', 'payment_manual_enabled', 'payment_electronic_enabled', 'home_arena', 'recharge_form'
     ]);
   END IF;
 END;
