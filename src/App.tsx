@@ -1810,7 +1810,7 @@ function HomePage() {
 
     {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
     <section className="ex-section ex-shell ex-challenges">
-      <div className="ex-head is-centered">
+      <div className="ex-head">
         <div>
           <span className="ex-chip"><span className="ex-dot" />ساحة مباشرة</span>
           <h2 className="ex-title">تحديات مفتوحة تبحث عن أبطال</h2>
@@ -1825,19 +1825,18 @@ function HomePage() {
               <span className="ex-duel-platform">{item.platform}</span>
               {real ? <span className="ex-duel-state"><i />مفتوح الآن</span> : <span className="ex-duel-state is-demo"><Sparkles className="h-3 w-3" />تجريبي</span>}
             </div>
-            <div className="ex-duel-body">
-              <div className="ex-duel-side">
-                <span className="ex-duel-avatar"><UserAvatar username={item.creator_name} /></span>
-                <span className="ex-duel-name"><strong>{item.creator_name}</strong><small>{item.creator_efootball_id}</small></span>
-              </div>
-              <div className="ex-duel-vs">
-                <b>ضد</b>
-                <span className="ex-duel-await"><Swords className="h-3.5 w-3.5" />ينتظر منافساً</span>
-              </div>
-              <div className="ex-duel-side is-empty">
-                <span className="ex-duel-avatar empty"><UserPlus className="h-5 w-5" /></span>
-                <span className="ex-duel-name"><strong>مقعد فارغ</strong><small>كن التحدي القادم</small></span>
-              </div>
+            <div className="ex-duel-owner">
+              <span className="ex-duel-owner-avatar"><UserAvatar username={item.creator_name} /></span>
+              <span className="ex-duel-owner-name">
+                <strong>{item.creator_name}</strong>
+                <small>#{item.creator_efootball_id}</small>
+              </span>
+              <span className="ex-duel-owner-role">المُتحدّي</span>
+            </div>
+            <div className="ex-duel-seat">
+              <span className="ex-duel-seat-icon"><Swords className="h-4 w-4" /></span>
+              <span className="ex-duel-seat-text"><strong>ينتظر منافساً</strong><small>مقعد واحد متبقٍ للإكمال</small></span>
+              <span className="ex-duel-seat-plus"><UserPlus className="h-4 w-4" /></span>
             </div>
             <div className="ex-duel-stats">
               <span className="ex-duel-stat"><small>الرهان</small><strong>{money(item.stake)}</strong></span>
