@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
 import { supabase, supabaseEnabled } from './lib/supabase';
-import './home-redesign.css';
 import './arena-x-home.css';
 import './store.css';
 import './store-admin.css';
