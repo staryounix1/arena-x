@@ -9,6 +9,7 @@ import {
 import { Link, Route, Switch, useLocation, useParams } from 'wouter';
 import { supabase, supabaseEnabled } from './lib/supabase';
 import './home-redesign.css';
+import './home-2026.css';
 import './store.css';
 import './store-admin.css';
 import './control-centre.css';
@@ -1030,35 +1031,173 @@ function HomePage() {
   const [, setLocation] = useLocation();
   const [createOpen, setCreateOpen] = useState(false);
   const [rechargeOpen, setRechargeOpen] = useState(false);
-  const openMatchCount = matches.filter(item => item.status === 'OPEN').length;
-  const openMatches = matches.filter(item => item.status === 'OPEN').sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 3);
-  const rankedPlayers = rankPlayers(players).slice(0, 3);
-  const featured = readFeaturedMatches(settings).find(item => item.active) || readFeaturedMatches(settings)[0];
-  const tournament = tournaments.find(item => item.featured && item.status !== 'COMPLETED' && item.status !== 'CANCELLED') || tournaments.find(item => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
+
+  const openMatches = matches.filter(item => item.status === 'OPEN')
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+  const openMatchCount = openMatches.length;
+  const liveMatches = matches.filter(item => item.status === 'PLAYING').length;
+  const rankedPlayers = rankPlayers(players).slice(0, 5);
+  const featuredList = readFeaturedMatches(settings);
+  const featured = featuredList.find(item => item.active) || featuredList[0];
+  const tournament = tournaments.find(item => item.featured && item.status !== 'COMPLETED' && item.status !== 'CANCELLED')
+    || tournaments.find(item => item.status !== 'COMPLETED' && item.status !== 'CANCELLED');
   const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
   const hero = homeArenaFrom(settings);
+
   const enterCreate = () => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation('/verify?returnTo=/matches'); setCreateOpen(true); };
-  const join = async (match: Match) => { if (!user) return setLocation('/login'); if (!canPlay(user)) return setLocation(`/verify?returnTo=/matches/${match.id}`); if (user.balance < match.stake) return setRechargeOpen(true); if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`); };
-  return <div className="home-redesigned">
-    <section className="home-hero-v2"><div className="shell home-hero-v2-grid"><div className="home-hero-v2-copy"><span className="eyebrow"><span className="pulse-dot" />{hero.eyebrow}</span><h1>{hero.title}<br /><em>{hero.titleAccent}</em></h1><p>{hero.subtitle}</p><div className="home-hero-actions">{hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create' ? <button key={item.id} className={index === 0 ? 'primary-button large' : 'secondary-button large'} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button> : <Link key={item.id} href={item.href || '/matches'} className={index === 0 ? 'primary-button large' : 'secondary-button large'}><Search className="h-5 w-5" />{item.label}</Link>)}</div><div className="home-live-stats"><span><strong>{players.length}</strong><small>لاعب مسجل</small></span><span><strong>{openMatchCount}</strong><small>مباراة متاحة</small></span><span><strong>{shownOnline}</strong><small>متصل الآن</small></span></div></div><aside className="home-featured-v2"><div className="home-featured-top"><span><span className="live-dot" />مواجهة مميزة</span><span className="home-live-label">مباشرة الآن</span></div>{featured ? <><span className="match-kicker">{featured.title}</span><div className="home-featured-players"><div><UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large /><strong>{featured.creatorName}</strong><small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small></div><b>VS</b><div><UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large /><strong>{featured.opponentName}</strong><small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small></div></div><div className="home-featured-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div><div className="home-featured-foot"><span><ShieldCheck className="h-4 w-4" />{featured.note}</span><span><Clock3 className="h-4 w-4" />مفتوحة الآن</span></div></> : <div className="home-empty-featured"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من الإعدادات.</small></div>}</aside></div></section>
-    <section className="shell home-section-v2"><div className="home-section-heading-v2"><div><span className="eyebrow muted">تحديات حقيقية</span><h2>المباريات المفتوحة الآن</h2><p>اختر مباراة مناسبة وانضم خلال ثوانٍ.</p></div><Link href="/matches" className="text-link">عرض كل المباريات <ArrowLeft className="h-4 w-4" /></Link></div>{openMatches.length ? <div className="home-match-list">{openMatches.map(match => <article className="home-match-row" key={match.id}><div className="home-match-player"><UserAvatar username={match.creator_name} /><span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id} • {match.platform}</small></span></div><div className="home-match-stake"><small>الرهان</small><strong>{money(match.stake)}</strong></div><div className="home-match-prize"><small>الجائزة</small><strong>{money(match.prize)}</strong></div><button className="primary-button small" onClick={() => join(match)}>انضمام <ArrowLeft className="h-4 w-4" /></button></article>)}</div> : <div className="home-empty-state"><Swords className="h-7 w-7" /><div><strong>لا توجد مباريات مفتوحة حالياً</strong><p>أنشئ أول تحدٍّ وابدأ مواجهة جديدة.</p></div><button className="secondary-button small" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}</section>
-    <section className="shell home-section-v2 home-split-grid"><div><div className="home-section-heading-v2 compact"><div><span className="eyebrow muted">نافس بذكاء</span><h2>كيف تبدأ؟</h2></div></div><div className="home-steps"><article><span>01</span><Swords className="h-5 w-5" /><h3>أنشئ تحديك</h3><p>حدد الرهان والمنصة وانتظر منافساً مناسباً.</p></article><article><span>02</span><ShieldCheck className="h-5 w-5" /><h3>العب بأمان</h3><p>يتم حجز الرهان حتى تأكيد النتيجة.</p></article><article><span>03</span><Trophy className="h-5 w-5" /><h3>اربح بعدل</h3><p>تراجع الإدارة النتيجة ثم تصرف الجائزة.</p></article></div></div><aside className="home-tournament-card">{tournament ? <><div className="home-card-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</div><h2>{tournament.title}</h2><p>{tournament.description || tournament.rules}</p><div className="home-tournament-meta"><span><small>الجائزة</small><strong>{money(tournament.prize_pool)}</strong></span><span><small>المشاركون</small><strong>{tournament.participant_count}/{tournament.max_players}</strong></span></div><Link href="/tournaments" className="secondary-button full">استكشف البطولة <ArrowLeft className="h-4 w-4" /></Link></> : <><div className="home-card-kicker"><Trophy className="h-4 w-4" />البطولات</div><h2>قريباً على الساحة</h2><p>ستظهر البطولات القادمة هنا عند فتح التسجيل.</p><Link href="/tournaments" className="secondary-button full">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link></>}</aside></section>
-    <section className="shell home-section-v2"><div className="home-section-heading-v2"><div><span className="eyebrow muted">ترتيب حي</span><h2>أفضل اللاعبين</h2><p>النتائج الحقيقية من حسابات المنصة.</p></div><Link href="/leaderboard" className="text-link">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link></div><div className="home-leaderboard-preview">{rankedPlayers.map((player, index) => <div className="home-leader-row" key={player.id}><span className={`rank rank-${index + 1}`}>{index + 1}</span><UserAvatar username={player.username} teamId={player.favorite_team} /><span><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span><b>{player.win_rate}%</b></div>)}{!rankedPlayers.length && <div className="home-empty-state"><BarChart3 className="h-7 w-7" /><div><strong>لا توجد بيانات ترتيب بعد</strong><p>ستظهر النتائج بعد أولى المباريات المكتملة.</p></div></div>}</div></section>
-    <section className="home-trust-strip"><div className="shell home-trust-grid"><span><ShieldCheck className="h-5 w-5" /><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span><span><Users className="h-5 w-5" /><strong>مجتمع نشط</strong><small>{shownOnline} لاعب متصل الآن</small></span><span><MessageCircle className="h-5 w-5" /><strong>دعم مباشر</strong><small>مساعدة عند الحاجة والنزاعات</small></span></div></section>
-    {createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}{rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}
+  const join = async (match: Match) => {
+    if (!user) return setLocation('/login');
+    if (!canPlay(user)) return setLocation(`/verify?returnTo=/matches/${match.id}`);
+    if (user.balance < match.stake) return setRechargeOpen(true);
+    if (await joinMatch(match.id)) setLocation(`/matches/${match.id}`);
+  };
+  const totalPrize = openMatches.reduce((sum, match) => sum + Number(match.prize || 0), 0);
+
+  return <div className="home-2026">
+    {/* ── HERO ─────────────────────────────────────────────────────────── */}
+    <section className="hx-hero">
+      <div className="shell hx-hero-grid">
+        <div>
+          <span className="hx-eyebrow"><span className="hx-dot" />{hero.eyebrow}</span>
+          <h1>{hero.title}<em>{hero.titleAccent}</em></h1>
+          <p className="hx-hero-lead">{hero.subtitle}</p>
+          <div className="hx-hero-actions">
+            {hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create'
+              ? <button key={item.id} className={`hx-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
+              : <Link key={item.id} href={item.href || '/matches'} className={`hx-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
+          </div>
+          <div className="hx-stats">
+            <div className="hx-stat"><strong>{players.length}</strong><small>لاعب مسجل</small></div>
+            <div className="hx-stat"><strong>{openMatchCount}</strong><small>تحدٍّ متاح</small></div>
+            <div className="hx-stat"><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>
+          </div>
+        </div>
+
+        <aside className="hx-main-event">
+          <div className="hx-event-top">
+            <span><Zap className="h-3.5 w-3.5" />مواجهة مميزة</span>
+            <span className="hx-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'مباشرة الآن'}</span>
+          </div>
+          {featured ? <>
+            <span className="hx-event-kicker">{featured.title}</span>
+            <div className="hx-versus">
+              <div className="hx-side">
+                <UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large />
+                <strong>{featured.creatorName}</strong>
+                <small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small>
+              </div>
+              <b className="hx-vs-badge">VS</b>
+              <div className="hx-side">
+                <UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large />
+                <strong>{featured.opponentName}</strong>
+                <small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small>
+              </div>
+            </div>
+            <div className="hx-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div>
+            <div className="hx-event-foot">
+              <span><ShieldCheck className="h-4 w-4" />{featured.note}</span>
+              <span><Clock3 className="h-4 w-4" />مفتوحة الآن</span>
+            </div>
+          </> : <div className="hx-event-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
+        </aside>
+      </div>
+    </section>
+
+    {/* ── LIVE RAIL ────────────────────────────────────────────────────── */}
+    <section className="shell hx-section">
+      <div className="hx-head">
+        <div>
+          <span className="hx-eyebrow"><span className="hx-dot" />ساحة مباشرة</span>
+          <h2>تحديات تنتظر منافساً</h2>
+          <p>{openMatchCount > 0 ? `${openMatchCount} تحدٍّ مفتوح بإجمالي جوائز ${money(totalPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
+        </div>
+        <Link href="/matches" className="hx-link">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
+      </div>
+      {openMatches.length ? <div className="hx-rail">
+        {openMatches.slice(0, 4).map(match => <article className="hx-rail-row" key={match.id}>
+          <div className="hx-rail-player">
+            <UserAvatar username={match.creator_name} />
+            <span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id} • {match.platform}</small></span>
+          </div>
+          <div className="hx-metric"><small>الرهان</small><strong>{money(match.stake)}</strong></div>
+          <div className="hx-metric"><small>الجائزة</small><strong className="amber">{money(match.prize)}</strong></div>
+          <button className="hx-join" onClick={() => join(match)}>قبول التحدي <ArrowLeft className="h-4 w-4" /></button>
+        </article>)}
+      </div> : <div className="hx-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="hx-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
+    </section>
+
+    {/* ── PATH + TOURNAMENT ────────────────────────────────────────────── */}
+    <section className="shell hx-section hx-split">
+      <div>
+        <div className="hx-head" style={{ marginBottom: 16 }}>
+          <div><span className="hx-eyebrow">ثلاث خطوات</span><h2>من التسجيل إلى الجائزة</h2></div>
+        </div>
+        <div className="hx-steps">
+          <article className="hx-step"><span className="hx-step-num">01</span><Swords className="h-5 w-5" /><h3>افتح تحدياً</h3><p>اختر قيمة الرهان والمنصة، وانشر مباراتك في ثوانٍ.</p></article>
+          <article className="hx-step"><span className="hx-step-num">02</span><ShieldCheck className="h-5 w-5" /><h3>العبة داخل الضمان</h3><p>يُحجز الرهان تلقائياً ولا يُصرف حتى اعتماد النتيجة.</p></article>
+          <article className="hx-step"><span className="hx-step-num">03</span><Trophy className="h-5 w-5" /><h3>استلم أرباحك</h3><p>تراجع الإدارة النتيجة، ثم يُضاف المبلغ إلى محفظتك.</p></article>
+        </div>
+      </div>
+      <aside className="hx-tournament">
+        {tournament ? <>
+          <span className="hx-tournament-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</span>
+          <h2>{tournament.title}</h2>
+          <p>{tournament.description || tournament.rules}</p>
+          <div className="hx-tournament-meta">
+            <span><small>مجموع الجوائز</small><strong>{money(tournament.prize_pool)}</strong></span>
+            <span><small>المشاركون</small><strong>{tournament.participant_count}/{tournament.max_players}</strong></span>
+          </div>
+          <Link href="/tournaments" className="hx-btn primary">احجز مقعدك <ArrowLeft className="h-4 w-4" /></Link>
+        </> : <>
+          <span className="hx-tournament-kicker"><Trophy className="h-4 w-4" />البطولات</span>
+          <h2>قريباً على الساحة</h2>
+          <p>تُفتح التسجيلات للبطولة القادمة هنا. تابعنا حتى لا يفوتك المقعد.</p>
+          <Link href="/tournaments" className="hx-btn ghost">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link>
+        </>}
+      </aside>
+    </section>
+
+    {/* ── LEADERBOARD ──────────────────────────────────────────────────── */}
+    <section className="shell hx-section">
+      <div className="hx-head">
+        <div><span className="hx-eyebrow">ترتيب حي</span><h2>أفضل اللاعبين على الساحة</h2><p>مبني على نتائج مباريات حقيقية موثّقة.</p></div>
+        <Link href="/leaderboard" className="hx-link">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link>
+      </div>
+      {rankedPlayers.length ? <div className="hx-board">
+        {rankedPlayers.map((player, index) => <div className="hx-board-row" key={player.id}>
+          <span className={`hx-board-rank rank-${index + 1}`}>{index + 1}</span>
+          <UserAvatar username={player.username} teamId={player.favorite_team} />
+          <span className="hx-board-copy"><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span>
+          <b className="hx-board-rate">{player.win_rate}%</b>
+        </div>)}
+      </div> : <div className="hx-empty"><BarChart3 className="h-7 w-7" /><div><strong>الترتيب قيد الإنشاء</strong><p>تظهر النتائج هنا بعد أولى المباريات المكتملة.</p></div></div>}
+    </section>
+
+    {/* ── TRUST ────────────────────────────────────────────────────────── */}
+    <section className="hx-trust">
+      <div className="shell hx-trust-grid">
+        <span className="hx-trust-item"><ShieldCheck className="h-5 w-5" /><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span>
+        <span className="hx-trust-item"><Users className="h-5 w-5" /><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span>
+        <span className="hx-trust-item"><MessageCircle className="h-5 w-5" /><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span>
+      </div>
+    </section>
+
+    {/* ── CLOSING CTA ──────────────────────────────────────────────────── */}
+    <section className="shell hx-cta">
+      <div>
+        <h2>ساحتك جاهزة. هل أنت؟</h2>
+        <p>انضم إلى لاعبين يتنافسون الآن على جوائز حقيقية داخل نظام ضمان يحمي كل طرف.</p>
+      </div>
+      <div className="hx-cta-actions">
+        <button className="hx-btn primary" onClick={enterCreate}><Swords className="h-5 w-5" />أنشئ أول تحدٍّ</button>
+        <Link href="/leaderboard" className="hx-btn ghost">تصفّح الصدارة <ArrowLeft className="h-4 w-4" /></Link>
+      </div>
+    </section>
+
+    {createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}
+    {rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}
   </div>;
 }
-
-function LegacyHomePage() {
-  const { user, matches, tournaments, settings, onlineCount } = useArena(); const [, setLocation] = useLocation(); const [createOpen, setCreateOpen] = useState(false); const [rechargeOpen, setRechargeOpen] = useState(false); const shownOnline = settings.online_count_mode === 'manual' ? settings.online_count_manual || '0' : String(onlineCount);
-  const featuredMatches = readFeaturedMatches(settings); const featured = featuredMatches.find(item => item.active) || featuredMatches[0];
-  useEffect(() => { const card = document.querySelector('.hero-card'); if (!card) return; const title = card.querySelector('.featured-match h3'); const players = card.querySelectorAll('.versus span'); const prize = card.querySelector('.featured-prize strong'); const note = card.querySelector('.hero-card-footer span:first-child'); const duration = card.querySelector('.hero-card-footer span:last-child'); const setPlayer = (element: Element, name: string, short: string, opponent = false) => { const badge = element.querySelector('b') || document.createElement('b'); badge.textContent = short; element.textContent = ''; if (!opponent) element.append(badge, document.createTextNode(name)); else element.append(document.createTextNode(name), badge); }; if (!featured) { if (title) title.textContent = 'لا توجد مواجهة الليلة'; if (players[0]) setPlayer(players[0], 'أضف مواجهة من الإعدادات', '—'); if (players[1]) setPlayer(players[1], 'بانتظار الإدارة', '—', true); if (prize) prize.textContent = money(0); if (note) note.textContent = 'حدّدها الإدارة من لوحة التحكم'; if (duration) duration.textContent = '—'; return; } if (title) title.textContent = featured.title; if (players[0]) setPlayer(players[0], featured.creatorName, featured.creatorShort); if (players[1]) setPlayer(players[1], featured.opponentName, featured.opponentShort, true); if (prize) prize.textContent = money(featured.prize); if (note) note.textContent = featured.note; if (duration) duration.textContent = 'مباشرة الآن'; }, [featured]);
-   useEffect(() => { const tagline = document.querySelector('.hero-copy > p'); if (tagline) tagline.textContent = 'خض مباريات eFootball وبطولاته مع لاعبين محترفين من كل مكان، مع محفظة آمنة ونظام ضمان يحمي حقوقك في كل مواجهة.'; }, []);
-   useEffect(() => { const badges = document.querySelectorAll<HTMLElement>('.hero-card .versus b'); [featured?.creatorTeam, featured?.opponentTeam].forEach((teamId, index) => { const badge = badges[index]; const team = teamById(teamId); if (!badge || !team?.logo) return; const image = document.createElement('img'); image.src = team.logo; image.alt = team.name; badge.replaceChildren(image); badge.classList.add('avatar', 'team-avatar'); }); }, [featured]);
-  const enter = (kind: 'match' | 'recharge') => { if (!user) return setLocation('/login'); if (kind === 'match' && !canPlay(user)) return setLocation('/verify?returnTo=/matches'); kind === 'match' ? setCreateOpen(true) : setRechargeOpen(true); };
-  return <div className="home-page"><section className="hero-section"><div className="hero-glow" /><div className="shell hero-grid"><div className="hero-copy"><span className="eyebrow"><span className="pulse-dot" />منصة تنافسية موثوقة</span><h1>نافس بقوة.<br /><em>اربح بعدل.</em></h1><p>خض مباريات eFootball وبطولاته مع لاعبين من المغرب، مع محفظة آمنة ونظام ضمان يحمي حقوقك في كل مواجهة.</p><div className="hero-actions"><button className="primary-button large" onClick={() => enter('match')}>إنشاء تحدٍّ جديد <Swords className="h-5 w-5" /></button><button className="secondary-button large" onClick={() => enter('recharge')}>شحن المحفظة <Wallet className="h-5 w-5" /></button></div><div className="hero-stats"><div><strong>1,240+</strong><span>لاعب نشط</span></div><div><strong>{matches.filter(item => item.status === 'OPEN').length + 12}</strong><span>مباراة مفتوحة</span></div><div><strong>{tournaments.length + 8}</strong><span>بطولات ناجحة</span></div></div></div><div className="hero-card"><div className="hero-card-top"><span className="live-dot" />مباريات مباشرة الآن <Sparkles className="h-4 w-4 text-amber-300" /></div><div className="featured-match"><span className="match-kicker">مواجهة الليلة</span><h3>قمة الأبطال</h3><div className="versus"><span><b>YA</b>Yassine_7</span><strong>VS</strong><span>SaraBall<b>SA</b></span></div><div className="featured-prize"><span>الجائزة المضمونة</span><strong>180 د.م.</strong></div></div><div className="hero-card-footer"><span><ShieldCheck className="h-4 w-4 text-emerald-400" /> ضمان مالي مفعّل</span><span>10 دقائق</span></div></div></div></section><section className="shell feature-section"><div className="section-heading"><div><span className="eyebrow muted">ابدأ بخطوة واحدة</span><h2>كل ما تحتاجه للمنافسة</h2></div><Link href="/matches" className="text-link">استكشف المباريات <ArrowLeft className="h-4 w-4" /></Link></div><div className="feature-grid"><Feature icon={Wallet} title="محفظة آمنة" text="اشحن واسحب رصيدك بوضوح، وكل طلب يخضع للمراجعة والتتبع." tone="green" /><Feature icon={Swords} title="مواجهات عادلة" text="أنشئ تحدياً أو انضم إلى مباراة مفتوحة واختر منصتك المفضلة." tone="blue" /><Feature icon={Trophy} title="بطولات حقيقية" text="نافس في بطولات منظمة بجوائز واضحة وقواعد معلنة." tone="amber" /></div></section>{createOpen && <CreateMatchModal onClose={() => setCreateOpen(false)} />}{rechargeOpen && <RechargeModal onClose={() => setRechargeOpen(false)} />}</div>;
-}
-function Feature({ icon: Icon, title, text, tone }: { icon: typeof Wallet; title: string; text: string; tone: string }) { return <div className="feature-card"><span className={`panel-icon ${tone}`}><Icon className="h-5 w-5" /></span><h3>{title}</h3><p>{text}</p><ArrowLeft className="feature-arrow h-4 w-4" /></div>; }
 
 function MatchesPage() {
   const { matches, user, joinMatch } = useArena(); const [, setLocation] = useLocation(); const [status, setStatus] = useState('OPEN'); const [platform, setPlatform] = useState('الكل'); const [search, setSearch] = useState(''); const [createOpen, setCreateOpen] = useState(false); const [rechargeOpen, setRechargeOpen] = useState(false);
