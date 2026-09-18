@@ -1027,7 +1027,7 @@ function CreateMatchModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (!canPlay(user)) return <Modal onClose={onClose}><div className="verification-callout"><ShieldCheck className="h-10 w-10" /><h2>فعّل حسابك أولاً</h2><p>بدء المباريات متاح بعد تأكيد رقم واتساب وإرسال بطاقة التعريف ومراجعتها من الإدارة.</p><button className="primary-button full" onClick={() => { onClose(); setLocation('/verify?returnTo=/matches'); }}>الانتقال إلى تفعيل الحساب <ArrowLeft className="h-4 w-4" /></button></div></Modal>;
+  if (!canPlay(user)) return <Modal onClose={onClose}><div className="ex-cmodal"><div className="ex-cmodal-bar"><span className="ex-cmodal-ico"><ShieldCheck className="h-5 w-5" /></span><span><h2>فعّل حسابك أولاً</h2><p>خطوة واحدة تفصلك عن الساحة.</p></span></div><div className="ex-cmodal-body verification-callout"><ShieldCheck className="h-10 w-10" /><p>بدء المباريات متاح بعد تأكيد رقم واتساب وإرسال بطاقة التعريف ومراجعتها من الإدارة.</p><button className="ex-btn primary full" onClick={() => { onClose(); setLocation('/verify?returnTo=/matches'); }}>الانتقال إلى تفعيل الحساب <ArrowLeft className="h-4 w-4" /></button></div></div></Modal>;
 
   const presets = [5, 10, 20, 50, 100];
   const stakeValue = Number(stake) || 0;
