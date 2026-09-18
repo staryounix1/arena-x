@@ -1071,10 +1071,9 @@ const ADMIN_GROUPS: ControlNode[] = [
       { id: 'money-methods-electronic', label: 'طرق دفع إلكتروني', hint: 'بطاقات ومحافظ رقمية', icon: CreditCard },
     ] },
   ] },
-  { id: 'home', label: 'تعديل الصفحة الرئيسية', hint: 'ساحة المباريات والمواجهات والعدّاد', icon: LayoutGrid, children: [
+  { id: 'home', label: 'تعديل الصفحة الرئيسية', hint: 'ساحة المباريات والمواجهات', icon: LayoutGrid, children: [
     { id: 'home-arena', label: 'ساحة المباريات الحية', hint: 'الأزرار والمحتوى', icon: Swords },
     { id: 'home-featured', label: 'مواجهات الصفحة الرئيسية', hint: 'إضافة وتعديل وإخفاء', icon: Sparkles },
-    { id: 'online', label: 'وضع عدّاد المتصلين', hint: 'تلقائي أو يدوي', icon: Wifi },
   ] },
   { id: 'arena', label: 'تعديل ARENA', hint: 'المباريات والبطولات', icon: Swords, children: [
     { id: 'arena-matches', label: 'تعديل مباريات', icon: Swords },
@@ -1082,6 +1081,7 @@ const ADMIN_GROUPS: ControlNode[] = [
   ] },
   { id: 'pricing', label: 'الإدارة والتسعير', hint: 'العمولة والحدود والأسعار', icon: Percent },
   { id: 'live', label: 'بث مباشر', hint: 'خانات البث الثلاث', icon: Video },
+  { id: 'online', label: 'وضع عدّاد المتصلين', hint: 'تلقائي أو يدوي', icon: Wifi },
   { id: 'whatsapp', label: 'وضع واتساب', hint: 'الرابط أو Meta API', icon: MessageCircle },
   { id: 'whatsapp-number', label: 'رقم واتساب الإدارة', icon: Phone },
 ];
