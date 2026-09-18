@@ -1052,144 +1052,156 @@ function HomePage() {
   };
   const totalPrize = openMatches.reduce((sum, match) => sum + Number(match.prize || 0), 0);
 
-  return <div className="ax">
+  const heroTitle = hero.title.replace(/[.\s]+$/, '');
+  const heroAccent = hero.titleAccent.replace(/[.\s]+$/, '');
+
+  const marqueeItems = ['جوائز فورية', 'ضمان مالي', 'تصنيف حي', 'بطولات رسمية', 'منصة مغربية', 'لعب نزيه'];
+
+  return <div className="ex">
     {/* ── HERO ─────────────────────────────────────────────────────────── */}
-    <section className="ax-hero">
-      <div className="ax-shell ax-hero-grid">
+    <section className="ex-hero">
+      <div className="ex-shell ex-hero-grid">
         <div>
-          <span className="ax-tag"><span className="ax-pulse" />{hero.eyebrow}</span>
-          <h1>{hero.title}<em>{hero.titleAccent}</em></h1>
-          <p className="ax-hero-lead">{hero.subtitle}</p>
-          <div className="ax-hero-actions">
+          <span className="ex-chip"><span className="ex-dot" />{hero.eyebrow}</span>
+          <h1>{heroTitle}<span className="line-2">{heroAccent}</span></h1>
+          <p className="ex-hero-lead">{hero.subtitle}</p>
+          <div className="ex-hero-actions">
             {hero.buttons.filter(item => item.visible).map((item, index) => item.href === 'create'
-              ? <button key={item.id} className={`ax-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
-              : <Link key={item.id} href={item.href || '/matches'} className={`ax-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
+              ? <button key={item.id} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`} onClick={enterCreate}><Swords className="h-5 w-5" />{item.label}</button>
+              : <Link key={item.id} href={item.href || '/matches'} className={`ex-btn ${index === 0 ? 'primary' : 'ghost'}`}><Search className="h-5 w-5" />{item.label}</Link>)}
           </div>
-          <div className="ax-hero-stats">
+          <div className="ex-hero-stats">
             <div><strong>{players.length}</strong><small>لاعب مسجل</small></div>
             <div><strong>{openMatchCount}</strong><small>تحدٍّ متاح</small></div>
             <div><strong className="is-live">{shownOnline}</strong><small>متصل الآن</small></div>
           </div>
         </div>
 
-        <aside className="ax-stage">
-          <div className="ax-stage-top">
-            <span><Zap className="h-3.5 w-3.5" />المواجهة الرئيسية</span>
-            <span className="ax-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
+        <aside className="ex-stage ex-hud">
+          <div className="ex-stage-top">
+            <span><Zap className="h-3.5 w-3.5" />اللقاء الرئيسي</span>
+            <span className="ex-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
           </div>
           {featured ? <>
-            <span className="ax-stage-kicker">{featured.title}</span>
-            <div className="ax-versus">
-              <div className="ax-side">
+            <span className="ex-stage-kicker">{featured.title}</span>
+            <div className="ex-versus">
+              <div className="ex-side">
                 <UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large />
                 <strong>{featured.creatorName}</strong>
                 <small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small>
               </div>
-              <b className="ax-vs">ضد</b>
-              <div className="ax-side">
+              <b className="ex-vs">ضد</b>
+              <div className="ex-side">
                 <UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large />
                 <strong>{featured.opponentName}</strong>
                 <small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small>
               </div>
             </div>
-            <div className="ax-stage-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div>
-            <div className="ax-stage-foot">
+            <div className="ex-stage-prize"><span>الجائزة المضمونة</span><strong>{money(featured.prize)}</strong></div>
+            <div className="ex-stage-foot">
               <span><ShieldCheck className="h-4 w-4" />{featured.note}</span>
               <span><Clock3 className="h-4 w-4" />مفتوحة الآن</span>
             </div>
-          </> : <div className="ax-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
+          </> : <div className="ex-stage-empty"><Sparkles className="h-8 w-8" /><strong>لا توجد مواجهة مميزة</strong><small>يمكن للإدارة إضافة مواجهة من إعدادات المنصة.</small></div>}
         </aside>
       </div>
     </section>
 
+    {/* ── MARQUEE ──────────────────────────────────────────────────────── */}
+    <div className="ex-marquee" aria-hidden="true">
+      <div className="ex-marquee-track">
+        {[...marqueeItems, ...marqueeItems].map((item, index) => <span key={index}><b>ARENA//X</b>{item}</span>)}
+      </div>
+    </div>
+
     {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
-    <section className="ax-section ax-shell">
-      <div className="ax-head">
+    <section className="ex-section ex-shell">
+      <div className="ex-head">
         <div>
-          <span className="ax-tag"><span className="ax-pulse" />ساحة مباشرة</span>
-          <h2 className="ax-h2">تحديات تنتظر منافساً</h2>
+          <span className="ex-chip"><span className="ex-dot" />ساحة مباشرة</span>
+          <h2 className="ex-title">تحديات تنتظر منافساً</h2>
           <p>{openMatchCount > 0 ? `${openMatchCount} تحدٍّ مفتوح بإجمالي جوائز ${money(totalPrize)}.` : 'لا توجد تحديات مفتوحة في هذه اللحظة.'}</p>
         </div>
-        <Link href="/matches" className="ax-link">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
+        <Link href="/matches" className="ex-more">كل المباريات <ArrowLeft className="h-4 w-4" /></Link>
       </div>
-      {openMatches.length ? <div className="ax-rail">
-        {openMatches.slice(0, 4).map(match => <article className="ax-rail-row" key={match.id}>
-          <div className="ax-rail-player">
+      {openMatches.length ? <div className="ex-rail">
+        {openMatches.slice(0, 5).map(match => <article className="ex-rail-row" key={match.id}>
+          <div className="ex-rail-player">
             <UserAvatar username={match.creator_name} />
             <span><strong>{match.creator_name}</strong><small>{match.creator_efootball_id} • {match.platform}</small></span>
           </div>
-          <div className="ax-metric"><small>الرهان</small><strong>{money(match.stake)}</strong></div>
-          <div className="ax-metric"><small>الجائزة</small><strong className="gold">{money(match.prize)}</strong></div>
-          <button className="ax-join" onClick={() => join(match)}>قبول التحدي <ArrowLeft className="h-4 w-4" /></button>
+          <div className="ex-metric"><small>الرهان</small><strong>{money(match.stake)}</strong></div>
+          <div className="ex-metric"><small>الجائزة</small><strong className="gold">{money(match.prize)}</strong></div>
+          <button className="ex-join" onClick={() => join(match)}>قبول <ArrowLeft className="h-4 w-4" /></button>
         </article>)}
-      </div> : <div className="ax-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="ax-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
+      </div> : <div className="ex-empty"><Swords className="h-7 w-7" /><div><strong>كن أول من يفتح الساحة</strong><p>أنشئ تحدياً وحدّد الرهان، وسيظهر هنا لكل اللاعبين.</p></div><button className="ex-btn ghost" onClick={enterCreate}>إنشاء تحدٍّ</button></div>}
     </section>
 
     {/* ── PATH + TOURNAMENT ────────────────────────────────────────────── */}
-    <section className="ax-section ax-shell ax-split">
+    <section className="ex-section ex-shell ex-split">
       <div>
-        <div className="ax-head" style={{ marginBottom: 20 }}>
-          <div><span className="ax-tag">ثلاث خطوات</span><h2 className="ax-h2">من التسجيل إلى الجائزة</h2></div>
+        <div className="ex-head" style={{ marginBottom: 22 }}>
+          <div><span className="ex-chip">ثلاث خطوات</span><h2 className="ex-title">من التسجيل إلى الجائزة</h2></div>
         </div>
-        <div className="ax-steps">
-          <article className="ax-step"><span className="ax-step-num">01</span><Swords className="h-5 w-5" /><h3>افتح تحدياً</h3><p>اختر قيمة الرهان والمنصة، وانشر مباراتك في ثوانٍ.</p></article>
-          <article className="ax-step"><span className="ax-step-num">02</span><ShieldCheck className="h-5 w-5" /><h3>اللعبة داخل الضمان</h3><p>يُحجز الرهان تلقائياً ولا يُصرف حتى اعتماد النتيجة.</p></article>
-          <article className="ax-step"><span className="ax-step-num">03</span><Trophy className="h-5 w-5" /><h3>استلم أرباحك</h3><p>تراجع الإدارة النتيجة، ثم يُضاف المبلغ إلى محفظتك.</p></article>
+        <div className="ex-steps">
+          <article className="ex-step"><span className="ex-step-num">01</span><Swords className="h-5 w-5" /><h3>افتح تحدياً</h3><p>اختر قيمة الرهان والمنصة، وانشر مباراتك في ثوانٍ.</p></article>
+          <article className="ex-step"><span className="ex-step-num">02</span><ShieldCheck className="h-5 w-5" /><h3>اللعبة داخل الضمان</h3><p>يُحجز الرهان تلقائياً ولا يُصرف حتى اعتماد النتيجة.</p></article>
+          <article className="ex-step"><span className="ex-step-num">03</span><Trophy className="h-5 w-5" /><h3>استلم أرباحك</h3><p>تراجع الإدارة النتيجة، ثم يُضاف المبلغ إلى محفظتك.</p></article>
         </div>
       </div>
-      <aside className="ax-tournament">
+      <aside className="ex-tournament ex-hud">
         {tournament ? <>
-          <span className="ax-tournament-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</span>
+          <span className="ex-tournament-kicker"><Trophy className="h-4 w-4" />البطولة القادمة</span>
           <h2>{tournament.title}</h2>
           <p>{tournament.description || tournament.rules}</p>
-          <div className="ax-tournament-meta">
+          <div className="ex-tournament-meta">
             <span><small>مجموع الجوائز</small><strong>{money(tournament.prize_pool)}</strong></span>
             <span><small>المشاركون</small><strong>{tournament.participant_count}/{tournament.max_players}</strong></span>
           </div>
-          <Link href="/tournaments" className="ax-btn primary">احجز مقعدك <ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/tournaments" className="ex-btn primary">احجز مقعدك <ArrowLeft className="h-4 w-4" /></Link>
         </> : <>
-          <span className="ax-tournament-kicker"><Trophy className="h-4 w-4" />البطولات</span>
+          <span className="ex-tournament-kicker"><Trophy className="h-4 w-4" />البطولات</span>
           <h2>قريباً على الساحة</h2>
           <p>تُفتح التسجيلات للبطولة القادمة هنا. تابعنا حتى لا يفوتك المقعد.</p>
-          <Link href="/tournaments" className="ax-btn ghost">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/tournaments" className="ex-btn ghost">عرض البطولات <ArrowLeft className="h-4 w-4" /></Link>
         </>}
       </aside>
     </section>
 
     {/* ── LEADERBOARD ──────────────────────────────────────────────────── */}
-    <section className="ax-section ax-shell">
-      <div className="ax-head">
-        <div><span className="ax-tag">ترتيب حي</span><h2 className="ax-h2">أفضل اللاعبين على الساحة</h2><p>مبني على نتائج مباريات حقيقية موثّقة.</p></div>
-        <Link href="/leaderboard" className="ax-link">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link>
+    <section className="ex-section ex-shell">
+      <div className="ex-head">
+        <div><span className="ex-chip">ترتيب حي</span><h2 className="ex-title">أفضل اللاعبين على الساحة</h2><p>مبني على نتائج مباريات حقيقية موثّقة.</p></div>
+        <Link href="/leaderboard" className="ex-more">لوحة الصدارة <ArrowLeft className="h-4 w-4" /></Link>
       </div>
-      {rankedPlayers.length ? <div className="ax-board">
-        {rankedPlayers.map((player, index) => <div className={`ax-board-row ${index === 0 ? 'is-top' : ''}`} key={player.id}>
-          <span className={`ax-board-rank r${index + 1}`}>{index + 1}</span>
+      {rankedPlayers.length ? <div className="ex-board">
+        {rankedPlayers.map((player, index) => <div className={`ex-board-row ${index === 0 ? 'is-top' : ''}`} key={player.id}>
+          <span className={`ex-board-rank r${index + 1}`}>{index + 1}</span>
           <UserAvatar username={player.username} teamId={player.favorite_team} />
-          <span className="ax-board-copy"><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span>
-          <b className="ax-board-rate">{player.win_rate}%</b>
+          <span className="ex-board-copy"><strong>{player.username}</strong><small>{player.wins} فوز • {player.losses} خسارة</small></span>
+          <b className="ex-board-rate">{player.win_rate}%</b>
         </div>)}
-      </div> : <div className="ax-empty"><BarChart3 className="h-7 w-7" /><div><strong>الترتيب قيد الإنشاء</strong><p>تظهر النتائج هنا بعد أولى المباريات المكتملة.</p></div></div>}
+      </div> : <div className="ex-empty"><BarChart3 className="h-7 w-7" /><div><strong>الترتيب قيد الإنشاء</strong><p>تظهر النتائج هنا بعد أولى المباريات المكتملة.</p></div></div>}
     </section>
 
     {/* ── TRUST ────────────────────────────────────────────────────────── */}
-    <section className="ax-trust">
-      <div className="ax-shell ax-trust-grid">
-        <span className="ax-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
-        <span className="ax-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
-        <span className="ax-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
+    <section className="ex-trust">
+      <div className="ex-shell ex-trust-grid">
+        <span className="ex-trust-item"><ShieldCheck className="h-5 w-5" /><span><strong>ضمان مالي</strong><small>الرهان محجوز حتى اعتماد النتيجة</small></span></span>
+        <span className="ex-trust-item"><Users className="h-5 w-5" /><span><strong>مجتمع ينبض</strong><small>{shownOnline} لاعب متصل الآن</small></span></span>
+        <span className="ex-trust-item"><MessageCircle className="h-5 w-5" /><span><strong>دعم بشري</strong><small>مرافقة عند الحاجة وحل النزاعات</small></span></span>
       </div>
     </section>
 
     {/* ── CLOSING CTA ──────────────────────────────────────────────────── */}
-    <section className="ax-shell ax-cta">
+    <section className="ex-shell ex-cta ex-hud">
       <div>
-        <h2>ساحتك جاهزة. هل أنت؟</h2>
+        <h2>ساحتك جاهزة.<em>هل أنت؟</em></h2>
         <p>انضم إلى لاعبين يتنافسون الآن على جوائز حقيقية داخل نظام ضمان يحمي كل طرف.</p>
       </div>
-      <div className="ax-cta-actions">
-        <button className="ax-btn primary" onClick={enterCreate}><Swords className="h-5 w-5" />أنشئ أول تحدٍّ</button>
-        <Link href="/leaderboard" className="ax-btn ghost">تصفّح الصدارة <ArrowLeft className="h-4 w-4" /></Link>
+      <div className="ex-cta-actions">
+        <button className="ex-btn primary" onClick={enterCreate}><Swords className="h-5 w-5" />أنشئ أول تحدٍّ</button>
+        <Link href="/leaderboard" className="ex-btn ghost">تصفّح الصدارة <ArrowLeft className="h-4 w-4" /></Link>
       </div>
     </section>
 
