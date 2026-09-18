@@ -153,6 +153,7 @@ type RechargeFormConfig = {
   successText: string;
   historyTitle: string;
   defaultAmount: string;
+  quickAmounts: number[];
   showDetails: boolean;
   showQuickAmounts: boolean;
   showWhatsapp: boolean;
@@ -173,6 +174,7 @@ const DEFAULT_RECHARGE_FORM: RechargeFormConfig = {
   successText: 'ستراجع الإدارة طلب الشحن يدوياً.',
   historyTitle: 'آخر طلباتك',
   defaultAmount: '50',
+  quickAmounts: [5, 10, 20, 50, 100, 200, 500],
   showDetails: true,
   showQuickAmounts: true,
   showWhatsapp: true,
@@ -200,6 +202,12 @@ const rechargeFormFrom = (settings: Record<string, string>): RechargeFormConfig 
     successText: text('successText', DEFAULT_RECHARGE_FORM.successText),
     historyTitle: text('historyTitle', DEFAULT_RECHARGE_FORM.historyTitle),
     defaultAmount: text('defaultAmount', DEFAULT_RECHARGE_FORM.defaultAmount),
+    quickAmounts: (() => {
+      const list = Array.isArray(raw.quickAmounts) ? raw.quickAmounts : null;
+      if (!list || !list.length) return DEFAULT_RECHARGE_FORM.quickAmounts;
+      const parsed = list.map((item: unknown) => Number(item)).filter((item: number) => Number.isFinite(item) && item > 0);
+      return parsed.length ? parsed : DEFAULT_RECHARGE_FORM.quickAmounts;
+    })(),
     showDetails: raw.showDetails !== false,
     showQuickAmounts: raw.showQuickAmounts !== false,
     showWhatsapp: raw.showWhatsapp !== false,
@@ -984,7 +992,7 @@ function RechargeModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('');
   useEffect(() => { setAmount(rechargeFormFrom(settings).defaultAmount || '50'); }, [settings.recharge_form]);
   const selected = options.find(item => item.id === methodId) || options[0];
-  const quickAmounts = (settings.recharge_amounts || '5,10,20,50,100,200,500').split(',').map(item => Number(item.trim())).filter(item => item > 0);
+  const quickAmounts = cfg.quickAmounts;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const value = Number(amount);
@@ -1443,9 +1451,16 @@ function RechargeFormAdmin() {
   const [form, setForm] = useState<RechargeFormConfig>(() => rechargeFormFrom(settings));
   const [saved, setSaved] = useState(false);
   useEffect(() => { setForm(rechargeFormFrom(settings)); }, [settings.recharge_form]);
-  const update = (key: keyof RechargeFormConfig, value: string | boolean) => setForm(old => ({ ...old, [key]: value }));
+  const update = (key: keyof RechargeFormConfig, value: string | boolean | number[]) => setForm(old => ({ ...old, [key]: value }));
   const reset = () => { setForm(DEFAULT_RECHARGE_FORM); setSaved(false); };
-  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings({ recharge_form: JSON.stringify(form) }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const clean = Array.from(new Set(form.quickAmounts.map(item => Number(item)).filter(item => Number.isFinite(item) && item > 0))).sort((a, b) => a - b);
+    const next = { ...form, quickAmounts: clean.length ? clean : DEFAULT_RECHARGE_FORM.quickAmounts };
+    setForm(next);
+    saveSettings({ recharge_form: JSON.stringify(next) });
+    setSaved(true); setTimeout(() => setSaved(false), 1800);
+  };
   const fields: { key: keyof RechargeFormConfig; label: string }[] = [
     { key: 'title', label: 'عنوان النافذة' },
     { key: 'subtitle', label: 'الوصف تحت العنوان' },
@@ -1476,6 +1491,18 @@ function RechargeFormAdmin() {
       </div>
       <div className="settings-section"><h3>المبلغ الافتراضي</h3>
         <div className="form-grid"><Field label="المبلغ المبدئي داخل الحقل ($)" type="number" value={form.defaultAmount} onChange={value => update('defaultAmount', value)} /><small className="settings-hint">يُعرض هذا المبلغ عند فتح النافذة قبل أن يختار المستخدم.</small></div>
+      </div>
+      <div className="settings-section"><h3>المبالغ السريعة</h3>
+        <small className="settings-hint">تظهر كأزرار سريعة في نافذة الشحن. أضف أو احذف المبالغ، وستُرتَّب تصاعدياً تلقائياً.</small>
+        <div className="quick-amount-editor">
+          {form.quickAmounts.map((value, index) => <div className="quick-amount-chip" key={`qa-${index}`}>
+            <input type="number" min="1" value={value} onChange={event => { const next = [...form.quickAmounts]; next[index] = Number(event.target.value); update('quickAmounts', next); }} />
+            <span className="quick-amount-chip-preview">{money(value)}</span>
+            <button type="button" className="icon-button" title="حذف" onClick={() => update('quickAmounts', form.quickAmounts.filter((_, at) => at !== index))}><Trash2 className="h-4 w-4" /></button>
+          </div>)}
+          {form.quickAmounts.length === 0 && <p className="empty-note">لا توجد مبالغ سريعة. أضف مبلغاً ليظهر في النافذة.</p>}
+        </div>
+        <button type="button" className="secondary-button small" onClick={() => update('quickAmounts', [...form.quickAmounts, 50])}><Plus className="h-4 w-4" />إضافة مبلغ</button>
       </div>
       <div className="settings-section"><h3>العناصر الظاهرة</h3>
         <div className="recharge-form-toggles">
