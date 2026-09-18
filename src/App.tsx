@@ -253,6 +253,59 @@ const buildLiveSchedule = (seed: number, tournaments: Tournament[]): LiveSchedul
     { id: 'schedule-showdown', title: 'SHOWDOWN: المغرب ضد العالم', league: 'COMMUNITY SERIES', platform: 'Xbox / PC', startsAt: at(286), prize: '$900', tone: 'amber' },
   ];
 };
+type LivePageConfig = {
+  heroEyebrow: string;
+  heroTitle: string;
+  heroTitleAccent: string;
+  heroSubtitle: string;
+  primaryCta: string;
+  secondaryCta: string;
+  showStats: boolean;
+  showReactions: boolean;
+  showUpcomingBar: boolean;
+  showTeasers: boolean;
+  scheduleMode: 'AUTO' | 'MANUAL';
+  upcomingTitle: string;
+  upcomingNote: string;
+  reminderCta: string;
+};
+const DEFAULT_LIVE_PAGE: LivePageConfig = {
+  heroEyebrow: 'شبكة بث ARENA//X',
+  heroTitle: 'المباراة',
+  heroTitleAccent: 'تبدأ هنا.',
+  heroSubtitle: 'بث بجودة احترافية، مواعيد دقيقة، وإعادات لأقوى لحظات الساحة. اختر قناتك وابدأ المشاهدة فوراً.',
+  primaryCta: 'دخول البث المباشر',
+  secondaryCta: 'مكتبة الإعادات',
+  showStats: true,
+  showReactions: true,
+  showUpcomingBar: true,
+  showTeasers: true,
+  scheduleMode: 'AUTO',
+  upcomingTitle: 'لا تفوّت صافرة البداية',
+  upcomingNote: 'أقرب مواجهة على جدول الساحة — اضبط تذكيرك وكن أول من يدخل البث.',
+  reminderCta: 'ذكّرني بكل المواجهات',
+};
+const livePageFrom = (settings: Record<string, string>): LivePageConfig => {
+  const raw = readSettingJson<Partial<LivePageConfig>>(settings, 'live_page', DEFAULT_LIVE_PAGE);
+  if (!raw || typeof raw !== 'object') return DEFAULT_LIVE_PAGE;
+  const text = (value: unknown, fallback: string) => (typeof value === 'string' && value.trim() ? value : fallback);
+  return {
+    heroEyebrow: text(raw.heroEyebrow, DEFAULT_LIVE_PAGE.heroEyebrow),
+    heroTitle: text(raw.heroTitle, DEFAULT_LIVE_PAGE.heroTitle),
+    heroTitleAccent: text(raw.heroTitleAccent, DEFAULT_LIVE_PAGE.heroTitleAccent),
+    heroSubtitle: text(raw.heroSubtitle, DEFAULT_LIVE_PAGE.heroSubtitle),
+    primaryCta: text(raw.primaryCta, DEFAULT_LIVE_PAGE.primaryCta),
+    secondaryCta: text(raw.secondaryCta, DEFAULT_LIVE_PAGE.secondaryCta),
+    showStats: raw.showStats !== false,
+    showReactions: raw.showReactions !== false,
+    showUpcomingBar: raw.showUpcomingBar !== false,
+    showTeasers: raw.showTeasers !== false,
+    scheduleMode: raw.scheduleMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
+    upcomingTitle: text(raw.upcomingTitle, DEFAULT_LIVE_PAGE.upcomingTitle),
+    upcomingNote: text(raw.upcomingNote, DEFAULT_LIVE_PAGE.upcomingNote),
+    reminderCta: text(raw.reminderCta, DEFAULT_LIVE_PAGE.reminderCta),
+  };
+};
 const accountDraftFrom = (item?: StoreAccount): StoreAccountDraft => ({ id: item?.id || `account-${Date.now()}`, title: item?.title || '', description: item?.description || '', price: item ? String(item.price) : '', platform: item?.platform || 'eFootball Mobile', tag: item?.tag || '', primaryImage: item?.images[0] || '', gallery: item?.images.slice(1).join('\n') || '', available: item?.available ?? true });
 const rechargeDraftFrom = (item?: RechargePackage): RechargeDraft => ({ id: item?.id || `recharge-${Date.now()}`, title: item?.title || '', coins: item ? String(item.coins) : '', price: item ? String(item.price) : '', amount: item ? String(item.amount) : '', bonus: item?.bonus || '', description: item?.description || 'يتم شحن كوينز eFootball بعد تأكيد الدفع من الإدارة.', active: item?.active ?? true });
 const COIN_ORDER_PREFIX = 'EFOOTBALL_COINS_ORDER:';
@@ -907,7 +960,7 @@ function LiveStatChip({ icon: Icon, label, value, tone = 'green' }: { icon: type
   return <span className={`lv-stat lv-tone-${tone}`}><span className="lv-stat-ico"><Icon className="h-3.5 w-3.5" /></span><span className="lv-stat-copy"><small>{label}</small><strong>{value}</strong></span></span>;
 }
 
-function LivePlayerStage({ slot, mainState, onlineCount, schedule, now }: { slot: LiveSlot; mainState: LiveState; onlineCount: number; schedule: LiveScheduleItem[]; now: number }) {
+function LivePlayerStage({ slot, mainState, onlineCount, schedule, now, showReactions = true }: { slot: LiveSlot; mainState: LiveState; onlineCount: number; schedule: LiveScheduleItem[]; now: number; showReactions?: boolean }) {
   const [muted, setMuted] = useState(true);
   const [quality, setQuality] = useState('1080P');
   const [reacted, setReacted] = useState<Record<string, number>>({});
@@ -962,17 +1015,17 @@ function LivePlayerStage({ slot, mainState, onlineCount, schedule, now }: { slot
       </div>
     </div>
 
-    <div className="lv-reaction-bar">
+    {showReactions && <div className="lv-reaction-bar">
       <span className="lv-reaction-label"><Flame className="h-3.5 w-3.5" />تفاعل الجمهور</span>
       <div className="lv-reactions">
         {reactions.map(({ key, icon: Icon, label }) => <button type="button" key={key} className={`lv-reaction ${reacted[key] ? 'is-on' : ''}`} onClick={() => setReacted(old => ({ ...old, [key]: (old[key] || 0) + 1 }))}><Icon className="h-4 w-4" /><span>{label}</span>{reacted[key] ? <b>{reacted[key]}</b> : null}</button>)}
       </div>
       {next && <div className="lv-next-inline"><small>التالية</small><strong>{countdownText(next.startsAt, now)}</strong></div>}
-    </div>
+    </div>}
   </article>;
 }
 
-function LiveScheduleRail({ schedule, now }: { schedule: LiveScheduleItem[]; now: number }) {
+function LiveScheduleRail({ schedule, now, reminderCta }: { schedule: LiveScheduleItem[]; now: number; reminderCta: string }) {
   const [tab, setTab] = useState<'ALL' | 'TODAY' | 'NEXT'>('ALL');
   const rows = tab === 'ALL' ? schedule : tab === 'TODAY' ? schedule.filter(item => scheduleDay(item.startsAt, now) === 'اليوم') : [schedule[0]];
   return <aside className="lv-schedule-card ex-hud">
@@ -999,7 +1052,7 @@ function LiveScheduleRail({ schedule, now }: { schedule: LiveScheduleItem[]; now
         </div>
       </article>; })}
     </div>
-    <button type="button" className="lv-schedule-cta"><Bell className="h-4 w-4" />ذكّرني بكل المواجهات</button>
+    <button type="button" className="lv-schedule-cta"><Bell className="h-4 w-4" />{reminderCta}</button>
   </aside>;
 }
 
@@ -1023,10 +1076,12 @@ function LiveReplayCard({ slot, index }: { slot: LiveSlot; index: number }) {
 function StoreLivePage() {
   const { settings, tournaments, onlineCount } = useArena();
   const slots = liveSlotsFrom(settings);
+  const cfg = livePageFrom(settings);
   const [now, setNow] = useState(() => Date.now());
   const [view, setView] = useState<'ALL' | 'LIVE' | 'UPCOMING' | 'REPLAY'>('ALL');
   const [scheduleSeed] = useState(() => Date.now());
-  const schedule = useMemo(() => buildLiveSchedule(scheduleSeed, tournaments), [scheduleSeed, tournaments]);
+  const manualRows = useMemo(() => readSettingJson<LiveScheduleItem[]>(settings, 'live_schedule_rows', []), [settings.live_schedule_rows]);
+  const schedule = useMemo(() => (cfg.scheduleMode === 'MANUAL' && manualRows.length ? manualRows : buildLiveSchedule(scheduleSeed, tournaments)), [scheduleSeed, tournaments, cfg.scheduleMode, manualRows]);
   const activeLiveSlot = slots.find(item => item.state === 'LIVE' && item.url.trim());
   const liveSlot = activeLiveSlot || slots.find(item => item.state === 'UPCOMING') || slots.find(item => item.state === 'REPLAY') || slots[0];
   const replaySlots = slots.filter(item => item.state === 'REPLAY');
@@ -1050,19 +1105,19 @@ function StoreLivePage() {
       <span className="lv-hero-glow g-two" aria-hidden="true" />
       <span className="lv-hero-grid" aria-hidden="true" />
       <div className="lv-hero-copy">
-        <span className={`lv-hero-eyebrow ${hasLive ? 'is-live' : ''}`}><i />{hasLive ? 'بث مباشر الآن' : 'شبكة بث ARENA//X'}</span>
-        <h1>المباراة<br /><em>تبدأ هنا.</em></h1>
-        <p>بث بجودة احترافية، مواعيد دقيقة، وإعادات لأقوى لحظات الساحة. اختر قناتك وابدأ المشاهدة فوراً.</p>
+        <span className={`lv-hero-eyebrow ${hasLive ? 'is-live' : ''}`}><i />{hasLive ? 'بث مباشر الآن' : cfg.heroEyebrow}</span>
+        <h1>{cfg.heroTitle}<br /><em>{cfg.heroTitleAccent}</em></h1>
+        <p>{cfg.heroSubtitle}</p>
         <div className="lv-hero-actions">
-          <a href="#lv-stage" className="lv-btn primary large"><Play className="h-4 w-4" />{hasLive ? 'دخول البث المباشر' : 'استعرض جدول البث'}</a>
-          <a href="#lv-library" className="lv-btn ghost large"><Hourglass className="h-4 w-4" />مكتبة الإعادات</a>
+          <a href="#lv-stage" className="lv-btn primary large"><Play className="h-4 w-4" />{hasLive ? cfg.primaryCta : 'استعرض جدول البث'}</a>
+          <a href="#lv-library" className="lv-btn ghost large"><Hourglass className="h-4 w-4" />{cfg.secondaryCta}</a>
         </div>
-        <div className="lv-hero-stats">
+        {cfg.showStats && <div className="lv-hero-stats">
           <LiveStatChip icon={Radio} label="الحالة" value={hasLive ? 'على الهواء' : 'قريباً'} tone={hasLive ? 'red' : 'amber'} />
           <LiveStatChip icon={Users} label="مشاهدون" value={String(onlineCount || 1)} tone="blue" />
           <LiveStatChip icon={CalendarDays} label="مواجهات قادمة" value={String(upcomingCount)} />
           <LiveStatChip icon={Trophy} label="جوائز معلنة" value={featured?.prize || '—'} tone="amber" />
-        </div>
+        </div>}
       </div>
       <div className="lv-hero-art" aria-hidden="true">
         <span className="lv-ring r-one" /><span className="lv-ring r-two" /><span className="lv-ring r-three" />
@@ -1081,8 +1136,8 @@ function StoreLivePage() {
     </header>
 
     <section className="lv-stage" id="lv-stage" aria-label="البث الرئيسي وجدول المواجهات">
-      <LivePlayerStage slot={liveSlot} mainState={mainState} onlineCount={onlineCount || 1} schedule={schedule} now={now} />
-      <LiveScheduleRail schedule={schedule} now={now} />
+      <LivePlayerStage slot={liveSlot} mainState={mainState} onlineCount={onlineCount || 1} schedule={schedule} now={now} showReactions={cfg.showReactions} />
+      <LiveScheduleRail schedule={schedule} now={now} reminderCta={cfg.reminderCta} />
     </section>
 
     <section className="lv-library" id="lv-library">
@@ -1097,9 +1152,9 @@ function StoreLivePage() {
         <span className="lv-now-code">CH-01</span>
       </div>}
 
-      {(view === 'ALL' || view === 'UPCOMING') && <div className="lv-upcoming-bar">
+      {(view === 'ALL' || view === 'UPCOMING') && cfg.showUpcomingBar && <div className="lv-upcoming-bar">
         <span className="lv-upcoming-ico"><Clock3 className="h-5 w-5" /></span>
-        <div className="lv-upcoming-copy"><strong>لا تفوّت صافرة البداية</strong><small>أقرب مواجهة على جدول الساحة — اضبط تذكيرك وكن أول من يدخل البث.</small></div>
+        <div className="lv-upcoming-copy"><strong>{cfg.upcomingTitle}</strong><small>{cfg.upcomingNote}</small></div>
         <div className="lv-upcoming-timer"><small>يبدأ خلال</small><strong>{featuredTimer?.expired ? 'الآن' : countdownText(featured!.startsAt, now)}</strong><span>{featured?.title}</span></div>
       </div>}
 
@@ -1107,7 +1162,7 @@ function StoreLivePage() {
         ? <div className="lv-replay-grid">{replaySlots.map((slot, index) => <LiveReplayCard key={slot.id} slot={slot} index={index} />)}</div>
         : <Empty icon={Hourglass} text="لا توجد إعادات منشورة بعد." />)}
 
-      {(view === 'ALL' || view === 'UPCOMING') && <div className="lv-teaser-rail">
+      {(view === 'ALL' || view === 'UPCOMING') && cfg.showTeasers && <div className="lv-teaser-rail">
         {schedule.map(item => { const timer = countdownValue(item.startsAt, now); return <article className={`lv-teaser tone-${item.tone}`} key={item.id}>
           <span className="lv-teaser-top"><span className="lv-teaser-league">{item.league}</span><span className="lv-teaser-chip">{timer.expired ? 'LIVE' : scheduleDay(item.startsAt, now)}</span></span>
           <h3>{item.title}</h3>
@@ -2127,7 +2182,11 @@ const ADMIN_GROUPS: ControlNode[] = [
     ] },
   ] },
   { id: 'pricing', label: 'الإدارة والتسعير', hint: 'العمولة والحدود والأسعار', icon: Percent },
-  { id: 'live', label: 'بث مباشر', hint: 'خانات البث الثلاث', icon: Video },
+  { id: 'live', label: 'بث مباشر', hint: 'الواجهة والخانات والجدول', icon: Video, children: [
+    { id: 'live-page', label: 'واجهة البث', hint: 'العنوان والأزرار والشارات', icon: Sparkles },
+    { id: 'live-slots', label: 'خانات البث الثلاث', hint: 'الروابط والحالات', icon: Radio },
+    { id: 'live-schedule', label: 'الجدول والإعادات', hint: 'المواجهات القادمة والتذكير', icon: CalendarDays },
+  ] },
   { id: 'online', label: 'وضع عدّاد المتصلين', hint: 'تلقائي أو يدوي', icon: Wifi },
   { id: 'whatsapp', label: 'وضع واتساب', hint: 'الرابط أو Meta API', icon: MessageCircle },
   { id: 'whatsapp-number', label: 'رقم واتساب الإدارة', icon: Phone },
@@ -2183,7 +2242,10 @@ function ControlLeaf({ id }: { id: string }) {
     case 'arena-matches': return <AdminMatchesPage />;
     case 'arena-tournaments': return <AdminTournamentsPageV2 tournaments={tournaments} saveTournament={saveTournament} deleteTournament={deleteTournament} />;
     case 'pricing': return <PricingAdmin />;
-    case 'live': return <LiveStateAdminPage />;
+    case 'live':
+    case 'live-slots': return <LiveStateAdminPage />;
+    case 'live-page': return <LivePageSettingsAdmin />;
+    case 'live-schedule': return <LiveScheduleSettingsAdmin />;
     case 'online': return <OnlineCountSettings />;
     case 'whatsapp': return <WhatsAppSettingsPage />;
     case 'whatsapp-number': return <AdminWhatsAppNumberAdmin />;
@@ -2195,6 +2257,119 @@ function AdminStat({ icon: Icon, label, value, detail, tone = 'green' }: { icon:
 function AdminOverview() {
   const { users, recharges, withdrawals, disputes, activities, matches, tournaments } = useArena(); const pendingRecharge = recharges.filter(item => item.status === 'PENDING').length; const pendingWithdrawal = withdrawals.filter(item => item.status === 'PENDING').length; const openDisputes = disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length;
   return <div className="admin-page"><div className="admin-welcome"><div><span className="eyebrow">مركز العمليات</span><h2>مرحباً بك في لوحة التحكم</h2><p>تابع كل عمليات الشحن والسحب والنزاعات ونشاطات المستخدمين من مكان واحد.</p></div><Link href="/admin/activity" className="secondary-button"><Activity className="h-4 w-4" />عرض السجل الكامل</Link></div><div className="admin-stats"><AdminStat icon={ArrowDownToLine} label="طلبات الشحن المعلقة" value={String(pendingRecharge)} detail="تحتاج إلى مراجعة" /><AdminStat icon={ArrowUpFromLine} label="طلبات السحب المعلقة" value={String(pendingWithdrawal)} detail="تحتاج إلى تنفيذ" tone="amber" /><AdminStat icon={AlertTriangle} label="النزاعات المفتوحة" value={String(openDisputes)} detail="تحتاج إلى قرار" tone="red" /><AdminStat icon={Users} label="إجمالي المستخدمين" value={String(users.length)} detail={`${matches.length} مباريات • ${tournaments.length} بطولات`} tone="blue" /></div><div className="admin-columns"><section className="panel-card"><div className="panel-heading"><span><Activity className="h-4 w-4" />آخر النشاطات</span><Link href="/admin/activity" className="text-link">السجل الكامل</Link></div><ActivityList items={activities.slice(0, 8)} /></section><section className="panel-card quick-panel"><div className="panel-heading"><span><Zap className="h-4 w-4" />إجراءات سريعة</span></div><QuickAction href="/admin/recharges" icon={ArrowDownToLine} title="مراجعة الشحن" detail={`${pendingRecharge} طلبات معلقة`} tone="green" /><QuickAction href="/admin/withdrawals" icon={ArrowUpFromLine} title="معالجة السحب" detail={`${pendingWithdrawal} طلبات معلقة`} tone="amber" /><QuickAction href="/admin/disputes" icon={AlertTriangle} title="فحص النزاعات" detail={`${openDisputes} نزاعات مفتوحة`} tone="red" /><QuickAction href="/admin/users" icon={Users} title="إدارة المستخدمين" detail="الأرصدة والحسابات" tone="blue" /></section></div></div>;
+}
+
+function AdminToggle({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (next: boolean) => void }) {
+  return <button type="button" className={`admin-toggle ${value ? 'is-on' : ''}`} onClick={() => onChange(!value)} aria-pressed={value}>
+    <span className="admin-toggle-copy"><strong>{label}</strong>{hint && <small>{hint}</small>}</span>
+    <span className="admin-toggle-track"><i /></span>
+  </button>;
+}
+
+function LivePageSettingsAdmin() {
+  const { settings, saveSettings } = useArena();
+  const [form, setForm] = useState<LivePageConfig>(() => livePageFrom(settings));
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setForm(livePageFrom(settings)); }, [settings.live_page]);
+  const set = <K extends keyof LivePageConfig>(key: K, value: LivePageConfig[K]) => setForm(old => ({ ...old, [key]: value }));
+  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings({ live_page: JSON.stringify(form) }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+
+  return <form className="form-stack live-settings" onSubmit={submit}>
+    {saved && <Notice>تم حفظ إعدادات واجهة البث.</Notice>}
+
+    <section className="panel-card live-settings-block">
+      <div className="panel-heading"><span><Sparkles className="h-4 w-4" />الواجهة الرئيسية</span><small>تظهر أعلى صفحة البث</small></div>
+      <div className="settings-section">
+        <div className="form-grid">
+          <Field label="الشارة العلوية" value={form.heroEyebrow} onChange={value => set('heroEyebrow', value)} placeholder="شبكة بث ARENA//X" />
+          <Field label="الكلمة المميزة (بلون مميز)" value={form.heroTitleAccent} onChange={value => set('heroTitleAccent', value)} placeholder="تبدأ هنا." />
+        </div>
+        <Field label="العنوان الرئيسي" value={form.heroTitle} onChange={value => set('heroTitle', value)} placeholder="المباراة" />
+        <label className="form-field"><span>النص التعريفي</span><textarea rows={3} value={form.heroSubtitle} onChange={event => set('heroSubtitle', event.target.value)} /></label>
+        <div className="form-grid">
+          <Field label="الزر الأساسي" value={form.primaryCta} onChange={value => set('primaryCta', value)} placeholder="دخول البث المباشر" />
+          <Field label="الزر الثانوي" value={form.secondaryCta} onChange={value => set('secondaryCta', value)} placeholder="مكتبة الإعادات" />
+        </div>
+      </div>
+    </section>
+
+    <section className="panel-card live-settings-block">
+      <div className="panel-heading"><span><LayoutGrid className="h-4 w-4" />عناصر الصفحة</span><small>إظهار أو إخفاء الأقسام</small></div>
+      <div className="admin-toggle-list">
+        <AdminToggle label="بطاقات الإحصاء" hint="الحالة والمشاهدون والمواجهات والجوائز" value={form.showStats} onChange={value => set('showStats', value)} />
+        <AdminToggle label="شريط تفاعل الجمهور" hint="أزرار حماس وإعجاب ودعم" value={form.showReactions} onChange={value => set('showReactions', value)} />
+        <AdminToggle label="شريط المواجهة القادمة" hint="البطاقة الذهبية مع العدّاد" value={form.showUpcomingBar} onChange={value => set('showUpcomingBar', value)} />
+        <AdminToggle label="بطاقات الجدول السريعة" hint="شبكة المواجهات في أسفل الصفحة" value={form.showTeasers} onChange={value => set('showTeasers', value)} />
+      </div>
+    </section>
+
+    <button className="primary-button"><Save className="h-4 w-4" />حفظ إعدادات الواجهة</button>
+  </form>;
+}
+
+function LiveScheduleSettingsAdmin() {
+  const { settings, saveSettings } = useArena();
+  const [form, setForm] = useState<LivePageConfig>(() => livePageFrom(settings));
+  const [saved, setSaved] = useState(false);
+  const [rows, setRows] = useState<LiveScheduleItem[]>(() => readSettingJson<LiveScheduleItem[]>(settings, 'live_schedule_rows', []));
+  useEffect(() => { setForm(livePageFrom(settings)); setRows(readSettingJson<LiveScheduleItem[]>(settings, 'live_schedule_rows', [])); }, [settings.live_page, settings.live_schedule_rows]);
+  const set = <K extends keyof LivePageConfig>(key: K, value: LivePageConfig[K]) => setForm(old => ({ ...old, [key]: value }));
+  const addRow = () => setRows(old => [...old, { id: `row-${Date.now()}`, title: '', league: 'ARENA//X', platform: 'eFootball Mobile', startsAt: new Date(Date.now() + 3600000).toISOString(), prize: '$500', tone: 'green' }]);
+  const updateRow = (id: string, patch: Partial<LiveScheduleItem>) => setRows(old => old.map(item => item.id === id ? { ...item, ...patch } : item));
+  const removeRow = (id: string) => setRows(old => old.filter(item => item.id !== id));
+  const submit = (event: FormEvent) => { event.preventDefault(); saveSettings({ live_page: JSON.stringify(form), live_schedule_rows: JSON.stringify(rows) }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+
+  return <form className="form-stack live-settings" onSubmit={submit}>
+    {saved && <Notice>تم حفظ إعدادات الجدول.</Notice>}
+
+    <section className="panel-card live-settings-block">
+      <div className="panel-heading"><span><CalendarDays className="h-4 w-4" />مصدر الجدول</span><small>كيف تُبنى المواجهات القادمة</small></div>
+      <div className="settings-section">
+        <label className="form-field"><span>طريقة العرض</span><select value={form.scheduleMode} onChange={event => set('scheduleMode', event.target.value === 'MANUAL' ? 'MANUAL' : 'AUTO')}><option value="AUTO">تلقائي من البطولات</option><option value="MANUAL">يدوي — المواجهات التي أضيفها أدناه</option></select></label>
+        <small className="settings-hint">الوضع التلقائي يبني الجدول من مواعيد البطولات المسجلة في المنصة.</small>
+        <div className="form-grid">
+          <Field label="عنوان شريط التذكير" value={form.upcomingTitle} onChange={value => set('upcomingTitle', value)} placeholder="لا تفوّت صافرة البداية" />
+          <Field label="نص زر التذكير" value={form.reminderCta} onChange={value => set('reminderCta', value)} placeholder="ذكّرني بكل المواجهات" />
+        </div>
+        <label className="form-field"><span>النص التوضيحي للشريط</span><textarea rows={2} value={form.upcomingNote} onChange={event => set('upcomingNote', event.target.value)} /></label>
+      </div>
+    </section>
+
+    <section className="panel-card live-settings-block">
+      <div className="panel-heading"><span><Clock3 className="h-4 w-4" />مواجهات مخصصة</span><button type="button" className="secondary-button small" onClick={addRow}><Plus className="h-3.5 w-3.5" />إضافة مواجهة</button></div>
+      {rows.length === 0 && <p className="empty-note">لا توجد مواجهات مخصصة. أضف مواجهة لاستخدامها في الوضع اليدوي.</p>}
+      <div className="live-rows">
+        {rows.map(row => <article className="live-row-card panel-card" key={row.id}>
+          <div className="form-grid">
+            <Field label="اسم المواجهة" value={row.title} onChange={value => updateRow(row.id, { title: value })} placeholder="SHOWDOWN: المغرب ضد العالم" />
+            <Field label="البطولة / الدوري" value={row.league} onChange={value => updateRow(row.id, { league: value })} placeholder="ARENA//X OPEN" />
+          </div>
+          <div className="form-grid">
+            <Field label="المنصة" value={row.platform} onChange={value => updateRow(row.id, { platform: value })} placeholder="PlayStation" />
+            <Field label="الجائزة" value={row.prize} onChange={value => updateRow(row.id, { prize: value })} placeholder="$900" />
+          </div>
+          <div className="form-grid">
+            <label className="form-field"><span>موعد البداية</span><input type="datetime-local" value={toLocalInput(row.startsAt)} onChange={event => updateRow(row.id, { startsAt: fromLocalInput(event.target.value) })} /></label>
+            <label className="form-field"><span>اللون</span><select value={row.tone} onChange={event => updateRow(row.id, { tone: event.target.value as LiveScheduleItem['tone'] })}><option value="green">أخضر</option><option value="blue">أزرق</option><option value="amber">ذهبي</option></select></label>
+          </div>
+          <button type="button" className="danger-button small" onClick={() => removeRow(row.id)}><Trash2 className="h-3.5 w-3.5" />حذف المواجهة</button>
+        </article>)}
+      </div>
+    </section>
+
+    <button className="primary-button"><Save className="h-4 w-4" />حفظ إعدادات الجدول</button>
+  </form>;
+}
+
+function toLocalInput(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+function fromLocalInput(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
 function LiveStateAdminPage() {
