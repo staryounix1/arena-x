@@ -1759,6 +1759,22 @@ function HomePage() {
         </span>
       </div>
     </div>}
+    {/* ── WINNERS TICKER (top of page) ─────────────────────────────────── */}
+    <div className="ex-winners" aria-label="أحدث الفائزين">
+      <span className="ex-winners-badge"><Trophy className="h-3.5 w-3.5" />فائزون</span>
+      <div className="ex-winners-viewport">
+        {winnerTicker.length ? <div className="ex-winners-track">
+          {[...winnerTicker, ...winnerTicker].map((item, index) => <span className="ex-winner" key={`${item.id}-${index}`}>
+            <b>{item.winner}</b>
+            <em>فاز بـ</em>
+            <strong>{money(item.prize)}</strong>
+            <i>{item.platform}</i>
+          </span>)}
+        </div> : <div className="ex-winners-track is-static">
+          {[...marqueeItems, ...marqueeItems].map((item, index) => <span className="ex-winner is-plain" key={index}><b>ARENA//X</b><em>{item}</em></span>)}
+        </div>}
+      </div>
+    </div>
     {/* ── HERO ─────────────────────────────────────────────────────────── */}
     <section className="ex-hero">
       <div className="ex-shell ex-hero-grid">
@@ -1809,23 +1825,6 @@ function HomePage() {
         </aside>
       </div>
     </section>
-
-    {/* ── WINNERS TICKER ───────────────────────────────────────────────── */}
-    <div className="ex-winners" aria-label="أحدث الفائزين">
-      <span className="ex-winners-badge"><Trophy className="h-3.5 w-3.5" />فائزون</span>
-      <div className="ex-winners-viewport">
-        {winnerTicker.length ? <div className="ex-winners-track">
-          {[...winnerTicker, ...winnerTicker].map((item, index) => <span className="ex-winner" key={`${item.id}-${index}`}>
-            <b>{item.winner}</b>
-            <em>فاز بـ</em>
-            <strong>{money(item.prize)}</strong>
-            <i>{item.platform}</i>
-          </span>)}
-        </div> : <div className="ex-winners-track is-static">
-          {[...marqueeItems, ...marqueeItems].map((item, index) => <span className="ex-winner is-plain" key={index}><b>ARENA//X</b><em>{item}</em></span>)}
-        </div>}
-      </div>
-    </div>
 
     {/* ── MATCH RAIL ───────────────────────────────────────────────────── */}
     <section className="ex-section ex-shell">
