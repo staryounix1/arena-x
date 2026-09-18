@@ -34,6 +34,9 @@ a { color: inherit; text-decoration: none; }
 .mono { font-family: var(--app-font-mono); direction: ltr; unicode-bidi: isolate; }
 .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
 .main-content { min-height: calc(100vh - 140px); }
+/* Admin pages size to their content so short control-centre screens do not
+   leave a large empty gap below the last button. */
+.main-content:has(.admin-shell) { min-height: 0; }
 
 .site-header { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--line); background: rgba(8, 11, 16, .86); backdrop-filter: blur(18px); }
 .nav-inner { min-height: 76px; display: flex; align-items: center; gap: 26px; }
