@@ -63,6 +63,39 @@ a { color: inherit; text-decoration: none; }
 .more-dropdown-link:hover { color: var(--text); background: var(--surface); }
 .more-dropdown-logout { width: 100%; border: 0; background: transparent; cursor: pointer; text-align: start; color: #ffa9b8; }
 .more-dropdown-logout:hover { color: #ffc2cc; background: rgba(251, 113, 133, .1); }
+.more-dropdown-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 13px 11px 11px;
+  border-top: 1px solid var(--line);
+}
+.more-dropdown-brand::before {
+  position: absolute;
+  top: -1px;
+  right: 11px;
+  left: 11px;
+  height: 1px;
+  content: '';
+  background: linear-gradient(90deg, transparent, rgba(66, 228, 165, .55), transparent);
+}
+.more-dropdown-brand-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: #06110e;
+  background: linear-gradient(140deg, var(--green), #29b9c1);
+  box-shadow: 0 8px 22px rgba(66, 228, 165, .25);
+}
+.more-dropdown-brand-copy { display: grid; gap: 2px; min-width: 0; }
+.more-dropdown-brand-copy strong { font-size: 12.5px; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+.more-dropdown-brand-copy strong em { font-style: normal; color: var(--green); }
+.more-dropdown-brand-copy small { color: var(--muted); font-size: 9.5px; font-weight: 700; letter-spacing: .01em; }
 .notification-menu { position: relative; }
 .notification-button { position: relative; cursor: pointer; }
 .notification-dot { position: absolute; top: 6px; inset-inline-end: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px rgba(8, 11, 16, .9); }
