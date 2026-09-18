@@ -1796,13 +1796,17 @@ function HomePage() {
 
         <aside className="ex-stage ex-hud">
           <div className="ex-stage-top">
-            <span><Zap className="h-3.5 w-3.5" />اللقاء الرئيسي</span>
+            <span className="ex-stage-label"><Zap className="h-3.5 w-3.5" />اللقاء الرئيسي</span>
             <span className="ex-live-pill"><i />{liveMatches > 0 ? `${liveMatches} مباشر` : 'على الهواء'}</span>
           </div>
           {featured ? <>
-            <span className="ex-stage-kicker">{featured.title}</span>
+            <div className="ex-stage-meta">
+              <span className="ex-stage-kicker">{featured.title}</span>
+              <span className="ex-stage-prize-inline"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
+            </div>
             <div className="ex-versus">
               <div className="ex-side">
+                <span className="ex-side-badge">المُتحدّي</span>
                 <UserAvatar username={featured.creatorName} teamId={featured.creatorTeam} large />
                 <strong>{featured.creatorName}</strong>
                 <small>{teamById(featured.creatorTeam)?.name || 'فريق مختار'}</small>
@@ -1812,6 +1816,7 @@ function HomePage() {
                 <span className="ex-versus-prize"><small>الجائزة المضمونة</small><strong>{money(featured.prize)}</strong></span>
               </div>
               <div className="ex-side">
+                <span className="ex-side-badge is-opp">المُنافس</span>
                 <UserAvatar username={featured.opponentName} teamId={featured.opponentTeam} large />
                 <strong>{featured.opponentName}</strong>
                 <small>{teamById(featured.opponentTeam)?.name || 'فريق مختار'}</small>
