@@ -872,8 +872,27 @@ const maskEfootballId = (value: string) => {
 const publicEfootballId = (player: LeaderboardPlayer) => player.show_efootball_id ? player.efootball_id : maskEfootballId(player.efootball_id);
 function rankPlayers<T extends { username: string; wins: number; losses: number; win_rate: number }>(players: T[]) { return [...players].sort((a, b) => b.wins - a.wins || b.win_rate - a.win_rate || a.losses - b.losses || a.username.localeCompare(b.username)); }
 const teamById = (id?: string) => TEAM_OPTIONS.find(item => item.id === id);
+const publicTeamCache = new Map<string, string>();
+const publicTeamPending = new Set<string>();
+function usePublicTeam(username?: string): string | undefined {
+  const [team, setTeam] = useState<string | undefined>(() => (username ? publicTeamCache.get(username) : undefined));
+  useEffect(() => {
+    if (!username || publicTeamCache.has(username)) { if (username) setTeam(publicTeamCache.get(username)); return; }
+    if (!supabaseEnabled || !supabase || publicTeamPending.has(username)) return;
+    publicTeamPending.add(username);
+    let active = true;
+    void supabase.rpc('public_team_profiles', { usernames: [username] }).then(({ data }) => {
+      publicTeamPending.delete(username);
+      const row = (data as { username: string; favorite_team: string | null }[] | null)?.[0];
+      if (row?.favorite_team) publicTeamCache.set(row.username, row.favorite_team);
+      if (active) setTeam(row?.favorite_team || publicTeamCache.get(username));
+    });
+    return () => { active = false; };
+  }, [username]);
+  return team;
+}
 function TeamLogo({ teamId, large = false }: { teamId?: string; large?: boolean }) { const team = teamById(teamId); return <span className={`team-logo ${large ? 'large' : ''}`} style={{ background: team?.color || '#18212c', color: team?.accent || '#42e4a5' }}>{team?.logo && <img src={team.logo} alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />}<b>{team?.short || 'FC'}</b></span>; }
-function UserAvatar({ username, teamId, fallback, large = false }: { username: string; teamId?: string; fallback?: string; large?: boolean }) { const { users } = useArena(); const profile = users.find(item => item.username === username); const team = teamById(teamId || profile?.favorite_team); return <span className={`avatar ${large ? 'large ' : ''}${team?.logo ? 'team-avatar' : ''}`} title={team?.name || username}>{team?.logo ? <img src={team.logo} alt={team.name} onError={event => { event.currentTarget.style.display = 'none'; }} /> : (fallback || initials(username))}</span>; }
+function UserAvatar({ username, teamId, fallback, large = false }: { username: string; teamId?: string; fallback?: string; large?: boolean }) { const { users } = useArena(); const profile = users.find(item => item.username === username); const fetched = usePublicTeam(username); const team = teamById(teamId || profile?.favorite_team || fetched); return <span className={`avatar ${large ? 'large ' : ''}${team?.logo ? 'team-avatar' : ''}`} title={team?.name || username}>{team?.logo ? <img src={team.logo} alt={team.name} onError={event => { event.currentTarget.style.display = 'none'; }} /> : (fallback || initials(username))}</span>; }
 const statusLabel: Record<string, string> = { NEW: 'جديد', PENDING: 'قيد المراجعة', APPROVED: 'معتمد', REJECTED: 'مرفوض', OPEN: 'مفتوح', UNDER_REVIEW: 'قيد المراجعة', RESOLVED: 'تم الحل', DISPUTE: 'نزاع', PLAYING: 'جارية', COMPLETED: 'مكتملة', DELIVERED: 'تم التسليم', OPEN_MATCH: 'متاحة', UPCOMING: 'قادمة', LIVE: 'مباشرة', CANCELLED: 'ملغاة' };
 function StatusBadge({ status }: { status: string }) { const tone = ['APPROVED', 'RESOLVED', 'COMPLETED', 'DELIVERED'].includes(status) ? 'success' : ['REJECTED', 'CANCELLED'].includes(status) ? 'danger' : ['PENDING', 'UNDER_REVIEW', 'DISPUTE'].includes(status) ? 'warning' : 'info'; return <span className={`status-badge status-${tone}`}>{statusLabel[status] || status}</span>; }
 function Notice({ children, type = 'success' }: { children: ReactNode; type?: 'success' | 'error' }) { return <div className={`notice ${type === 'error' ? 'notice-error' : ''}`}><AlertCircle className="h-4 w-4 shrink-0" />{children}</div>; }
